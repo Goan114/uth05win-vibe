@@ -62,6 +62,7 @@ public:
 	CReplay m_replay;
 //or this set
 	bool m_bPracticeMode;
+ practice::Config m_practiceConfig;
 	int m_playDifficulty;
 	int m_playChara;
 

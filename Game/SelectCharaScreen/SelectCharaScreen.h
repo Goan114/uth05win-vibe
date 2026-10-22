@@ -11,6 +11,8 @@ class CSelectCharaScreen : public CScheme
 {
 friend struct PracticeTests;
 	bool m_bStageSelect, m_stageSelectClosing;
+ bool m_bThpracSetup;
+ int m_setupAction;
 	int m_stageCursor, m_stageSelectAge;
 	void ParseStageKey(unsigned short state);
 	void DrawStageSelect();

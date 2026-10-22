@@ -199,6 +199,7 @@ protected:
 	void DownloadVarFromGlobal();
 	void UploadVarToGlobal();
 	void InitChara();
+ void ApplyPracticeWarp();
 
 protected:
 	bool m_bHomingEnemyExist;

@@ -1,0 +1,95 @@
+// Layout and widget order follow purple TH06::THGuiPrac::PracticeMenu.
+#include "Practice.h"
+#include "../Game.h"
+#include "../../third_party/imgui/imgui.h"
+#include "../../third_party/imgui/imgui_internal.h"
+namespace th5w { namespace practice {
+namespace {
+void SetupCombo(const char* label,int* value,const char* const* items,int count){
+ ImGui::Combo(label,value,items,count);
+ if(ImGui::IsItemFocused()&&!ImGui::IsPopupOpen(static_cast<const char*>(NULL),ImGuiPopupFlags_AnyPopupId)){
+  if(ImGui::IsKeyPressed(VK_LEFT))*value=(*value+count-1)%count;
+  else if(ImGui::IsKeyPressed(VK_RIGHT))*value=(*value+1)%count;
+ }
+}
+void SetupAdjust(int* value,int lo,int hi,int step,bool wrap){
+ if(!ImGui::IsItemFocused()||ImGui::IsItemActive())return;
+ const int direction=ImGui::IsKeyPressed(VK_LEFT)?-1:ImGui::IsKeyPressed(VK_RIGHT)?1:0;
+ if(direction){*value+=direction*step;if(wrap&&step==1){if(*value<lo)*value=hi;else if(*value>hi)*value=lo;}else *value=Config::Bound(*value,lo,hi);}
+}
+void SetupSlider(const char* label,int* value,int lo,int hi){
+ ImGui::SliderInt(label,value,lo,hi);SetupAdjust(value,lo,hi,1,true);
+}
+void SetupDrag(const char* label,int* value,float speed,int lo,int hi){
+ ImGui::DragInt(label,value,speed,lo,hi,"%d",ImGuiSliderFlags_AlwaysClamp);SetupAdjust(value,lo,hi,int(speed),false);
+}
+}
+Config& MenuConfig(){static Config value;return value;}
+void OpenSetup(int stage){
+ static bool first=true;
+ if(first){MenuConfig().mode=1;MenuConfig().stage=stage;first=false;}
+}
+bool StartSetup(){
+ auto& g=CGame::GVar();Config p=MenuConfig();
+ const int difficulty=p.stage==6?4:g.m_initDifficulty;
+ p.Clamp(difficulty);
+ if(!p.Valid(difficulty))return false;
+ if(!p.mode&&(p.stage>=6||!g.PracticeStageUnlocked(p.stage)))return false;
+ g.m_practiceConfig=p;g.m_playStage=p.stage;g.m_playDifficulty=difficulty;
+ g.m_bPracticeMode=true;g.m_bReplayMode=false;g.OnBeginGame();return true;
+}
+int DrawSetup(int age){
+ if(!ImGui::GetCurrentContext())return 0;
+ Config& p=MenuConfig();int action=0;
+ const bool popup=ImGui::IsPopupOpen(static_cast<const char*>(NULL),ImGuiPopupFlags_AnyPopupId);
+ const bool idle=!ImGui::IsAnyItemActive()&&!popup;
+ const bool confirm=age>=10&&idle&&ImGui::IsKeyPressed('Z',false);
+ const bool cancel=age>=10&&idle&&ImGui::IsKeyPressed('X',false);
+ // Purple practice uses the game's Z/X, not ImGui button activation.
+ // Do not let Z also open the focused combo or activate a slider.
+ if(!popup&&ImGui::GetIO().KeysDown['Z']){GImGui->NavActivateId=GImGui->NavActivateDownId=GImGui->NavActivatePressedId=GImGui->NavInputId=0;}
+
+ ImGui::GetIO().MouseDrawCursor=true;
+ const float alpha=ImMin(.8f,age*.1f);
+ ImGui::SetNextWindowPos(ImVec2(260,25),ImGuiCond_Always);
+ ImGui::SetNextWindowSize(ImVec2(330,430),ImGuiCond_Always);
+ ImGui::SetNextWindowBgAlpha(alpha);
+ ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,0.f);
+ ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize,0.f);
+ ImGui::Begin("TH05 Practice",NULL,ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings|(age<10?ImGuiWindowFlags_NoInputs:0));
+ ImGui::TextUnformatted(u8"\u7ec3\u4e60\u6a21\u5f0f");ImGui::Separator();ImGui::PushItemWidth(-85);
+ if(age==10){ImGui::SetWindowFocus();ImGui::SetKeyboardFocusHere();}
+ const char* modes[]={u8"\u6b63\u5e38\u6a21\u5f0f",u8"\u81ea\u5b9a\u4e49\u6a21\u5f0f"};
+ SetupCombo(u8"\u6a21\u5f0f",&p.mode,modes,2);
+ const char* stages[]={"STAGE 1","STAGE 2","STAGE 3","STAGE 4","STAGE 5","STAGE 6","EXTRA"};
+ if(!p.mode&&p.stage==6)p.stage=0;
+ SetupCombo(u8"\u5173\u5361",&p.stage,stages,p.mode?7:6);
+ if(p.mode){
+  const char* warps[]={u8"\u65e0",u8"\u9053\u4e2dBoss",u8"\u5173\u5e95Boss",u8"\u5e27"};
+  SetupCombo(u8"\u4f20\u9001",&p.warp,warps,4);
+  if(p.warp==3)SetupDrag(u8"\u5e27",&p.frame,1,0,60000);
+  SetupSlider(u8"\u6b8b\u673a",&p.lives,0,8);
+  SetupSlider(u8"Bomb",&p.bombs,0,8);
+  SetupDrag(u8"\u5206\u6570",&p.score,10,0,99999990);
+  SetupSlider(u8"\u706b\u529b",&p.power,1,128);
+  SetupDrag(u8"\u64e6\u5f39",&p.graze,1,0,999);
+  SetupDrag(u8"\u7d2f\u8ba1\u84dd\u70b9",&p.totalPoints,1,0,99999);
+  SetupDrag(u8"\u5355\u5173\u84dd\u70b9",&p.points,1,0,999);
+  SetupSlider(u8"\u68a6\u70b9",&p.dream,1,128);
+  const int difficulty=p.stage==6?4:CGame::GVar().m_initDifficulty;
+  SetupSlider("Rank",&p.rank,p.lockRank?0:Config::RankMin(difficulty),p.lockRank?64:Config::RankMax(difficulty));
+  bool locked=p.lockRank!=0;ImGui::Checkbox(u8"\u9501Rank",&locked);
+  if(ImGui::IsItemFocused()&&(ImGui::IsKeyPressed(VK_LEFT)||ImGui::IsKeyPressed(VK_RIGHT)))locked=!locked;
+  p.lockRank=locked?1:0;
+ }
+ p.Clamp(p.stage==6?4:CGame::GVar().m_initDifficulty);
+ ImGui::PopItemWidth();
+ const bool valid=p.Valid(p.stage==6?4:CGame::GVar().m_initDifficulty);
+ const bool unlocked=p.mode||CGame::GVar().PracticeStageUnlocked(p.stage);
+ if(!valid)ImGui::TextColored(ImVec4(1,.5f,.5f,1),u8"\u7b2c\u516d\u5173\u6ca1\u6709\u9053\u4e2dBoss");
+ else if(!unlocked)ImGui::TextColored(ImVec4(1,.5f,.5f,1),u8"\u5b9e\u6218\u8fdb\u5165\u8be5\u5173\u5361\u540e\u89e3\u9501\u7ec3\u4e60");
+ if(confirm&&valid&&unlocked)action=1;
+ if(cancel)action=2;
+ ImGui::End();ImGui::PopStyleVar(2);return action;
+}
+} }

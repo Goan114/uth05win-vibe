@@ -374,7 +374,7 @@ void CChara::Step()
 				if (!practice::Enabled(practice::KeepPower)) SetPower(m_power-powerDec);
 				m_pStage->m_bPlaySound[2]=true;
 				if (m_pStage->m_playerPerformance>38)
-					m_pStage->m_playerPerformance=38;
+					m_pStage->ChangePlayerPerformance(38-m_pStage->m_playerPerformance);
 				m_pStage->ChangePlayerPerformance(-4);
 				m_pStage->m_nMiss++;
 			}

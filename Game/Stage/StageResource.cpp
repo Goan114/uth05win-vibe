@@ -47,6 +47,11 @@ CStageResource::~CStageResource(void)
 
 void CStageResource::InitTranslation()
 {
+	//copy default cross row string to m_crossRow
+	{
+		unsigned char cross[]={0x81,0x40,0x81,0x40,0x81,0x7e,0x81,0x40,0x81,0x40,0};
+		strcpy(m_crossRow,(char*)cross);
+	}
 	if (CGame::GVar().m_bUseMod==false)
 		return;
 
@@ -84,11 +89,6 @@ void CStageResource::InitTranslation()
 		m_pStageStd->m_stageBossBGMName=m_translatedStageBossBGMName[CGame::GVar().m_playStage];
 	}
 
-	//copy default cross row string to m_crossRow
-	{
-		unsigned char cross[]={0x81,0x40,0x81,0x40,0x81,0x7e,0x81,0x40,0x81,0x40,0};
-		strcpy(m_crossRow,(char*)cross);
-	}
 	fileIdx=CGame::s_pCurGame->m_modDat.GetChildFileIndex("marks.txt");
 	if (fileIdx!=-1)
 	{

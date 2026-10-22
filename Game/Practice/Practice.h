@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include "PracticeConfig.h"
 namespace th5w {
 class CStage;
 namespace practice {
@@ -19,5 +20,9 @@ void WindowMessage(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 void FocusPause();
 void DrawPause(CStage& stage);
 void DrawStatus();
+void OpenSetup(int stage);
+int DrawSetup(int age); // 0 = editing, 1 = start, 2 = return
+bool StartSetup();
+Config& MenuConfig();
 }
 }

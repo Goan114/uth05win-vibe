@@ -25,6 +25,7 @@ bool CReplay::Reset()
 	m_playDifficulty=0;
 	m_playChara=0;
 	m_bPracticeMode=false;
+ m_practiceConfig=practice::Config();
 	memset(m_stageFlag,0,sizeof(m_stageFlag));
 	memset(m_nCurLife,0,sizeof(m_nCurLife));
 	memset(m_nCurBomb,0,sizeof(m_nCurBomb));
@@ -60,7 +61,8 @@ bool CReplay::GetRepFileInfo(REPLAY_BRIEF_INFO* pOut, const char *fileName)
 	FAIL_CLOSE_SETERRORCODE_RETURN(fread(buf,1,4,fp)!=4,InfoRes_InvalidReplay)
 	FAIL_CLOSE_SETERRORCODE_RETURN((*(int*)buf)!=(*(int*)sig),InfoRes_InvalidReplay)
 	FAIL_CLOSE_SETERRORCODE_RETURN(fread(buf,1,4,fp)!=4,InfoRes_InvalidReplay)
-	FAIL_CLOSE_SETERRORCODE_RETURN((*(int*)buf)!=CGame::GVar().m_gameVersion,InfoRes_GameVersionMismatch)
+	const int replayVersion=*(int*)buf;
+	FAIL_CLOSE_SETERRORCODE_RETURN(replayVersion!=CGame::GVar().m_gameVersion&&replayVersion!=CGame::GVar().m_gameVersion+1,InfoRes_GameVersionMismatch)
 	FAIL_CLOSE_SETERRORCODE_RETURN(fread(buf,1,16,fp)!=16,InfoRes_InvalidReplay)
 	for (int i=0;i<16;i++)
 		FAIL_CLOSE_SETERRORCODE_RETURN(buf[i]!=CGame::GVar().m_modMD5[i],InfoRes_ModFileMisMatch)
@@ -79,6 +81,7 @@ bool CReplay::GetRepFileInfo(REPLAY_BRIEF_INFO* pOut, const char *fileName)
 	FAIL_CLOSE_SETERRORCODE_RETURN(fread(&pOut->stageScore,4,7,fp)!=7,InfoRes_InvalidReplay)
 
 	fclose(fp);
+	if(replayVersion!=CGame::GVar().m_gameVersion){CReplay parsed;if(!parsed.LoadFile(fileName)){pOut->infoRes=InfoRes_InvalidReplay;return false;}}
 	pOut->infoRes=InfoRes_ValidReplay;
 	return true;
 #undef FAIL_CLOSE_SETERRORCODE_RETURN
@@ -86,13 +89,15 @@ bool CReplay::GetRepFileInfo(REPLAY_BRIEF_INFO* pOut, const char *fileName)
 
 bool CReplay::SaveFile(const char *fileName)
 {
+ if(m_practiceConfig.mode&&(!m_bPracticeMode||!m_practiceConfig.Valid(m_playDifficulty)))return false;
 #define FAIL_CLOSE_RETURN(x) if (x) {fclose(fp);return false;}
 	FILE *fp=fopen(fileName,"wb");
 	if (fp==NULL)
 		return false;
 
 	FAIL_CLOSE_RETURN(fwrite("RPY ",1,4,fp)!=4)
-	FAIL_CLOSE_RETURN(fwrite(&CGame::GVar().m_gameVersion,4,1,fp)!=1)
+	const int replayVersion=CGame::GVar().m_gameVersion+(m_practiceConfig.mode?1:0);
+	FAIL_CLOSE_RETURN(fwrite(&replayVersion,4,1,fp)!=1)
 	FAIL_CLOSE_RETURN(fwrite(CGame::GVar().m_modMD5,1,16,fp)!=16)
 
 	FAIL_CLOSE_RETURN(fwrite(&m_playerName,1,8,fp)!=8)
@@ -123,8 +128,15 @@ bool CReplay::SaveFile(const char *fileName)
 		{
 			int nkey=(int)m_keyState[i].size();
 			FAIL_CLOSE_RETURN(fwrite(&nkey,4,1,fp)!=1)
-			FAIL_CLOSE_RETURN(fwrite(&m_keyState[i][0],2,nkey,fp)!=nkey)
+			FAIL_CLOSE_RETURN(fwrite(m_keyState[i].data(),2,nkey,fp)!=nkey)
 		}
+ if(m_practiceConfig.mode){
+  const unsigned int version=1,size=sizeof(practice::Config);
+  FAIL_CLOSE_RETURN(fwrite("TPC5",1,4,fp)!=4)
+  FAIL_CLOSE_RETURN(fwrite(&version,4,1,fp)!=1)
+  FAIL_CLOSE_RETURN(fwrite(&size,4,1,fp)!=1)
+  FAIL_CLOSE_RETURN(fwrite(&m_practiceConfig,1,size,fp)!=size)
+ }
 	fclose(fp);
 	return true;
 #undef FAIL_CLOSE_RETURN
@@ -132,6 +144,7 @@ bool CReplay::SaveFile(const char *fileName)
 
 bool CReplay::LoadFile(const char *fileName)
 {
+ m_practiceConfig=practice::Config();
 #define FAIL_CLOSE_RETURN(x) if (x) {fclose(fp);return false;}
 	FILE *fp=fopen(fileName,"rb");
 	if (fp==NULL)
@@ -142,7 +155,8 @@ bool CReplay::LoadFile(const char *fileName)
 	FAIL_CLOSE_RETURN(fread(buf,1,4,fp)!=4)
 	FAIL_CLOSE_RETURN((*(int*)buf)!=(*(int*)sig))
 	FAIL_CLOSE_RETURN(fread(buf,1,4,fp)!=4)
-	FAIL_CLOSE_RETURN((*(int*)buf)!=CGame::GVar().m_gameVersion)
+	const int replayVersion=*(int*)buf;
+	FAIL_CLOSE_RETURN(replayVersion!=CGame::GVar().m_gameVersion&&replayVersion!=CGame::GVar().m_gameVersion+1)
 	FAIL_CLOSE_RETURN(fread(buf,1,16,fp)!=16)
 	for (int i=0;i<16;i++)
 		FAIL_CLOSE_RETURN(buf[i]!=CGame::GVar().m_modMD5[i])
@@ -174,9 +188,24 @@ bool CReplay::LoadFile(const char *fileName)
 		{
 			int nkey;
 			FAIL_CLOSE_RETURN(fread(&nkey,4,1,fp)!=1)
+			FAIL_CLOSE_RETURN(nkey<0||nkey>10000000)
+            const long dataStart=ftell(fp);fseek(fp,0,SEEK_END);const long bytesLeft=ftell(fp)-dataStart;fseek(fp,dataStart,SEEK_SET);
+            FAIL_CLOSE_RETURN(nkey>bytesLeft/2)
 			m_keyState[i].resize(nkey);
-			FAIL_CLOSE_RETURN(fread(&m_keyState[i][0],2,nkey,fp)!=nkey)
+			FAIL_CLOSE_RETURN(fread(m_keyState[i].data(),2,nkey,fp)!=nkey)
 		}
+ if(replayVersion!=CGame::GVar().m_gameVersion){
+  char sig[4];unsigned int version=0,size=0;
+  FAIL_CLOSE_RETURN(fread(sig,1,4,fp)!=4||memcmp(sig,"TPC5",4)!=0)
+  FAIL_CLOSE_RETURN(fread(&version,4,1,fp)!=1||version!=1)
+  FAIL_CLOSE_RETURN(fread(&size,4,1,fp)!=1||size!=sizeof(practice::Config))
+  FAIL_CLOSE_RETURN(fread(&m_practiceConfig,1,size,fp)!=size)
+  FAIL_CLOSE_RETURN(m_playDifficulty<0||m_playDifficulty>4||m_playChara<0||m_playChara>3)
+  FAIL_CLOSE_RETURN(!m_bPracticeMode||m_practiceConfig.mode!=1||!m_practiceConfig.Valid(m_playDifficulty))
+  for(int stage=0;stage<7;stage++)FAIL_CLOSE_RETURN((m_stageFlag[stage]!=0)!=(stage==m_practiceConfig.stage))
+  FAIL_CLOSE_RETURN((m_practiceConfig.stage==6)!=(m_playDifficulty==4))
+  FAIL_CLOSE_RETURN(fgetc(fp)!=EOF)
+ }
 	fclose(fp);
 	return true;
 #undef FAIL_CLOSE_RETURN

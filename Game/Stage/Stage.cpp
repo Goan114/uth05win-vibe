@@ -126,9 +126,9 @@ void CStage::DownloadVarFromGlobal()
 	m_highScore=CGame::GVar().m_curHighScore;
 	if (m_highScore<m_curScore)			//this may occur if we play a replay file from stage 2+
 		m_highScore=m_curScore;
-	m_curNPointItem=0;
+	m_curNPointItem=CGame::GVar().m_practiceConfig.mode?CGame::GVar().m_practiceConfig.points:0;
 	m_totalNPointItem=CGame::GVar().m_totalNPointItem;
-	m_curNGraze=0;
+	m_curNGraze=CGame::GVar().m_practiceConfig.mode?CGame::GVar().m_practiceConfig.graze:0;
 	m_playerPerformance=CGame::GVar().m_playerPerformance;
 	m_nContinueUsed=CGame::GVar().m_nContinueUsed;
 
@@ -256,7 +256,40 @@ void CStage::Initialize()
 
 	m_lastGameKeyState=0;
 	m_curGameKeyState=0;
+	ApplyPracticeWarp();
 	CGame::GVar().OnStageEnter();
+}
+
+void CStage::ApplyPracticeWarp()
+{
+ const auto& p=CGame::GVar().m_practiceConfig;
+ if(!CGame::GVar().m_bPracticeMode||!p.mode||!p.warp)return;
+ const int midFrames[]={2500,2750,5750,3900,4800,300000,5800};
+ const int target=p.warp==1?midFrames[CGame::GVar().m_playStage]:p.warp==3?p.frame:60000;
+ // Do not run combat, collect items, change resources or record fake inputs.
+ // Advance the original background (including stage 2's special renderer).
+ for(int frame=1;frame<target;frame++){
+  m_curFrame=frame;
+  if(m_pBackground->GetCurScrollSpeed()!=0)m_pBackground->Step();
+  if(p.warp==2&&m_pBackground->GetCurScrollSpeed()==0){m_curFrame=frame-1;break;}
+  if(m_pStage2BG)m_pStage2BG->Step();
+ }
+ if(p.warp!=2)m_curFrame=target-1;
+ // Skip expired enemy-table records; leaving the cursor at stage start would
+ // prevent all subsequent spawns because the native reader matches exact frames.
+ unsigned char*& table=m_pEnemy->m_pEnemyTableReadPtr;
+ while((table[0]||table[1])&&(table[0]+table[1]*256)<=m_curFrame)table+=3+table[2]*8;
+ m_bLogo=false;m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);m_curScrFade=100;
+ char bgm[]="ST00.M2";bgm[3]=char('0'+CGame::GVar().m_playStage);
+ CPMDPlayer::UnloadPMDData();CCommonFunctionMusicSE::LoadMusicToPMDFromDat(&CGame::s_pCurGame->m_th5Dat2,bgm);CPMDPlayer::SetVolume(100);CPMDPlayer::Play();
+ if(p.warp==2){
+  // Execute the original dialogue VM so boss graphics, palettes and music are
+  // loaded in the original order. Holding Ctrl skips only its visible text.
+  CheckBoss();m_curGameKeyState=128;
+  for(int i=0;i<10000&&m_pDialogue->IsRunning();i++)m_pDialogue->Step();
+  m_curGameKeyState=0;CheckBoss();m_curScrFade=100;
+ }
+ memset(m_bPlaySound,0,sizeof(m_bPlaySound));
 }
 
 void CStage::StepScore()

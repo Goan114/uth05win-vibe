@@ -1,5 +1,6 @@
 #include ".\selectcharascreen.h"
 #include "../Game.h"
+#include "../Practice/Practice.h"
 #include "../../gameLib/Graphic/Th5ExtFont.h"
 #include <cstdio>
 #include "../../gameLib/CommonFunction/CommonFunctionInput.h"
@@ -21,6 +22,7 @@ CSelectCharaScreen::~CSelectCharaScreen(void)
 void CSelectCharaScreen::Initialize()
 {
 	m_bStageSelect=false;
+ m_bThpracSetup=false;m_setupAction=0;
 	m_stageSelectClosing=false;
 	m_stageCursor=0;
 	m_stageSelectAge=0;
@@ -80,6 +82,20 @@ int CSelectCharaScreen::Step()
 		return 0;
 	}
 
+ if(m_bThpracSetup){
+  if(m_stageSelectClosing){
+   if(--m_stageSelectAge<=0){m_bThpracSetup=m_bStageSelect=m_stageSelectClosing=false;}
+   m_lastKeyState=CCommonFunctionInput::GetAllKeyState();return 0;
+  }
+  ++m_stageSelectAge;
+  if(m_setupAction==2){m_stageSelectClosing=true;m_stageSelectAge=8;m_setupAction=0;}
+  else if(m_setupAction==1&&practice::StartSetup()){
+   m_bThpracSetup=m_bStageSelect=false;
+   m_bQuit=true;m_quitCode=SELECTCHARASCREEN_END_SELECTED_CHARA;
+   CGame::s_pCurGame->m_soundEffect.PlaySound(11);
+  }
+  m_lastKeyState=CCommonFunctionInput::GetAllKeyState();return 0;
+ }
 	if (m_bStageSelect && m_stageSelectClosing) {
         if (--m_stageSelectAge<=0) { m_bStageSelect=false; m_stageSelectClosing=false; }
         m_lastKeyState=CCommonFunctionInput::GetAllKeyState();
@@ -120,7 +136,8 @@ void CSelectCharaScreen::Draw()
 		}
 	}
 
-	if (m_bStageSelect) DrawStageSelect();
+	if(m_bThpracSetup)m_setupAction=practice::DrawSetup(m_stageSelectAge);
+ else if (m_bStageSelect) DrawStageSelect();
 	CCommonFunctionGraphic::ScreenFade((float)m_curScrFade);
 }
 
@@ -209,6 +226,7 @@ void CSelectCharaScreen::ParseKeyEvent()
 				m_bStageSelect=true; m_stageSelectClosing=false; m_stageSelectAge=0;
                 m_stageCursor=0;
                 for(int i=0;i<6;i++) if(CGame::GVar().PracticeStageUnlocked(i)) { m_stageCursor=i; break; }
+                m_bThpracSetup=true;m_setupAction=0;practice::OpenSetup(m_stageCursor);
                 m_lastKeyState=curState; return;
 			}
 			CGame::GVar().OnBeginGame();

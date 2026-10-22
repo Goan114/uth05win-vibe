@@ -38,7 +38,9 @@ bool Initialize(HWND window) {
  ImGui::StyleColorsDark();
  char font[MAX_PATH]; GetWindowsDirectoryA(font,MAX_PATH);
  strcat_s(font,"\\Fonts\\msyh.ttc");
- if (!io.Fonts->AddFontFromFileTTF(font,16,NULL,io.Fonts->GetGlyphRangesChineseSimplifiedCommon())) io.Fonts->AddFontDefault();
+ static ImVector<ImWchar> glyphRanges;ImFontGlyphRangesBuilder ranges;
+ ranges.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());ranges.AddText(u8"\u5e27");ranges.BuildRanges(&glyphRanges);
+ if (!io.Fonts->AddFontFromFileTTF(font,16,NULL,glyphRanges.Data)) io.Fonts->AddFontDefault();
  if (!ImGui_ImplWin32_Init(window)) { ImGui::DestroyContext(); return false; }
  if (!ImGui_ImplOpenGL2_Init()) { ImGui_ImplWin32_Shutdown(); ImGui::DestroyContext(); return false; }
  // Z activates the focused widget, matching the game's confirm key.

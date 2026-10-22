@@ -10,6 +10,8 @@
 #include "../Game/TitleScreen/TitleScreen.h"
 #include "../Game/SelectCharaScreen/SelectCharaScreen.h"
 #include "../Game/Stage/Chara/Chara.h"
+#include "../Game/Stage/Dialogue/Dialogue.h"
+#include "../Game/Stage/Item/Item.h"
 #include "../Game/Stage/Boss/BossStage1.h"
 #include "../Game/Stage/MidBoss/MidBossStage1.h"
 #include "../Game/Stage/CharaBullet/CharaBullet.h"
@@ -45,6 +47,7 @@ struct PracticeTests {
  }
  static void Frame(CStage& s) { practice::BeginFrame();s.Draw();practice::DrawStatus();practice::EndFrame();glFinish(); }
  static void CheckPracticeHud(CStage& stage) {
+  Check(strcmp(stage.m_pStageRes->m_crossRow,"\x81\x40\x81\x40\x81\x7e\x81\x40\x81\x40")==0,"unmodified resources initialize the native life/bomb multiplication label");
   Frame(stage);
   std::vector<unsigned char> pixels(24*480*3);
   glPixelStorei(GL_PACK_ALIGNMENT,1);glReadPixels(0,0,24,480,GL_RGB,GL_UNSIGNED_BYTE,&pixels[0]);
@@ -178,6 +181,115 @@ struct PracticeTests {
   bool oldClear=g.m_bClear[g.m_playChara][g.m_playDifficulty];g.m_bClear[g.m_playChara][g.m_playDifficulty]=false;g.OnClear();
   Check(!g.m_bClear[g.m_playChara][g.m_playDifficulty],"Practice does not unlock normal-game clears");g.m_bClear[g.m_playChara][g.m_playDifficulty]=oldClear;
  }
+ static void CustomPractice(CGame& game){
+  ResetTools();auto& g=CGame::GVar();g.m_replay.CloseStage(false);g.m_bReplayMode=false;g.m_initDifficulty=1;
+  practice::OpenSetup(0);auto& menu=practice::MenuConfig();
+  menu=practice::Config();menu.mode=1;menu.warp=3;menu.frame=1000;menu.lockRank=1;menu.rank=48;
+  CSelectCharaScreen setup;setup.Initialize();setup.m_curScrFade=100;setup.m_bStageSelect=setup.m_bThpracSetup=true;setup.m_stageSelectAge=20;
+  for(int i=0;i<12;i++){practice::BeginFrame();setup.Draw();practice::EndFrame();glFinish();}
+  Screenshot("thprac-custom-menu.bmp");
+  ImGuiWindow* window=ImGui::FindWindowByName("TH05 Practice");
+  Check(window&&window->Size.x==330&&window->Size.y==430,"custom menu uses purple thprac's borderless ImGui layout");
+  Check(window->ScrollMax.y==0,"all custom fields fit without clipping");
+  Check(ImGui::GetFont()->FindGlyphNoFallback(0x5e27)!=NULL,"frame glyph is present instead of falling back to a question mark");
+  const auto setupKey=[&](int key){
+   practice::WindowMessage(game.m_gameWindow.m_hWnd,WM_KEYDOWN,key,0);
+   practice::BeginFrame();setup.Draw();practice::EndFrame();const int action=setup.m_setupAction;
+   practice::WindowMessage(game.m_gameWindow.m_hWnd,WM_KEYUP,key,1L<<31);
+   practice::BeginFrame();setup.Draw();practice::EndFrame();return action;
+  };
+  ImGui::FocusWindow(window);ImGui::SetFocusID(window->GetID(u8"\u5173\u5361"),window);GImGui->NavDisableHighlight=false;
+  Check(setupKey(VK_RIGHT)==0&&menu.stage==1,"focused combo uses purple left/right adjustment without starting");
+  menu.stage=0;
+  Check(setupKey('Z')==1,"Z starts directly from a focused parameter without an invented button");
+  Check(!ImGui::IsPopupOpen(static_cast<const char*>(NULL),ImGuiPopupFlags_AnyPopupId),"Z does not also open the parameter combo");
+  Check(setupKey('X')==2,"X requests return directly from the practice menu");
+  setup.m_setupAction=2;setup.Step();Check(setup.m_stageSelectClosing&&setup.m_stageSelectAge==8,"X begins the purple menu's fade-out");
+  for(int i=0;i<8;i++)setup.Step();Check(!setup.m_bThpracSetup&&!setup.m_bQuit,"X returns to character selection after fade-out");
+  menu.stage=5;menu.warp=1;Check(!practice::StartSetup(),"stage six has no midboss and cannot start an invalid warp");
+  menu.mode=0;menu.stage=0;memset(g.m_practiceUnlocked,0,sizeof(g.m_practiceUnlocked));g.m_playChara=0;g.m_playDifficulty=1;
+  Check(!practice::StartSetup(),"normal mode still obeys native stage unlocks");
+  // Every supported stage / destination round-trips through the real disk replay.
+  for(int stage=0;stage<7;stage++)for(int warp=0;warp<4;warp++){
+   if(stage==5&&warp==1)continue;
+   menu=practice::Config();menu.mode=1;menu.stage=stage;menu.warp=warp;menu.frame=1000;
+   menu.lives=3;menu.bombs=2;menu.score=123450;menu.power=69;menu.graze=321;menu.points=123;menu.totalPoints=4567;menu.dream=70;menu.rank=48;menu.lockRank=1;
+   g.m_bReplayMode=false;g.m_playChara=stage%4;
+   Check(practice::StartSetup(),"custom mode starts locked stages and Extra independently of native unlocks");
+   Check(g.m_nCurLife==4&&g.m_nCurBomb==2&&g.m_curPower==69&&g.m_curScore==12345&&g.m_curDream==70,"all configured initial resources use native units");
+   Check(g.m_totalNPointItem==4567&&g.m_curNGraze==321&&g.m_playerPerformance==48&&g.m_bCanSaveReplay,"custom counters and rank preserve replay eligibility");
+   CStage* record=new CStage;record->Initialize();game.m_pCurScheme=record;game.m_curSchemeID=4;
+   Check(record->m_curNGraze==321&&record->m_curNPointItem==123&&record->m_totalNPointItem==4567,"HUD counters receive custom graze and blue points");
+   Check(record->m_playerPerformanceLowerBound==48&&record->m_playerPerformanceUpperBound==48,"locked rank constrains both rank bounds");
+   record->ChangePlayerPerformance(-100);record->ChangePlayerPerformance(100);
+   Check(record->m_playerPerformance==48,"locked rank rejects increases and decreases");
+   if(warp==1){const int mid[]={2500,2750,5750,3900,4800,0,5800};Check(record->m_curFrame==mid[stage]-1,"midboss seek stops immediately before the native spawn frame");}
+   if(warp==2)Check(record->m_pBoss!=NULL&&!record->m_pDialogue->IsRunning(),"boss warp executes original dialogue resource loading and enters the real boss");
+   if(warp==3)Check(record->m_curFrame==999,"frame warp begins at the selected timeline frame");
+   Frame(*record);char shot[64];sprintf_s(shot,"custom-stage-%d-warp-%d.bmp",stage+1,warp);Screenshot(shot);
+   std::vector<double> states;
+   const auto capture=[&](CStage* st){
+    const double v[]={double(st->m_curFrame),st->m_pChara->m_curX,st->m_pChara->m_curY,double(st->m_curScore),double(st->m_nCurLife),double(st->m_nCurBomb),double(st->m_pChara->m_power),double(st->m_curDream),double(st->m_playerPerformance),double(st->m_curNGraze),double(st->m_curNPointItem),double(st->m_totalNPointItem)};
+    return std::vector<double>(v,v+12);
+   };
+   for(int frame=0;frame<360;frame++){
+    unsigned short input=((frame/60)%2?4:8)|((frame/45)%2?64:0);
+    record->StepFrame(input);const auto v=capture(record);states.insert(states.end(),v.begin(),v.end());
+   }
+   if(warp==1)Check(record->m_pMidBoss!=NULL,"midboss teleport spawns the native midboss, not a replacement encounter");
+   const int nextRandom=rand();
+   record->SetQuit(STAGE_END_SAVE_EXIT);int end=0;for(int i=0;i<60&&!end;i++)end=record->StepFrame(0);
+   Check(end==STAGE_END_SAVE_EXIT,"custom run closes the recording through the save action");
+   Check(g.m_replay.SaveFile("custom-roundtrip.rpy"),"custom replay saves its versioned initial parameters");
+   REPLAY_BRIEF_INFO info={};Check(CReplay::GetRepFileInfo(&info,"custom-roundtrip.rpy"),"custom replay is accepted by the native replay browser");
+   delete record;game.m_pCurScheme=NULL;
+   if((stage==0&&warp==3)||(stage==3&&warp==2)){
+    CScheme* restarted=NULL;int id=0;
+    Check(CSchemeSwitcher::SwitchScheme(&restarted,&id,4,STAGE_END_RESTART)&&id==4,"custom restart constructs a fresh real stage");
+    CStage* st=static_cast<CStage*>(restarted);
+    Check(g.m_practiceConfig.warp==warp&&st->m_nCurLife==4&&st->m_curNPointItem==123&&st->m_totalNPointItem==4567&&st->m_curScore==12345,"restart restores original custom destination and independent counters");
+    g.m_replay.CloseStage(false);delete st;
+   }
+   Check(g.m_replay.LoadFile("custom-roundtrip.rpy"),"custom replay loads the complete parameter extension");
+   Check(g.m_replay.m_practiceConfig.warp==warp&&g.m_replay.m_practiceConfig.rank==48&&g.m_replay.m_practiceConfig.graze==321,"replay metadata restores destination, rank lock and counters");
+   g.m_bReplayMode=true;g.m_playStage=stage;g.OnBeginGame();
+   CStage* playback=new CStage;playback->Initialize();game.m_pCurScheme=playback;Frame(*playback);
+   bool equal=true;size_t offset=0;
+   for(int frame=0;frame<360;frame++){
+    playback->StepFrame(0);const auto v=capture(playback);for(auto n:v)if(n!=states[offset++])equal=false;
+   }
+   Check(equal,"custom replay matches all twelve gameplay state values on every recorded frame");
+   Check(rand()==nextRandom,"custom recording and playback consume identical gameplay RNG sequences");
+   g.m_replay.CloseStage(false);delete playback;game.m_pCurScheme=NULL;
+  }
+  g.m_bReplayMode=false;menu=practice::Config();menu.mode=1;menu.totalPoints=99;menu.points=7;menu.lives=3;menu.rank=48;menu.lockRank=1;
+  Check(practice::StartSetup(),"independent blue-point counters initialize");CStage* counters=new CStage;counters->Initialize();game.m_pCurScheme=counters;
+  counters->m_pChara->CaughtItem(0,0,ITEM_POINT);
+  Check(counters->m_totalNPointItem==100&&counters->m_curNPointItem==8&&counters->m_nCurLife==5,"point pickup increments both counters and extends from cumulative count only");
+  auto& chara=*counters->m_pChara;chara.m_invulnerableTimeLeft=0;chara.m_nextLifeComeTimeLeft=33;chara.m_cannotControlTimeLeft=1;chara.m_bMiss=false;chara.Step();
+  Check(counters->m_playerPerformance==48,"locked rank survives the native Miss rank reset");
+  g.m_replay.CloseStage(false);delete counters;game.m_pCurScheme=NULL;
+  for(int bound=0;bound<2;bound++){
+   menu=practice::Config();menu.mode=1;menu.lockRank=1;menu.lives=bound?8:0;menu.bombs=bound?8:0;menu.power=bound?128:0;menu.dream=bound?128:1;menu.rank=bound?64:0;menu.points=bound?999:0;menu.totalPoints=bound?99999:0;menu.score=bound?99999990:0;
+   Check(practice::StartSetup(),"custom native resource boundaries can start");CStage* st=new CStage;st->Initialize();game.m_pCurScheme=st;
+   Check(st->m_nCurLife==(bound?9:1)&&st->m_nCurBomb==(bound?8:0)&&st->m_pChara->m_power==(bound?128:1)&&st->m_curDream==(bound?128:1)&&st->m_playerPerformance==(bound?64:0),"configured lower and upper resource bounds match actual native state");
+   Frame(*st);g.m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;
+  }
+  // Hidden custom fields must not disable normal mode on Hard/Lunatic.
+  menu.mode=0;menu.lockRank=0;menu.rank=0;g.m_initDifficulty=g.m_playDifficulty=2;g.m_practiceUnlocked[g.m_playChara][2]|=1;
+  practice::BeginFrame();practice::DrawSetup(30);practice::EndFrame();
+  Check(practice::StartSetup()&&!g.m_practiceConfig.mode,"normal mode can start an unlocked stage after switching from custom fields");
+  g.m_initDifficulty=1;
+  // Missing custom metadata must not silently play as a normal native replay.
+  {FILE* fp=fopen("custom-roundtrip.rpy","rb");fseek(fp,0,SEEK_END);long size=ftell(fp);rewind(fp);std::vector<char> bytes(size);fread(bytes.data(),1,size,fp);fclose(fp);
+   fp=fopen("custom-truncated.rpy","wb");fwrite(bytes.data(),1,size-1,fp);fclose(fp);CReplay invalid;
+   Check(!invalid.LoadFile("custom-truncated.rpy"),"truncated custom parameters are rejected");
+   REPLAY_BRIEF_INFO info={};Check(!CReplay::GetRepFileInfo(&info,"custom-truncated.rpy")&&info.infoRes==InfoRes_InvalidReplay,"browser rejects a custom replay missing required metadata");}
+  Check(g.m_replay.LoadFile("practice-roundtrip.rpy")&&!g.m_replay.m_practiceConfig.mode,"legacy native Practice replay still loads without thprac metadata");
+  g.m_bReplayMode=true;g.m_playStage=5;g.OnBeginGame();Check(!g.m_practiceConfig.mode&&g.m_playerPerformanceLowerBound!=48,"legacy replay does not inherit current custom rank locking");
+  g.m_bReplayMode=false;g.m_bPracticeMode=false;g.m_playDifficulty=1;g.OnBeginGame();
+  Check(!g.m_practiceConfig.mode&&!practice::Assisted(),"normal gameplay clears custom initial settings and assisted state");
+ }
  static void MusicRoom(CGame& game){
   Check(CMusicRoom::Available(),"original Music Room resource package is available");
   CMusicRoom room;Check(room.Initialize(),"original MUSIC.PI, translated font, comments and archive load");
@@ -296,7 +408,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);MusicRoom(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

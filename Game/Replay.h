@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "Practice/PracticeConfig.h"
 #include <string>
 #include <string.h>
 using namespace std;
@@ -34,6 +35,7 @@ public:
 	int m_playDifficulty;
 	int m_playChara;
 	bool m_bPracticeMode;
+ practice::Config m_practiceConfig;
 
 public:
 	unsigned char m_stageFlag[7];

@@ -253,6 +253,7 @@ void CGlobalVariableAndStatistics::OnBeginGame()
 	//for replay mode
 	if (m_bReplayMode)
 	{
+  m_practiceConfig=m_replay.m_practiceConfig;
 		for (int i=0;i<7;i++)
 			m_randomSeed[i]=m_replay.m_randSeed[i];
 		m_curPower=m_replay.m_curPower[m_playStage];
@@ -274,6 +275,7 @@ void CGlobalVariableAndStatistics::OnBeginGame()
 	}
 	else
 	{
+		if(!m_bPracticeMode)m_practiceConfig=practice::Config();
 		m_replay.Reset();
 		srand((unsigned int)time(NULL));
 		for (int i=0;i<7;i++)
@@ -321,6 +323,19 @@ void CGlobalVariableAndStatistics::OnBeginGame()
 	m_playerPerformanceLowerBound=PL[m_playDifficulty];
 	m_playerPerformanceUpperBound=PU[m_playDifficulty];
 
+ if(m_bPracticeMode&&m_practiceConfig.mode){
+  if(!m_bReplayMode){
+   m_practiceConfig.Clamp(m_playDifficulty);
+   const auto& p=m_practiceConfig;
+   m_nCurLife=p.lives+1;m_nCurBomb=p.bombs;m_curScore=p.score/10;
+   m_curPower=p.power;m_curDream=p.dream;m_totalNPointItem=p.totalPoints;m_playerPerformance=p.rank;
+   m_replay.m_practiceConfig=p;m_replay.m_nInitLife=p.lives+1;m_replay.m_nInitBomb=p.bombs;
+   practice::MarkAssisted();
+  }
+  m_curNGraze=m_practiceConfig.graze;
+  m_nBombOnMiss=m_practiceConfig.bombs;
+  if(m_practiceConfig.lockRank)m_playerPerformanceLowerBound=m_playerPerformanceUpperBound=m_practiceConfig.rank;
+ }
 	m_curHighScore=m_highScore[m_playChara][m_playDifficulty][0];
 	m_nContinueUsed=0;
 
