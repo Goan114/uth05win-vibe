@@ -310,7 +310,6 @@ struct PracticeTests {
   Check(complete,"all advanced labels have real glyphs instead of question marks");
   ImGuiWindow* child=window->DC.ChildWindows[0];
   const auto group=[&](const char* label,bool open){child->StateStorage.SetInt(child->GetID(label),open?1:0);};
-  group(u8"\u6e38\u620f\u8fdb\u884c",false);group(u8"\u4f5c\u5f0a",true);Frame(*stage);Screenshot("f12-cheats.bmp");group(u8"\u4f5c\u5f0a",false);
   group(u8"\u6e38\u620f\u8fdb\u884c",false);group(u8"\u6e38\u620f\u901f\u5ea6",true);Frame(*stage);Screenshot("f12-speed.bmp");
   group(u8"\u6e38\u620f\u901f\u5ea6",false);group(u8"\u53cd\u5e94\u529b\u6d4b\u8bd5",true);
   practice::Reaction().Reset();srand(77);const int expectedRandom=rand();srand(77);

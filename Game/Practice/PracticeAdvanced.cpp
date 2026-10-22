@@ -140,8 +140,7 @@ void DrawAdvanced(){
   changed|=ImGui::Checkbox(u8"\u6253\u5f00\u6309\u952e\u663e\u793a",&options.showKeys);
   changed|=ImGui::Checkbox(u8"\u542f\u7528\u9501\u65f6\u8ba1\u65f6",&options.lockTimer);
   changed|=ImGui::Checkbox(u8"\u7ec3\u4e60\u6a21\u5f0f\u5feb\u901fre",&options.fastRetry);Help(u8"\u7ec3\u4e60\u4e2d Miss \u540e\u81ea\u52a8\u91cd\u8bd5\uff1bShift+F \u53ef\u624b\u52a8\u89e6\u53d1\u3002");
- }
- if(ImGui::CollapsingHeader(u8"\u4f5c\u5f0a")){
+  ImGui::Separator();
   ImGui::TextUnformatted(u8"\u663e\u793a\u5224\u5b9a\u70b9");
   changed|=ImGui::Checkbox(u8"\u4f4e\u901f\u65f6\u663e\u793a",&options.showHitbox);
   changed|=ImGui::Checkbox(u8"\u5e38\u9a7b\u5224\u5b9a\u70b9",&options.alwaysHitbox);
