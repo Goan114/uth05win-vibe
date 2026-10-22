@@ -30,6 +30,11 @@ void CFloatingText::Initialize()
 {
 	m_textType=FLOATING_TEXT_NONE;
 	m_textAge=0;
+	m_textNumber=0;
+	m_textLen=0;
+	m_textCurX=0;
+	m_textDestX=0;
+	m_floating=false;
 }
 
 void CFloatingText::SetTextType(int textType,int number)
@@ -52,6 +57,8 @@ void CFloatingText::SetTextType(int textType,int number)
 
 void CFloatingText::Step()
 {
+	if (m_textType==FLOATING_TEXT_NONE)
+		return;
 	if (m_textAge>=128)
 	{
 		m_textAge=0;
@@ -71,6 +78,11 @@ void CFloatingText::Step()
 
 void CFloatingText::Draw()
 {
+	// No active notification: NONE is -1, not an index into c_floatingText.
+	// Practice starts at full power and may never enqueue the usual startup
+	// notification, so the inactive object must remain a draw-free state.
+	if (m_textType==FLOATING_TEXT_NONE)
+		return;
 	m_textAge--;
 	if (m_textAge>=m_textLen-1)
 	{

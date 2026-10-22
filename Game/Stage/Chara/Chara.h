@@ -12,6 +12,7 @@ class CCharaBullet;
 
 class CChara
 {
+friend struct PracticeTests;
 friend class CStage;
 
 protected:

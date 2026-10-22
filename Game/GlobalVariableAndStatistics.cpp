@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <direct.h>
+#include <windows.h>
 #include "../gameLib/CommonFunction/CommonFunctionSystem.h"
 
 namespace th5w{
@@ -16,6 +17,9 @@ CGlobalVariableAndStatistics::CGlobalVariableAndStatistics(void)
 	strcpy(m_replaySubDir,"replay");
 	memset(m_modMD5,0,sizeof(m_modMD5));
 	m_gameVersion=1;
+	m_bReplayMode=false;
+	m_bCanSaveReplay=false;
+	memset(m_practiceUnlocked,0,sizeof(m_practiceUnlocked));
 }
 
 CGlobalVariableAndStatistics::~CGlobalVariableAndStatistics(void)
@@ -123,8 +127,44 @@ void CGlobalVariableAndStatistics::SaveConfig()
 	fclose(fp);
 }
 
+bool CGlobalVariableAndStatistics::PracticeStageUnlocked(int stage) const
+{
+ return stage>=0 && stage<6 && m_playChara>=0 && m_playChara<4 &&
+  m_playDifficulty>=0 && m_playDifficulty<4 &&
+  (m_practiceUnlocked[m_playChara][m_playDifficulty] & (1<<stage))!=0;
+}
+void CGlobalVariableAndStatistics::LoadPracticeProgress()
+{
+ memset(m_practiceUnlocked,0,sizeof(m_practiceUnlocked));
+ // Existing full-game clears are also evidence of completing all six stages.
+ for(int c=0;c<4;c++) for(int d=0;d<4;d++)
+  if(m_bClear[c][d]) m_practiceUnlocked[c][d]=63;
+ FILE* f=fopen("practice-progress.dat","rb"); if(!f) return;
+ unsigned char data[40]; const size_t count=fread(data,1,sizeof(data),f);
+ const int extra=fgetc(f); fclose(f);
+ if(count!=sizeof(data)||extra!=EOF||memcmp(data,"TH5PRC1",8)||memcmp(data+8,m_modMD5,16)) return;
+ for(int i=0;i<16;i++) if(data[24+i]>63) return;
+ for(int c=0;c<4;c++) for(int d=0;d<4;d++) m_practiceUnlocked[c][d]|=data[24+c*4+d];
+}
+void CGlobalVariableAndStatistics::SavePracticeProgress()
+{
+ FILE* f=fopen("practice-progress.dat.tmp","wb"); if(!f) return;
+ bool ok=fwrite("TH5PRC1",1,8,f)==8 && fwrite(m_modMD5,1,16,f)==16 &&
+  fwrite(m_practiceUnlocked,1,16,f)==16;
+ if(fclose(f)!=0) ok=false;
+ if(ok) MoveFileExA("practice-progress.dat.tmp","practice-progress.dat",MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH);
+}
+void CGlobalVariableAndStatistics::OnStageClear()
+{
+ if(m_bReplayMode || m_bPracticeMode || m_playDifficulty<0 || m_playDifficulty>=4 ||
+  m_playChara<0 || m_playChara>=4 || m_playStage<0 || m_playStage>=6) return;
+ m_practiceUnlocked[m_playChara][m_playDifficulty]|=1<<m_playStage;
+ SavePracticeProgress();
+}
+
 void CGlobalVariableAndStatistics::OnClear()
 {
+	if (m_bPracticeMode) return;
 	m_bClear[m_playChara][m_playDifficulty]=true;
 	for (int i=0;i<4;i++)
 		for (int j=1;j<4;j++)
@@ -136,6 +176,7 @@ void CGlobalVariableAndStatistics::Initialize()
 {
 	LoadProgramConfig();
 	LoadConfig();
+	LoadPracticeProgress();
 
 	memset(m_bExtraPlayable,0,sizeof(m_bExtraPlayable));
 	for (int i=0;i<4;i++)
@@ -251,7 +292,11 @@ void CGlobalVariableAndStatistics::OnBeginGame()
 		{
 			m_curPower=128;
 			m_curDream=128;
-			m_nCurLife=8;
+			m_nCurLife=9; // Eight spare lives; the native HUD displays life - 1.
+			m_nCurBomb=8;
+			m_nBombOnMiss=8;
+			m_replay.m_nInitLife=9;
+			m_replay.m_nInitBomb=8;
 			m_nContinueLimit=0;
 		}
 		m_bCanSaveReplay=true;

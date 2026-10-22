@@ -366,6 +366,11 @@ void CStage::CheckBoss()
 
 int CStage::Step()
 {
+	return StepFrame(CCommonFunctionInput::GetAllKeyState());
+}
+
+int CStage::StepFrame(unsigned short liveInput)
+{
 	CGame::s_pCurGame->m_fpsLimit=56;
 	CGame::s_pCurGame->SetVSYNC(true);
 	if (m_bQuit)
@@ -385,11 +390,14 @@ int CStage::Step()
 		//make sure to upload var before close stage
 		//otherwise, replay will not get the correct score
 		if (m_quitCode==STAGE_END_CLEAR)
+		{
 			CGame::GVar().m_replay.CloseStage(true);
+			CGame::GVar().OnStageClear();
+		}
 		else
 			CGame::GVar().m_replay.CloseStage(false);
 		if (CGame::GVar().m_bReplayMode)
-			if (m_quitCode!=STAGE_END_CLEAR||CGame::GVar().m_playStage>=5)
+			if (CGame::GVar().m_bPracticeMode || m_quitCode!=STAGE_END_CLEAR||CGame::GVar().m_playStage>=5)
 				m_quitCode=STAGE_END_REPLAY_END;
 		return m_quitCode;
 	}
@@ -397,7 +405,7 @@ int CStage::Step()
 	if (m_bLogo)
 	{
 		if (CGame::GVar().m_bReplayMode)
-			if (CCommonFunctionInput::LCtrlKey(CCommonFunctionInput::GetAllKeyState()))
+			if (CCommonFunctionInput::LCtrlKey(liveInput))
 				CGame::s_pCurGame->m_fpsLimit=1000;
 		if (StepLogo()==0)
 			return 0;
@@ -428,7 +436,7 @@ int CStage::Step()
 	if (CGame::GVar().m_bReplayMode==false)
 	{
 		m_lastGameKeyState=m_curGameKeyState;
-		m_curGameKeyState=CCommonFunctionInput::GetAllKeyState();
+		m_curGameKeyState=liveInput;
 		m_lastMenuKeyState=m_lastGameKeyState;
 		m_curMenuKeyState=m_curGameKeyState;
 		if (CCommonFunctionInput::ESCPressed(m_curMenuKeyState,m_lastMenuKeyState))
@@ -440,7 +448,7 @@ int CStage::Step()
 	else
 	{
 		m_lastMenuKeyState=m_curMenuKeyState;
-		m_curMenuKeyState=CCommonFunctionInput::GetAllKeyState();
+		m_curMenuKeyState=liveInput;
 		if (CCommonFunctionInput::ESCPressed(m_curMenuKeyState,m_lastMenuKeyState))
 		{
 			if (Pause())

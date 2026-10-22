@@ -18,6 +18,7 @@ CGame::CGame(void)
 	m_playArea.bottom=m_playArea.top+368;
 
 	m_pCurScheme=NULL;
+	m_curSchemeID=0;
 
 	memset(m_fpsTimeArray,0,sizeof(m_fpsTimeArray));
 	m_fpsTimeIdx=0;
@@ -118,7 +119,7 @@ void CGame::LoadModConfig()
 	}
 }
 
-bool CGame::Initialize()
+bool CGame::Initialize(bool showWindow)
 {
 	m_globalVar.Initialize();
 
@@ -266,7 +267,7 @@ bool CGame::Initialize()
 	//set random seed
 	srand((unsigned)time(NULL));
 
-	ShowWindow(m_gameWindow.m_hWnd,SW_SHOW);
+	if (showWindow) ShowWindow(m_gameWindow.m_hWnd,SW_SHOW);
 
 	return true;
 }
@@ -280,6 +281,7 @@ void CGame::Run()
 		return;
 	}
 
+	m_gameWindow.m_pGLContext->MakeCurrent();
 	CSchemeSwitcher::GetFirstScheme(&m_pCurScheme,&m_curSchemeID);
 
 	ACCEL accel[]={FALT|FVIRTKEY, VK_RETURN, 0};
@@ -328,6 +330,7 @@ void CGame::Run()
 
 			//LARGE_INTEGER a;
 			//QueryPerformanceCounter(&a);
+			m_gameWindow.m_pGLContext->MakeCurrent();
 			int stepRes=m_pCurScheme->Step();
 			//LARGE_INTEGER b;
 			//QueryPerformanceCounter(&b);

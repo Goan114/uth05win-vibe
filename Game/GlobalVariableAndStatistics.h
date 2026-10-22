@@ -37,6 +37,11 @@ public:
 	void LoadProgramConfig();
 	void SaveConfig();
 	void OnClear();
+	unsigned char m_practiceUnlocked[4][4];
+	void LoadPracticeProgress();
+	void SavePracticeProgress();
+	void OnStageClear();
+	bool PracticeStageUnlocked(int stage) const;
 
 	//loaded from score file
 	unsigned char m_highScoreName[4][5][5][10];

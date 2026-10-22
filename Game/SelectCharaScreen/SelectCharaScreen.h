@@ -9,6 +9,11 @@ namespace th5w{
 
 class CSelectCharaScreen : public CScheme
 {
+friend struct PracticeTests;
+	bool m_bStageSelect, m_stageSelectClosing;
+	int m_stageCursor, m_stageSelectAge;
+	void ParseStageKey(unsigned short state);
+	void DrawStageSelect();
 protected:
 	bool m_bCharaSelectable[4];
 	int m_charaDisplayImg[4];

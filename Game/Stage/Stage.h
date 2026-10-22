@@ -25,6 +25,8 @@ namespace th5w{
 
 class CStage : public CScheme
 {
+friend struct PracticeTests;
+	int StepFrame(unsigned short liveInput);
 friend class CChara;
 friend class CCharaReimu;
 friend class CCharaMarisa;

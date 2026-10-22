@@ -46,7 +46,7 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
 			*ppOutNextScheme=NULL;
 			return true;
 		}
-		if (curSchemeExitValue==TITLESCREEN_END_START_GAME||curSchemeExitValue==TITLESCREEN_END_START_EXTRA)
+		if (curSchemeExitValue==TITLESCREEN_END_START_GAME||curSchemeExitValue==TITLESCREEN_END_START_EXTRA||curSchemeExitValue==TITLESCREEN_END_START_PRACTICE)
 		{
 			CSelectCharaScreen *pScheme=new CSelectCharaScreen;
 			pScheme->Initialize();
@@ -85,7 +85,7 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
 		if (curSchemeExitValue==SELECTCHARASCREEN_END_BACK)
 		{
 			CTitleScreen *pScheme=new CTitleScreen;
-			pScheme->Initialize(false,CGame::GVar().m_playDifficulty==4?1:0,false);
+			pScheme->Initialize(false,CGame::GVar().m_bPracticeMode?2:(CGame::GVar().m_playDifficulty==4?1:0),false);
 			*ppOutNextScheme=(CScheme*)pScheme;
 			*pOutNextSchemeID=SCHEME_TITLESCREEN;
 			return true;
@@ -104,7 +104,7 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
 		if (curSchemeExitValue==SELECTREPLAYSCREEN_END_BACK)
 		{
 			CTitleScreen *pScheme=new CTitleScreen;
-			pScheme->Initialize(false,2,false);
+			pScheme->Initialize(false,3,false);
 			*ppOutNextScheme=(CScheme*)pScheme;
 			*pOutNextSchemeID=SCHEME_TITLESCREEN;
 			return true;
@@ -121,6 +121,15 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
 
 	if (curSchemeID==SCHEME_STAGE)
 	{
+		if (CGame::GVar().m_bPracticeMode && !CGame::GVar().m_bReplayMode &&
+			(curSchemeExitValue==STAGE_END_CLEAR || curSchemeExitValue==STAGE_END_ALL_MISSED))
+		{
+			CSelectReplayScreen *pScheme=new CSelectReplayScreen;
+			pScheme->Initialize(false,true);
+			*ppOutNextScheme=pScheme;
+			*pOutNextSchemeID=SCHEME_SELECTREPLAYSCREEN;
+			return true;
+		}
 		if (curSchemeExitValue==STAGE_END_CLEAR)
 		{
 			if (CGame::GVar().m_playStage<5)
@@ -196,7 +205,7 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
 		if (curSchemeExitValue==HIGHSCORESCREEN_END_VIEW_END)
 		{
 			CTitleScreen *pScheme=new CTitleScreen;
-			pScheme->Initialize(false,3,true);
+			pScheme->Initialize(false,4,true);
 			*ppOutNextScheme=(CScheme*)pScheme;
 			*pOutNextSchemeID=SCHEME_TITLESCREEN;
 			return true;
