@@ -29,6 +29,8 @@ class CStage : public CScheme
 {
 friend struct PracticeTests;
 	int StepFrame(unsigned short liveInput);
+ int m_lockTimer,m_lockPhase,m_lockKind,m_fastRetryCountdown;
+ void TickLockTimer();
 friend class CChara;
 friend class CCharaReimu;
 friend class CCharaMarisa;
@@ -192,7 +194,9 @@ public:
 	__forceinline unsigned short GetLastKeyState() {return m_lastGameKeyState;}
 
 public:
-	void PracticeResume() { m_bPaused=false; }
+	int LockTimerFrames() const {return m_lockTimer;}
+ void RequestFastRetry();
+ void PracticeResume() { m_bPaused=false; }
 	void PracticeExit(int action) { SetQuit(action==3 ? STAGE_END_RESTART : action==1 ? STAGE_END_SAVE_EXIT : STAGE_END_PLAYER_QUIT); m_bPaused=false; }
 	void Initialize();
 protected:

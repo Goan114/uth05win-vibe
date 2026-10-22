@@ -267,6 +267,7 @@
   <ItemGroup>
     <ClCompile Include="Game\Practice\Practice.cpp" />
     <ClCompile Include="Game\Practice\PracticeSetup.cpp" />
+    <ClCompile Include="Game\Practice\PracticeAdvanced.cpp" />
     <ClCompile Include="third_party\imgui\imgui.cpp" />
     <ClCompile Include="third_party\imgui\imgui_draw.cpp" />
     <ClCompile Include="third_party\imgui\imgui_widgets.cpp" />
@@ -275,6 +276,7 @@
     <ClCompile Include="third_party\imgui\backends\imgui_impl_opengl2.cpp" />
     <ClInclude Include="Game\Practice\Practice.h" />
     <ClInclude Include="Game\Practice\PracticeConfig.h" />
+    <ClInclude Include="Game\Practice\PracticeAdvanced.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

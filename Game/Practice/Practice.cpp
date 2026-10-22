@@ -28,7 +28,7 @@ void MarkAssisted() {
  assisted = true;
  // Hotkey toggles are live tools, not serialized Practice parameters.
 }
-void ResetRun() { assisted = false; }
+void ResetRun() { assisted = Options().showHitbox || Options().alwaysHitbox; }
 bool AllowTimeout(bool expired) { return expired && !Enabled(LockTimeout); }
 bool BeforeTimeout(bool beforeDeadline) { return beforeDeadline || Enabled(LockTimeout); }
 bool Initialize(HWND window) {
@@ -39,20 +39,21 @@ bool Initialize(HWND window) {
  char font[MAX_PATH]; GetWindowsDirectoryA(font,MAX_PATH);
  strcat_s(font,"\\Fonts\\msyh.ttc");
  static ImVector<ImWchar> glyphRanges;ImFontGlyphRangesBuilder ranges;
- ranges.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());ranges.AddText(u8"\u5e27");ranges.BuildRanges(&glyphRanges);
+ ranges.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());ranges.AddText(u8"\u5e27\u9636\u6bb5\u4ece\u5173\u5361\u8d77\u59cb\u5904\u5f00\u59cb\uff08\u6ca1\u6709\u9053\u4e2d\uff09");ranges.AddText(AdvancedGlyphs());ranges.BuildRanges(&glyphRanges);
  if (!io.Fonts->AddFontFromFileTTF(font,16,NULL,glyphRanges.Data)) io.Fonts->AddFontDefault();
  if (!ImGui_ImplWin32_Init(window)) { ImGui::DestroyContext(); return false; }
  if (!ImGui_ImplOpenGL2_Init()) { ImGui_ImplWin32_Shutdown(); ImGui::DestroyContext(); return false; }
  // Z activates the focused widget, matching the game's confirm key.
  io.KeyMap[ImGuiKey_Space]='Z';
- initialized=true; return true;
+ LoadAdvancedOptions();initialized=true; return true;
 }
-void Shutdown() { if (!initialized) return; ImGui_ImplOpenGL2_Shutdown(); ImGui_ImplWin32_Shutdown(); ImGui::DestroyContext(); initialized=false; }
+void Shutdown() { if (!initialized) return; SaveAdvancedOptions();ImGui_ImplOpenGL2_Shutdown(); ImGui_ImplWin32_Shutdown(); ImGui::DestroyContext(); initialized=false; }
 void BeginFrame() { if (!initialized) return; ImGui_ImplOpenGL2_NewFrame(); ImGui_ImplWin32_NewFrame(); ImGui::NewFrame(); ImGui::GetIO().MouseDrawCursor=false; }
 void EndFrame() { if (!initialized) return; ImGui::Render(); ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData()); }
 void WindowMessage(HWND window,UINT message,WPARAM key,LPARAM data) {
  if (!initialized) return;
  ImGui_ImplWin32_WndProcHandler(window,message,key,data);
+ AdvancedKeyEvent(message,key,data);
  if (message==WM_KEYDOWN && !(data & (1L<<30))) {
   if (key>=VK_F1 && key<=VK_F6) Toggle(Tool(key-VK_F1));
   else if (key=='U') Toggle(EnemyInvincible);
@@ -67,7 +68,7 @@ void WindowMessage(HWND window,UINT message,WPARAM key,LPARAM data) {
 // Only the renderer/backend and game-state actions are adapted for uth05win.
 void FocusPause() { focusPause=true; pauseAge=0; pauseAlpha=0; pauseAction=-1; actionAge=0; }
 void DrawPause(CStage& stage) {
- if (!initialized) return;
+ if (!initialized||AdvancedOpen()) return;
  ImGuiIO& io=ImGui::GetIO(); io.MouseDrawCursor=true;
  ++pauseAge;
  if (pauseAction<0) pauseAlpha=ImMin(.8f,pauseAlpha+.1f);
@@ -118,7 +119,10 @@ void DrawStatus() {
  if (!initialized || !CGame::s_pCurGame) return;
  if (CGame::s_pCurGame->m_curSchemeID==4 && !Replay())
   for (int i=0;i<ToolCount;i++) if (tools[i]) { MarkAssisted(); break; }
- if (!overlayOpen) return;
+ if(CGame::s_pCurGame->m_curSchemeID==4 && !Replay() && (Options().showHitbox||Options().alwaysHitbox)) MarkAssisted();
+ if(AdvancedOpen()){DrawAdvanced();return;}
+ DrawRuntimeHUD();
+ if (!overlayOpen) {DrawAdvanced();return;}
  ImGui::GetIO().MouseDrawCursor=true;
  ImGui::SetNextWindowPos(ImVec2(10,10),ImGuiCond_Always);
  ImGui::SetNextWindowBgAlpha(.5f);
@@ -128,6 +132,7 @@ void DrawStatus() {
  for (int i=0;i<ToolCount;i++) {
   char text[128]; const bool enabled=Enabled(Tool(i));
   sprintf_s(text,enabled?"[%s: %s]":"%s: %s",keys[i],labels[i]);
+  if (i==InfiniteLives&&Options().noContinue)sprintf_s(text,enabled?"[F2: %s]":"F2: %s",u8"\u4e0d\u75ae");
   if (enabled) ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,1,0,1));
   const ImVec2 cursor=ImGui::GetCursorPos();
   ImGui::TextUnformatted(text);
@@ -135,6 +140,6 @@ void DrawStatus() {
   if (enabled) ImGui::PopStyleColor();
   if (ImGui::InvisibleButton(keys[i],ImGui::CalcTextSize(text))) Toggle(Tool(i));
  }
- ImGui::End();
+ ImGui::End();DrawAdvanced();
 }
 } }

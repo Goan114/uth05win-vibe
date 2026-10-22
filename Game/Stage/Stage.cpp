@@ -199,6 +199,7 @@ void CStage::Initialize()
 		CGame::GVar().m_replay.OpenStage(CGame::GVar().m_playStage,true);
 
 	m_bQuit=false;
+ m_lockTimer=0;m_lockPhase=-1;m_lockKind=0;m_fastRetryCountdown=0;
 
 	m_bLogo=true;
 	m_logoFrame=0;
@@ -257,13 +258,17 @@ void CStage::Initialize()
 	m_lastGameKeyState=0;
 	m_curGameKeyState=0;
 	ApplyPracticeWarp();
-	CGame::GVar().OnStageEnter();
+ if(practice::TakeQuickIntro()&&!CGame::GVar().m_bReplayMode){
+  if(m_bLogo){char bgm[]="ST00.M2";bgm[3]=char('0'+CGame::GVar().m_playStage);CPMDPlayer::UnloadPMDData();CCommonFunctionMusicSE::LoadMusicToPMDFromDat(&CGame::s_pCurGame->m_th5Dat2,bgm);CPMDPlayer::SetVolume(100);CPMDPlayer::Play();}
+  m_bLogo=false;
+ }
+ CGame::GVar().OnStageEnter();
 }
 
 void CStage::ApplyPracticeWarp()
 {
  const auto& p=CGame::GVar().m_practiceConfig;
- if(!CGame::GVar().m_bPracticeMode||!p.mode||!p.warp)return;
+ if(!CGame::GVar().m_bPracticeMode||!p.mode||!p.warp||(p.stage==5&&p.warp==1))return;
  const int midFrames[]={2500,2750,5750,3900,4800,300000,5800};
  const int target=p.warp==1?midFrames[CGame::GVar().m_playStage]:p.warp==3?p.frame:60000;
  // Do not run combat, collect items, change resources or record fake inputs.
@@ -406,8 +411,16 @@ int CStage::Step()
 
 int CStage::StepFrame(unsigned short liveInput)
 {
-	CGame::s_pCurGame->m_fpsLimit=56;
-	CGame::s_pCurGame->SetVSYNC(true);
+ if(practice::AdvancedOpen())return 0;
+	CGame::s_pCurGame->m_fpsLimit=practice::GameFPS();
+	CGame::s_pCurGame->SetVSYNC(practice::GameFPS()==56);
+ if(practice::TakeFastRetryRequest())RequestFastRetry();
+ if(m_fastRetryCountdown>0){
+  if(--m_fastRetryCountdown==0){m_bPaused=false;SetQuit(STAGE_END_RESTART);m_nQuitFrameLeft=0;practice::SetQuickIntro();}
+  return 0;
+ }
+
+
 	if (m_bQuit)
 	{
 		if (m_nQuitFrameLeft>0)
@@ -499,8 +512,10 @@ int CStage::StepFrame(unsigned short liveInput)
 		}
 	}
 
-	if (CGame::GVar().m_bReplayMode==false)
+	if (CGame::GVar().m_bReplayMode==false){
+  m_curGameKeyState=practice::FilterGameplayInput(m_curGameKeyState,false);
 		CGame::GVar().m_replay.PutNextdata(m_curGameKeyState);
+ }
 
 	if (CGame::GVar().m_bReplayMode)
 		if (CCommonFunctionInput::LCtrlKey(m_curMenuKeyState))
@@ -559,8 +574,21 @@ int CStage::StepFrame(unsigned short liveInput)
 		m_pChara->StepBomb();
 	m_pTextOverlay->Step();
 	m_pFloatingText->Step();
+ TickLockTimer();
 
 	return 0;
+}
+
+void CStage::RequestFastRetry(){
+ if(practice::Options().fastRetry&&CGame::GVar().m_bPracticeMode&&!CGame::GVar().m_bReplayMode&&!m_bQuit&&!m_fastRetryCountdown){m_fastRetryCountdown=15;m_bPaused=true;practice::FocusPause();}
+}
+void CStage::TickLockTimer(){
+ const int kind=m_pBoss?2:m_pMidBoss?1:0;
+ const int phase=m_pBoss?m_pBoss->m_curPhase:m_pMidBoss?m_pMidBoss->m_curPhase:-1;
+ if(!kind||phase>=0xfd)m_lockTimer=0;
+ else if(kind!=m_lockKind||phase!=m_lockPhase)m_lockTimer=1;
+ else ++m_lockTimer;
+ m_lockKind=kind;m_lockPhase=phase;
 }
 
 void CStage::Draw()

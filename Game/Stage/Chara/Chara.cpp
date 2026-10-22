@@ -323,6 +323,7 @@ void CChara::Step()
 		if (m_bMiss)
 		{
 			m_nextLifeComeTimeLeft=40;
+   m_pStage->RequestFastRetry();
 			m_bMiss=false;
 			m_invulnerableTimeLeft=192;
 			m_cannotControlTimeLeft=72;
@@ -402,7 +403,7 @@ void CChara::Step()
 				}
 				else
 				{
-					if (!practice::Enabled(practice::InfiniteLives)) m_pStage->m_nCurLife--;
+					if (practice::ConsumeLife(m_pStage->m_nCurLife)) m_pStage->m_nCurLife--;
 					m_pStage->m_nCurBomb=m_pStage->m_nBombOnMiss;
 					m_pStage->m_pEnemyBullet->SetClearBulletTimeLeft(32);
 				}
@@ -457,15 +458,19 @@ void CChara::DrawCollisionArea()
 	if (m_bDraw==false)
 		return;
 
+	const practice::AdvancedOptions& settings=practice::Options();
+ if (!settings.alwaysHitbox && (!settings.showHitbox || !(m_pStage->GetCurKeyState()&64))) return;
+ const int alpha=settings.alwaysHitbox?100:m_collisionAreaAlpha;
+ if (alpha<=0) return;
 	//unlike PC98 ver, we draw the collision area
 	if (m_nextLifeComeTimeLeft==0||m_nextLifeComeTimeLeft>32)
 	{
 		float drawX=floor(m_curX/16.0f)*16.0f;
 		float drawY=floor(m_curY/16.0f)*16.0f;
-		m_pStage->m_pStageRes->DrawCircle(drawX,drawY,6.0f*16.0f,0.5f,0.25f,0.25f,true,(float)m_collisionAreaAlpha/100.0f*0.75f*0.3f);
-		m_pStage->m_pStageRes->DrawCircle(drawX,drawY,5.0f*16.0f,0.5f,0.25f,0.25f,true,(float)m_collisionAreaAlpha/100.0f*0.75f*0.6f);
-		m_pStage->m_pStageRes->DrawCircle(drawX,drawY,4.0f*16.0f,0.5f,0.25f,0.25f,true,(float)m_collisionAreaAlpha/100.0f*0.75f*0.9f);
-		m_pStage->m_pStageRes->DrawCircle(drawX,drawY,3.0f*16.0f,1.0f,1.0f,1.0f,true,(float)m_collisionAreaAlpha/100.0f);
+		m_pStage->m_pStageRes->DrawCircle(drawX,drawY,6.0f*16.0f,0.5f,0.25f,0.25f,true,(float)alpha/100.0f*0.75f*0.3f);
+		m_pStage->m_pStageRes->DrawCircle(drawX,drawY,5.0f*16.0f,0.5f,0.25f,0.25f,true,(float)alpha/100.0f*0.75f*0.6f);
+		m_pStage->m_pStageRes->DrawCircle(drawX,drawY,4.0f*16.0f,0.5f,0.25f,0.25f,true,(float)alpha/100.0f*0.75f*0.9f);
+		m_pStage->m_pStageRes->DrawCircle(drawX,drawY,3.0f*16.0f,1.0f,1.0f,1.0f,true,(float)alpha/100.0f);
 	}
 }
 

@@ -206,12 +206,15 @@ struct PracticeTests {
   Check(setupKey('X')==2,"X requests return directly from the practice menu");
   setup.m_setupAction=2;setup.Step();Check(setup.m_stageSelectClosing&&setup.m_stageSelectAge==8,"X begins the purple menu's fade-out");
   for(int i=0;i<8;i++)setup.Step();Check(!setup.m_bThpracSetup&&!setup.m_bQuit,"X returns to character selection after fade-out");
-  menu.stage=5;menu.warp=1;Check(!practice::StartSetup(),"stage six has no midboss and cannot start an invalid warp");
+  setup.m_bThpracSetup=setup.m_bStageSelect=true;setup.m_stageSelectAge=30;
+  practice::SetAdvancedOpen(true);Check(setupKey('Z')==0,"F12 prevents hidden practice parameters from consuming Z");practice::SetAdvancedOpen(false);
+  menu.stage=5;menu.warp=1;Check(practice::StartSetup(),"stage six midboss selection is a valid start-of-stage fallback");
+  setup.m_bThpracSetup=setup.m_bStageSelect=true;setup.m_stageSelectClosing=false;setup.m_stageSelectAge=30;
+  practice::BeginFrame();setup.Draw();practice::EndFrame();Screenshot("thprac-stage6-no-mid.bmp");
   menu.mode=0;menu.stage=0;memset(g.m_practiceUnlocked,0,sizeof(g.m_practiceUnlocked));g.m_playChara=0;g.m_playDifficulty=1;
   Check(!practice::StartSetup(),"normal mode still obeys native stage unlocks");
   // Every supported stage / destination round-trips through the real disk replay.
   for(int stage=0;stage<7;stage++)for(int warp=0;warp<4;warp++){
-   if(stage==5&&warp==1)continue;
    menu=practice::Config();menu.mode=1;menu.stage=stage;menu.warp=warp;menu.frame=1000;
    menu.lives=3;menu.bombs=2;menu.score=123450;menu.power=69;menu.graze=321;menu.points=123;menu.totalPoints=4567;menu.dream=70;menu.rank=48;menu.lockRank=1;
    g.m_bReplayMode=false;g.m_playChara=stage%4;
@@ -223,7 +226,8 @@ struct PracticeTests {
    Check(record->m_playerPerformanceLowerBound==48&&record->m_playerPerformanceUpperBound==48,"locked rank constrains both rank bounds");
    record->ChangePlayerPerformance(-100);record->ChangePlayerPerformance(100);
    Check(record->m_playerPerformance==48,"locked rank rejects increases and decreases");
-   if(warp==1){const int mid[]={2500,2750,5750,3900,4800,0,5800};Check(record->m_curFrame==mid[stage]-1,"midboss seek stops immediately before the native spawn frame");}
+   if(warp==1&&stage!=5){const int mid[]={2500,2750,5750,3900,4800,0,5800};Check(record->m_curFrame==mid[stage]-1,"midboss seek stops immediately before the native spawn frame");}
+   if(warp==1&&stage==5)Check(record->m_curFrame==-1&&record->m_bLogo&&record->m_pMidBoss==NULL,"sixth-stage missing midboss starts from the original beginning");
    if(warp==2)Check(record->m_pBoss!=NULL&&!record->m_pDialogue->IsRunning(),"boss warp executes original dialogue resource loading and enters the real boss");
    if(warp==3)Check(record->m_curFrame==999,"frame warp begins at the selected timeline frame");
    Frame(*record);char shot[64];sprintf_s(shot,"custom-stage-%d-warp-%d.bmp",stage+1,warp);Screenshot(shot);
@@ -236,7 +240,7 @@ struct PracticeTests {
     unsigned short input=((frame/60)%2?4:8)|((frame/45)%2?64:0);
     record->StepFrame(input);const auto v=capture(record);states.insert(states.end(),v.begin(),v.end());
    }
-   if(warp==1)Check(record->m_pMidBoss!=NULL,"midboss teleport spawns the native midboss, not a replacement encounter");
+   if(warp==1&&stage!=5)Check(record->m_pMidBoss!=NULL,"midboss teleport spawns the native midboss, not a replacement encounter");
    const int nextRandom=rand();
    record->SetQuit(STAGE_END_SAVE_EXIT);int end=0;for(int i=0;i<60&&!end;i++)end=record->StepFrame(0);
    Check(end==STAGE_END_SAVE_EXIT,"custom run closes the recording through the save action");
@@ -290,6 +294,77 @@ struct PracticeTests {
   g.m_bReplayMode=false;g.m_bPracticeMode=false;g.m_playDifficulty=1;g.OnBeginGame();
   Check(!g.m_practiceConfig.mode&&!practice::Assisted(),"normal gameplay clears custom initial settings and assisted state");
  }
+ static void AdvancedMenu(CGame& game){
+  auto& opts=practice::Options();auto& g=CGame::GVar();opts=practice::AdvancedOptions();ResetTools();
+  CStage* stage=Stage(game);auto& player=*stage->m_pChara;
+  const int before=stage->m_curFrame;const size_t keys=g.m_replay.m_keyState[0].size();
+  Key(game,VK_F12);Check(practice::AdvancedOpen(),"F12 opens advanced options");
+  stage->StepFrame(32|8);Check(stage->m_curFrame==before&&g.m_replay.m_keyState[0].size()==keys,"F12 freezes gameplay without recording menu input");
+  Frame(*stage);Screenshot("f12-gameplay.bmp");
+  ImGuiWindow* window=ImGui::FindWindowByName("TH05 Advanced Options");
+  Check(window&&window->Size.x==640&&window->Size.y==480&&(window->Flags&ImGuiWindowFlags_NoTitleBar),"advanced layout follows purple fullscreen borderless options");
+  Key(game,VK_F12,true);Check(practice::AdvancedOpen(),"held F12 does not flicker the menu");
+  stage->m_bPaused=true;practice::FocusPause();Key(game,'Z');Frame(*stage);Check(stage->m_bPaused,"F12 prevents hidden pause controls from resuming the game");stage->m_bPaused=false;
+  const char* glyphs=practice::AdvancedGlyphs();int size=MultiByteToWideChar(CP_UTF8,0,glyphs,-1,NULL,0);std::vector<wchar_t> unicode(size);MultiByteToWideChar(CP_UTF8,0,glyphs,-1,unicode.data(),size);
+  bool complete=true;for(auto ch:unicode)if(ch>=0x3000&&!ImGui::GetFont()->FindGlyphNoFallback(ch))complete=false;
+  Check(complete,"all advanced labels have real glyphs instead of question marks");
+  ImGuiWindow* child=window->DC.ChildWindows[0];
+  const auto group=[&](const char* label,bool open){child->StateStorage.SetInt(child->GetID(label),open?1:0);};
+  group(u8"\u6e38\u620f\u8fdb\u884c",false);group(u8"\u4f5c\u5f0a",true);Frame(*stage);Screenshot("f12-cheats.bmp");group(u8"\u4f5c\u5f0a",false);
+  group(u8"\u6e38\u620f\u8fdb\u884c",false);group(u8"\u6e38\u620f\u901f\u5ea6",true);Frame(*stage);Screenshot("f12-speed.bmp");
+  group(u8"\u6e38\u620f\u901f\u5ea6",false);group(u8"\u53cd\u5e94\u529b\u6d4b\u8bd5",true);
+  practice::Reaction().Reset();srand(77);const int expectedRandom=rand();srand(77);
+  practice::WindowMessage(game.m_gameWindow.m_hWnd,WM_KEYDOWN,'Z',0);Frame(*stage);practice::WindowMessage(game.m_gameWindow.m_hWnd,WM_KEYUP,'Z',1L<<31);
+  Check(rand()==expectedRandom,"reaction test's private random generator does not consume gameplay RNG");
+  practice::Reaction().Reset();practice::Reaction().Start(-10000,1,true);Frame(*stage);Screenshot("f12-reaction.bmp");
+  group(u8"\u53cd\u5e94\u529b\u6d4b\u8bd5",false);group(u8"\u5173\u4e8ethprac",true);Frame(*stage);Screenshot("f12-about.bmp");
+  Key(game,VK_F12);Check(!practice::AdvancedOpen(),"F12 closes options");
+  opts.disableX=opts.disableShift=opts.disableZ=true;
+  Check(practice::FilterGameplayInput(16|32|64|8,false)==8,"disabled X, Z and Shift are removed from game input");
+  Check(practice::FilterGameplayInput(16|32|64|8,true)==(16|32|64|8),"recorded replay input bypasses current key-disable settings");
+  opts.forceShift=true;Check(practice::FilterGameplayInput(8,false)==(8|64),"force low speed overrides disabled Shift like purple thprac");opts.forceShift=false;
+  stage->StepFrame(16|32|64|8);Check(stage->m_curGameKeyState==8&&g.m_replay.m_keyState[0].back()==8,"live key filtering is saved in the actual native replay input stream");
+  opts=practice::AdvancedOptions();opts.fps=112;stage->StepFrame(0);Check(game.m_fpsLimit==112,"configured game speed reaches the production frame limiter");opts.fps=56;
+  Key(game,VK_F2);opts.noContinue=true;stage->m_nCurLife=3;player.m_nextLifeComeTimeLeft=1;player.m_cannotControlTimeLeft=1;player.Step();
+  Check(stage->m_nCurLife==2,"F2 no-continue mapping consumes spare lives normally");
+  stage->m_nCurLife=1;player.m_nextLifeComeTimeLeft=1;player.m_cannotControlTimeLeft=1;player.Step();Check(stage->m_nCurLife==1&&!stage->m_bContinueScr,"F2 no-continue retains the last life without Game Over");
+  opts.noContinue=false;stage->m_nCurLife=3;player.m_nextLifeComeTimeLeft=1;player.m_cannotControlTimeLeft=1;player.Step();Check(stage->m_nCurLife==3,"unmapped F2 still locks all lives");ResetTools();
+  player.m_curX=3072;player.m_curY=5120;player.m_nextLifeComeTimeLeft=0;player.m_invulnerableTimeLeft=0;player.m_collisionAreaAlpha=0;
+  stage->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);player.EnableDraw();
+  std::vector<unsigned char> hidden(20*20*3),visible(20*20*3);const int x=stage->m_playAreaUpperLeftX+192-10,y=480-(stage->m_playAreaUpperLeftY+320)-10;
+  Frame(*stage);glPixelStorei(GL_PACK_ALIGNMENT,1);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,hidden.data());
+  opts.alwaysHitbox=true;Frame(*stage);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,visible.data());Check(hidden!=visible,"always-show hitbox adds pixels while unfocused");
+  opts.showKeys=true;Frame(*stage);Screenshot("f12-key-monitor-hitbox.bmp");Check(ImGui::FindWindowByName(u8"\u6309\u952e\u663e\u793a###TH05 Key Monitor")!=NULL,"key monitor uses the real stage input state");
+  opts.showKeys=opts.alwaysHitbox=false;
+  player.m_collisionAreaAlpha=100;stage->m_curGameKeyState=64;Frame(*stage);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,visible.data());Check(hidden==visible,"default PC98 display hides hitbox even at low speed");
+  opts.showHitbox=true;Frame(*stage);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,visible.data());Check(hidden!=visible,"low-speed option shows hitbox during Shift");
+  stage->m_curGameKeyState=0;Frame(*stage);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,visible.data());Check(hidden==visible,"low-speed option hides hitbox immediately after Shift release");
+  practice::ResetRun();Check(practice::Assisted(),"hitbox cheat marks the run assisted before stage entry");opts.showHitbox=false;practice::ResetRun();
+  CBossStage1* boss=new CBossStage1;boss->m_pStage=stage;boss->Initialize();boss->m_curPhase=4;stage->m_pBoss=boss;
+  stage->TickLockTimer();stage->TickLockTimer();Check(stage->LockTimerFrames()==2,"phase timer counts native simulation updates");boss->m_curPhase=5;stage->TickLockTimer();Check(stage->LockTimerFrames()==1,"phase transition resets lock timing");
+  stage->m_bPaused=true;const int timer=stage->LockTimerFrames();stage->StepFrame(0);Check(stage->LockTimerFrames()==timer,"paused game does not advance lock timing");stage->m_bPaused=false;
+  stage->m_pBoss=NULL;delete boss;stage->TickLockTimer();Check(stage->LockTimerFrames()==0,"leaving boss battle clears lock timing");
+  // Show the timer on a real resource-backed boss, then test automatic retry.
+  g.m_replay.CloseStage(false);delete stage;game.m_pCurScheme=NULL;
+  auto& menu=practice::MenuConfig();menu=practice::Config();menu.mode=1;menu.warp=2;menu.lives=3;
+  Check(practice::StartSetup(),"advanced runtime test starts a real practice boss");stage=new CStage;stage->Initialize();game.m_pCurScheme=stage;
+  opts.lockTimer=true;Key(game,VK_F5);stage->StepFrame(0);Frame(*stage);Screenshot("f12-lock-timer.bmp");ResetTools();opts.lockTimer=false;
+  opts.fastRetry=true;stage->m_pChara->m_invulnerableTimeLeft=0;stage->m_pChara->m_bMiss=true;stage->m_pChara->Step();
+  Check(stage->m_fastRetryCountdown==15&&stage->m_bPaused,"practice Miss opens the original fast-retry countdown");
+  int end=0;for(int i=0;i<20&&!end;i++)end=stage->StepFrame(0);Check(end==STAGE_END_RESTART,"fast retry exits through the real restart route");
+  CScheme* fresh=NULL;int id=0;Check(CSchemeSwitcher::SwitchScheme(&fresh,&id,4,end)&&id==4,"fast retry creates a fresh practice run");delete stage;stage=static_cast<CStage*>(fresh);game.m_pCurScheme=stage;
+  Check(!stage->m_bLogo&&stage->m_nCurLife==4&&stage->m_pBoss!=NULL,"fast retry preserves practice initial values and skips the loading logo");
+  practice::WindowMessage(game.m_gameWindow.m_hWnd,WM_KEYDOWN,VK_SHIFT,0);Key(game,'F');practice::WindowMessage(game.m_gameWindow.m_hWnd,WM_KEYUP,VK_SHIFT,1L<<31);stage->StepFrame(0);
+  Check(stage->m_fastRetryCountdown==14,"Shift+F triggers the same practice retry path");
+  g.m_replay.CloseStage(false);delete stage;game.m_pCurScheme=NULL;practice::TakeFastRetryRequest();opts=practice::AdvancedOptions();
+  practice::ReactionTest test;test.Start(1000,1200,true);test.Tick(2000,true);Check(test.state==practice::ReactionTest::TooEarly&&test.results.empty(),"early press does not fabricate a reaction result");
+  test.Start(1000,1200,true);test.Tick(2200,false);test.Tick(2250,true);Check(test.results.size()==1&&test.results[0]==50,"reaction latency is measured from the actual color-change deadline");
+  test.Reset();test.type=1;test.Start(0,1500,true);test.Tick(100,true);test.Tick(1600,true);test.Tick(1640,false);Check(test.results.size()==1&&test.results[0]==40,"release reaction waits for hold then measures release latency");
+  test.Reset();test.progress=true;test.Start(1000,1200,true);test.Tick(2150,true);Check(test.results.size()==1&&test.results[0]==-50&&test.frameCounts[0]==3,"progress mode preserves negative early-reaction timing");
+  opts.fps=84;opts.noContinue=opts.disableX=opts.showKeys=opts.showHitbox=opts.alwaysHitbox=true;practice::SaveAdvancedOptions();opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();
+  Check(opts.fps==84&&opts.noContinue&&opts.disableX&&opts.showKeys&&opts.showHitbox&&opts.alwaysHitbox,"advanced preferences round-trip independently of game and replay saves");
+  opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();practice::SetAdvancedOpen(false);
+ }
  static void MusicRoom(CGame& game){
   Check(CMusicRoom::Available(),"original Music Room resource package is available");
   CMusicRoom room;Check(room.Initialize(),"original MUSIC.PI, translated font, comments and archive load");
@@ -318,6 +393,7 @@ struct PracticeTests {
   CScheme* next=NULL;int id=0;Check(CSchemeSwitcher::SwitchScheme(&next,&id,8,1)&&id==2,"Music Room exit returns to native title");delete next;
  }
  static int Run() {
+  DeleteFileA(".\\thprac-uth05.ini");
   CGame game; CGame::s_pCurGame=&game;
   Check(game.Initialize(false),"hidden production OpenGL/game initialization");
   Check(practice::Initialize(game.m_gameWindow.m_hWnd),"ImGui Win32/OpenGL2 initialization");
@@ -408,7 +484,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

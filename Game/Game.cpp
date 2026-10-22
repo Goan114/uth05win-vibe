@@ -334,7 +334,8 @@ void CGame::Run()
 			//QueryPerformanceCounter(&a);
 			m_gameWindow.m_pGLContext->MakeCurrent();
 			practice::BeginFrame();
-			int stepRes=m_pCurScheme->Step();
+			int stepRes=practice::AdvancedOpen()?0:m_pCurScheme->Step();
+            if(practice::AdvancedOpen()){m_fpsLimit=60;SetVSYNC(false);}
 			//LARGE_INTEGER b;
 			//QueryPerformanceCounter(&b);
 			//printf("%lf\n",(double)m_performanceFreq.QuadPart/(b.QuadPart-a.QuadPart));

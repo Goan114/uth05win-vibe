@@ -39,7 +39,7 @@ bool StartSetup(){
  g.m_bPracticeMode=true;g.m_bReplayMode=false;g.OnBeginGame();return true;
 }
 int DrawSetup(int age){
- if(!ImGui::GetCurrentContext())return 0;
+ if(!ImGui::GetCurrentContext()||AdvancedOpen())return 0;
  Config& p=MenuConfig();int action=0;
  const bool popup=ImGui::IsPopupOpen(static_cast<const char*>(NULL),ImGuiPopupFlags_AnyPopupId);
  const bool idle=!ImGui::IsAnyItemActive()&&!popup;
@@ -67,6 +67,10 @@ int DrawSetup(int age){
  if(p.mode){
   const char* warps[]={u8"\u65e0",u8"\u9053\u4e2dBoss",u8"\u5173\u5e95Boss",u8"\u5e27"};
   SetupCombo(u8"\u4f20\u9001",&p.warp,warps,4);
+  if(p.stage==5&&p.warp==1){
+   int section=0;const char* choices[]={u8"\u4ece\u5173\u5361\u8d77\u59cb\u5904\u5f00\u59cb\uff08\u6ca1\u6709\u9053\u4e2d\uff09"};
+   ImGui::SetNextItemWidth(-45);SetupCombo(u8"\u9636\u6bb5",&section,choices,1);
+  }
   if(p.warp==3)SetupDrag(u8"\u5e27",&p.frame,1,0,60000);
   SetupSlider(u8"\u6b8b\u673a",&p.lives,0,8);
   SetupSlider(u8"Bomb",&p.bombs,0,8);
@@ -86,7 +90,7 @@ int DrawSetup(int age){
  ImGui::PopItemWidth();
  const bool valid=p.Valid(p.stage==6?4:CGame::GVar().m_initDifficulty);
  const bool unlocked=p.mode||CGame::GVar().PracticeStageUnlocked(p.stage);
- if(!valid)ImGui::TextColored(ImVec4(1,.5f,.5f,1),u8"\u7b2c\u516d\u5173\u6ca1\u6709\u9053\u4e2dBoss");
+ if(!valid)ImGui::TextColored(ImVec4(1,.5f,.5f,1),u8"\u53c2\u6570\u65e0\u6548");
  else if(!unlocked)ImGui::TextColored(ImVec4(1,.5f,.5f,1),u8"\u5b9e\u6218\u8fdb\u5165\u8be5\u5173\u5361\u540e\u89e3\u9501\u7ec3\u4e60");
  if(confirm&&valid&&unlocked)action=1;
  if(cancel)action=2;

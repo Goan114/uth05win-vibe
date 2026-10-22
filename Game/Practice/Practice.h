@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include "PracticeConfig.h"
+#include "PracticeAdvanced.h"
 namespace th5w {
 class CStage;
 namespace practice {

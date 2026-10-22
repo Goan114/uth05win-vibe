@@ -15,7 +15,7 @@ struct Config {
  }
  bool Valid(int difficulty) const {
   Config copy=*this;copy.Clamp(difficulty);
-  return mode==copy.mode&&stage==copy.stage&&warp==copy.warp&&frame==copy.frame&&lives==copy.lives&&bombs==copy.bombs&&score==copy.score&&power==copy.power&&graze==copy.graze&&points==copy.points&&totalPoints==copy.totalPoints&&dream==copy.dream&&rank==copy.rank&&lockRank==copy.lockRank&&!(mode&&stage==5&&warp==1);
+  return mode==copy.mode&&stage==copy.stage&&warp==copy.warp&&frame==copy.frame&&lives==copy.lives&&bombs==copy.bombs&&score==copy.score&&power==copy.power&&graze==copy.graze&&points==copy.points&&totalPoints==copy.totalPoints&&dream==copy.dream&&rank==copy.rank&&lockRank==copy.lockRank;
  }
 };
 static_assert(sizeof(Config)==14*4,"Practice replay field size");
