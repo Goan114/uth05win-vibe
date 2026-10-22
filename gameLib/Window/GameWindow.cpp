@@ -4,6 +4,8 @@
 #include <gl/gl.h>
 #include <tchar.h>
 #include <stdio.h>
+#include <imm.h>
+#pragma comment(lib,"imm32.lib")
 #include "../../Game/Practice/Practice.h"
 
 namespace th5w{
@@ -37,6 +39,9 @@ LRESULT CALLBACK CGameWindow::WndProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM l
 LRESULT CGameWindow::WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
 	practice::WindowMessage(hWnd,uMsg,wParam,lParam);
+	if(uMsg==WM_SETFOCUS || uMsg==WM_INPUTLANGCHANGE) ImmAssociateContextEx(hWnd,NULL,0);
+    if(uMsg==WM_IME_SETCONTEXT) return DefWindowProc(hWnd,uMsg,wParam,0);
+    if(uMsg==WM_IME_STARTCOMPOSITION || uMsg==WM_IME_COMPOSITION || uMsg==WM_IME_ENDCOMPOSITION) return 0;
 	switch (uMsg)									// Check For Windows Messages
 	{
 	case WM_PAINT:
@@ -114,6 +119,7 @@ LRESULT CGameWindow::WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam)
 bool CGameWindow::Create(bool bCreateFullScr,int width, int height)
 {
 	s_pCurrentGameWindow=this;
+	ImmDisableIME(GetCurrentThreadId());
 
 	WNDCLASS	wc;						// Windows Class Structure
 	DWORD		dwExStyle;				// Window Extended Style
@@ -205,6 +211,7 @@ bool CGameWindow::Create(bool bCreateFullScr,int width, int height)
 
 	//ShowWindow(m_hWnd,SW_SHOW);						// Show The Window
 	SetForegroundWindow(m_hWnd);						// Slightly Higher Priority
+	ImmAssociateContextEx(m_hWnd,NULL,0);
 	SetFocus(m_hWnd);									// Sets Keyboard Focus To The Window
 
 	return true;

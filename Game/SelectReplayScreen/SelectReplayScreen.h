@@ -12,6 +12,7 @@ namespace th5w{
 
 class CSelectReplayScreen : public CScheme
 {
+friend struct PracticeTests;
 protected:
 	bool m_bLoadMode;
 	int m_curFrame;

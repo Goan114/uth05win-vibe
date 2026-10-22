@@ -2,6 +2,9 @@
 #include "../Game/Practice/Practice.h"
 #include "../Game/Stage/Stage.h"
 #include "../Game/SchemeSwitcher.h"
+#include "../Game/SelectReplayScreen/SelectReplayScreen.h"
+#include <imm.h>
+#pragma comment(lib,"imm32.lib")
 #include "../Game/TitleScreen/TitleScreen.h"
 #include "../Game/SelectCharaScreen/SelectCharaScreen.h"
 #include "../Game/Stage/Chara/Chara.h"
@@ -67,6 +70,7 @@ struct PracticeTests {
   ResetTools(); auto& g=CGame::GVar();
   g.m_replay.CloseStage(false);
   CTitleScreen title;title.Initialize(false,2,false);title.m_bMenuOn=true;title.m_curScrFade=100;title.m_bgFade=100;
+  Check(ImmGetContext(game.m_gameWindow.m_hWnd)==NULL,"game window has no IME composition context");
   Check(title.m_mainMenuNItem==8&&title.m_bMainMenuItemEnabled[2],"Practice Start is the third native title item");
   title.Draw();glFinish();Screenshot("practice-title.bmp");
 
@@ -76,14 +80,19 @@ struct PracticeTests {
   g.m_playChara=0;g.m_playDifficulty=1;g.m_playStage=0;
   g.m_bPracticeMode=false;g.m_bReplayMode=false;practice::ResetRun();
   Check(!g.PracticeStageUnlocked(0),"uncleared stages start locked");
-  g.OnStageClear();Check(g.PracticeStageUnlocked(0)&&!g.PracticeStageUnlocked(1),"normal clear unlocks only its completed stage");
+  g.OnBeginGame();CStage* entered=new CStage;entered->Initialize();
+  Check(g.PracticeStageUnlocked(0)&&!g.PracticeStageUnlocked(1),"stage initialization unlocks its Practice before the first gameplay frame");
+  g.m_replay.CloseStage(false);delete entered;
   g.m_playChara=1;Check(!g.PracticeStageUnlocked(0),"stage unlock is character-specific");
   g.m_playChara=0;g.m_playDifficulty=2;Check(!g.PracticeStageUnlocked(0),"stage unlock is difficulty-specific");
-  g.m_playDifficulty=1;g.m_playStage=1;g.m_bPracticeMode=true;g.OnStageClear();Check(!g.PracticeStageUnlocked(1),"Practice cannot unlock stages");
-  g.m_bPracticeMode=false;g.m_bReplayMode=true;g.OnStageClear();Check(!g.PracticeStageUnlocked(1),"Replay cannot unlock stages");
-  g.m_bReplayMode=false;Key(game,VK_F1);g.OnStageClear();Check(!g.PracticeStageUnlocked(1),"assisted clears cannot unlock stages");ResetTools();practice::ResetRun();
+  g.m_playDifficulty=1;g.m_playStage=1;g.m_bPracticeMode=true;g.OnStageEnter();Check(!g.PracticeStageUnlocked(1),"Practice entry cannot unlock stages");
+  g.m_bPracticeMode=false;g.m_bReplayMode=true;g.OnStageEnter();Check(!g.PracticeStageUnlocked(1),"Replay entry cannot unlock stages");
+  g.m_bReplayMode=false;Key(game,VK_F1);g.OnStageEnter();Check(!g.PracticeStageUnlocked(1),"assisted entry cannot unlock stages");ResetTools();practice::ResetRun();
   memset(g.m_practiceUnlocked,0,sizeof(g.m_practiceUnlocked));g.LoadPracticeProgress();
   Check(g.PracticeStageUnlocked(0)&&!g.PracticeStageUnlocked(1),"unlock progress persists across reload");
+  { FILE* cfg=fopen("game.cfg","rb");Check(cfg!=NULL,"unlock uses native game.cfg");
+    fseek(cfg,0,SEEK_END);Check(ftell(cfg)==92,"native config has its 52-byte prefix and versioned progress extension");fclose(cfg); }
+  g.LoadConfig();g.LoadPracticeProgress();Check(g.PracticeStageUnlocked(0),"native configuration reload preserves entry unlock");
   g.m_bClear[2][3]=true;g.LoadPracticeProgress();g.m_playChara=2;g.m_playDifficulty=3;
   Check(g.PracticeStageUnlocked(5),"existing full-game clear migrates completed stages");g.m_bClear[2][3]=false;
   g.m_bPracticeMode=true;g.m_bReplayMode=false;g.m_playChara=0;g.m_playDifficulty=1;g.m_playStage=0;
@@ -130,13 +139,23 @@ struct PracticeTests {
     states.push_back(record->m_pChara->m_power);
    }
    CheckPracticeHud(*record);
+   g.m_bCanSaveReplay=false; // A stale menu flag must not suppress a completed Practice save.
    record->SetQuit(STAGE_END_CLEAR);int end=0;for(int f=0;f<60&&!end;f++)end=record->Step();
    Check(end==STAGE_END_CLEAR&&g.m_replay.m_stageFlag[stage]==2,"single-stage clear closes recorded stream as cleared");
    Check(g.m_bCanSaveReplay&&g.m_replay.m_bPracticeMode,"normal Practice remains replay-save eligible");
    Check(g.m_replay.SaveFile("practice-roundtrip.rpy"),"Practice replay writes native file format");
    REPLAY_BRIEF_INFO info={};Check(CReplay::GetRepFileInfo(&info,"practice-roundtrip.rpy")&&info.stageFlag[stage]==2,"saved Practice is selectable in native replay browser");
    CScheme* save=NULL;int saveID=0;
-   Check(CSchemeSwitcher::SwitchScheme(&save,&saveID,4,end)&&saveID==6&&g.m_playStage==stage,"single-stage clear goes directly to save replay without next stage");delete save;delete record;
+   Check(CSchemeSwitcher::SwitchScheme(&save,&saveID,4,end)&&saveID==6&&g.m_playStage==stage,"single-stage clear goes directly to save replay without next stage");{
+    CSelectReplayScreen* page=static_cast<CSelectReplayScreen*>(save);
+    Check(!page->m_bQuit&&!page->m_bLoadMode,"Practice clear presents an active save page");
+    page->m_bEnterNameMode=true;page->m_curRowY=(page->m_listUpperLeftY+4)*16;
+    page->m_curCharX=12;page->m_curCharY=6;page->m_selectedSlot=stage;
+    memset(page->m_curEnterName,0,10);memcpy(page->m_curEnterName,"PLAYER",6);
+    page->m_lastKeyState=0;page->m_curKeyState=32;page->StepEnterNameMode();
+    char saved[64];sprintf_s(saved,"replay/replay%02d.rpy",stage);REPLAY_BRIEF_INFO savedInfo={};
+    Check(CReplay::GetRepFileInfo(&savedInfo,saved)&&savedInfo.stageFlag[stage]==2,"native name-grid END actually saves the completed Practice replay");
+   }delete save;delete record;
    Check(g.m_replay.LoadFile("practice-roundtrip.rpy"),"native Practice replay reloads");
    g.m_bReplayMode=true;g.m_playStage=stage;g.OnBeginGame();
    CStage* playback=new CStage;playback->Initialize();game.m_pCurScheme=playback;
@@ -247,7 +266,7 @@ struct PracticeTests {
   CScheme* next=NULL;int nextID=0;
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
-  practice::MarkAssisted();Check(!CGame::GVar().m_bCanSaveReplay,"assisted session cannot save incompatible native replay");
+  CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
   delete s;game.m_pCurScheme=NULL;NativePractice(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;

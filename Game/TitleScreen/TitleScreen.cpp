@@ -54,11 +54,13 @@ CTitleScreen::CTitleScreen(void)
 	m_optionMenuNItem=8;
 	m_pBGImage=NULL;
 	m_pMenuImgPractice=NULL;
+	m_pPracticeDescription=NULL;
 	m_pMenuImgReplay=NULL;
 }
 
 CTitleScreen::~CTitleScreen(void)
 {
+	if(m_pPracticeDescription) m_pPracticeDescription->Destroy();
 	if (m_pBGImage!=NULL)
 		m_pBGImage->Destroy();
 	m_pBGImage=NULL;
@@ -146,6 +148,7 @@ void CTitleScreen::Initialize(bool bRollTama,int cursorInitialPos, bool bSwitchM
 	CCommonFunctionGraphic::LoadBinaryImageFile(&m_pMenuImgPractice,pc,"practice.bmp");
 	CCommonFunctionGraphic::LoadBinaryImageFile(&m_pMenuImgReplay,pc,"replay.bmp");
 
+	CreatePracticeDescription();
 	m_lastKeyState=0;
 }
 
@@ -311,13 +314,42 @@ void CTitleScreen::DrawMainMenuItems()
 	}
 
 	if (m_mainMenuCursorPosition==MAIN_MENU_PRACTICE)
-		DrawDescString("Practice a single stage");
+		{
+            if(m_pPracticeDescription) m_pPracticeDescription->DrawColorScaled(528,424,
+                m_globalPalette[27]/255.f,m_globalPalette[28]/255.f,m_globalPalette[29]/255.f);
+        }
 	else if (m_mainMenuCursorPosition!=0)
 		DrawDescString(mainMenuDesc[m_mainMenuCursorPosition-(m_mainMenuCursorPosition>MAIN_MENU_PRACTICE ? 1 : 0)]);
 	else
 		DrawDescString(startGameDesc[CGame::GVar().m_initDifficulty]);
 }
 
+// The simplified Chinese hint is outside the Japanese resident bitmap font.
+// Rasterize this fixed string once, then render it through the game's image path.
+void CTitleScreen::CreatePracticeDescription()
+{
+ HDC dc=CreateCompatibleDC(NULL);if(!dc)return;
+ BITMAPINFO info={};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+ info.bmiHeader.biWidth=96;info.bmiHeader.biHeight=-16;
+ info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+ void* pixels=NULL;HBITMAP bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,NULL,0);
+ if(!bitmap){DeleteDC(dc);return;}
+ HGDIOBJ oldBitmap=SelectObject(dc,bitmap);
+ HFONT font=CreateFontW(-16,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,GB2312_CHARSET,
+  OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,NONANTIALIASED_QUALITY,FIXED_PITCH,L"SimSun");
+ HGDIOBJ oldFont=font?SelectObject(dc,font):NULL;
+ memset(pixels,0,96*16*4);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(255,255,255));
+ TextOutW(dc,0,0,L"\u5f00\u59cb\u5355\u5173\u7ec3\u4e60",6);GdiFlush();
+ m_pPracticeDescription=C2DImage::Create2DImage(96,16);
+ unsigned char* out=m_pPracticeDescription->GetDataPointer();
+ const unsigned char* in=static_cast<const unsigned char*>(pixels);
+ for(int y=0;y<16;y++)for(int x=0;x<96;x++){
+  const int dest=((15-y)*96+x)*4;out[dest]=out[dest+1]=out[dest+2]=255;out[dest+3]=in[(y*96+x)*4];
+ }
+ m_pPracticeDescription->UploadToTexture();
+ if(font){SelectObject(dc,oldFont);DeleteObject(font);}SelectObject(dc,oldBitmap);
+ DeleteObject(bitmap);DeleteDC(dc);
+}
 void CTitleScreen::DrawDescString(char *descStr)
 {
 	CPC98Font::DrawString(descStr,1000,624-(int)strlen(descStr)*8,384+40,

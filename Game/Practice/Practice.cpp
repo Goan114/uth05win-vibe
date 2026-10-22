@@ -26,7 +26,7 @@ bool Assisted() { return assisted; }
 void MarkAssisted() {
  if (Replay()) return;
  assisted = true;
- if (CGame::s_pCurGame) CGame::GVar().m_bCanSaveReplay = false;
+ // Hotkey toggles are live tools, not serialized Practice parameters.
 }
 void ResetRun() { assisted = false; }
 bool AllowTimeout(bool expired) { return expired && !Enabled(LockTimeout); }
