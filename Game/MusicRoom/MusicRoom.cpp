@@ -33,7 +33,7 @@ bool CMusicRoom::Initialize(){
  CPIFile pi(dat.GetChildFileContentPointer(piID),dat.GetChildFileLength(piID));
  m_polygonBackground=C2DImage::Create2DImage(pi.GetWidth(),pi.GetHeight());
  if(!m_polygonBackground||!pi.ExtractImageAndPalette(m_polygonBackground->GetDataPointer(),NULL,NULL,255,1)||!m_polygonBackground->UploadToTexture())return false;
- m_font=CPC98Font::LoadAuxiliaryAtlas("music-font.bmp");
+ m_font=CPC98Font::LoadAuxiliaryAtlas("music-font.bmp",true);
  if(!m_background||!m_font)return false;
  // Keep display-only randomness independent of the gameplay RNG.
  unsigned int seed=0x5a17;auto random=[&](){seed=seed*1664525+1013904223;return (seed>>16)&65535;};
