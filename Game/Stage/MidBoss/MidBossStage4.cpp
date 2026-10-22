@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\midbossstage4.h"
 #include <stdlib.h>
 #include "../Stage.h"
@@ -221,7 +222,7 @@ void CMidBossStage4::Phase1()
 			m_curPhaseFrame=0;
 			m_phase1NModeChange++;
 			m_phase1CurMode=m_phase1NModeChange%3+1;
-			if (m_phase1NModeChange>=16)
+			if (practice::AllowTimeout(m_phase1NModeChange>=16))
 				bPhaseEnd=true;
 			if (m_phase1CurMode==2)
 				m_phase1Mode2Angle=(float)(rand()%256);

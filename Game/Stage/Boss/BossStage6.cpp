@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\bossstage6.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -258,7 +259,7 @@ void CBossStage6::Phase2_3()
 			m_curPhaseFrame=0;
 			m_nModeChange++;
 			m_curMode++;
-			if (m_nModeChange>=16)
+			if (practice::AllowTimeout(m_nModeChange>=16))
 				bPhaseEnd=true;
 		}
 	}
@@ -443,7 +444,7 @@ void CBossStage6::Phase6_7()
 		Phase6Shoot();
 	else
 		Phase7Shoot();
-	if (m_curPhaseFrame<3000)
+	if (practice::BeforeTimeout(m_curPhaseFrame<3000))
 		if (GetDmgOnAndCrashChara()!=0)
 			AddDefeatScoreAndPopupNumbers(25);
 		else
@@ -539,7 +540,7 @@ void CBossStage6::Phase10Shoot()
 	if (m_curPhaseFrame<192)
 		return;
 	int idx=m_curPhaseFrame-192;
-	if (m_curHP<=5600||m_curPhaseFrame>=1800)
+	if (m_curHP<=5600||practice::AllowTimeout(m_curPhaseFrame>=1800))
 		if (m_phase10Timer==0)
 		{
 			float c[]={m_pStage->m_pStageRes->m_palette[14*3]/255.0f,m_pStage->m_pStageRes->m_palette[14*3+1]/255.0f,
@@ -685,7 +686,7 @@ void CBossStage6::Phase10Shoot()
 					if (m_phase10VarI==56)
 						m_phase10VarD=1;
 				}
-				if (m_curHP<=3800||m_curPhaseFrame>=2500)
+				if (m_curHP<=3800||practice::AllowTimeout(m_curPhaseFrame>=2500))
 				{
 					if (m_phase10Timer==65)
 					{
@@ -723,7 +724,7 @@ void CBossStage6::Phase9_10()
 		Phase9Shoot();
 	else
 		Phase10Shoot();
-	if (m_curPhaseFrame<3000)
+	if (practice::BeforeTimeout(m_curPhaseFrame<3000))
 	{
 		int res=GetDmgOnAndCrashChara();
 		if (m_pStage->m_bInCharaBomb)
@@ -814,7 +815,7 @@ void CBossStage6::Phase12Shoot()
 void CBossStage6::Phase12()
 {
 	Phase12Shoot();
-	if (m_curPhaseFrame<3000)
+	if (practice::BeforeTimeout(m_curPhaseFrame<3000))
 	{
 		if (GetDmgOnAndCrashChara()!=0)
 			m_bSuccessDefeat=true;

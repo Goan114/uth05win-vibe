@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\bossstage4.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -749,7 +750,7 @@ void CBossStage4::Phase2()
 		{
 			m_curPhaseFrame=0;
 			m_nModeChange++;
-			if (m_nModeChange>=36)
+			if (practice::AllowTimeout(m_nModeChange>=36))
 			{
 				bEndPhase=true;
 				m_whichDie=0;

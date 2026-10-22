@@ -1,5 +1,7 @@
 #include ".\selectcharascreen.h"
 #include "../Game.h"
+#include "../../gameLib/Graphic/Th5ExtFont.h"
+#include <cstdio>
 #include "../../gameLib/CommonFunction/CommonFunctionInput.h"
 #include "../../gameLib/CommonFunction/CommonFunctionGraphic.h"
 
@@ -18,6 +20,10 @@ CSelectCharaScreen::~CSelectCharaScreen(void)
 
 void CSelectCharaScreen::Initialize()
 {
+	m_bStageSelect=false;
+	m_stageSelectClosing=false;
+	m_stageCursor=0;
+	m_stageSelectAge=0;
 	m_bQuit=false;
 	m_quitCode=0;
 	m_lastKeyState=0;
@@ -74,6 +80,12 @@ int CSelectCharaScreen::Step()
 		return 0;
 	}
 
+	if (m_bStageSelect && m_stageSelectClosing) {
+        if (--m_stageSelectAge<=0) { m_bStageSelect=false; m_stageSelectClosing=false; }
+        m_lastKeyState=CCommonFunctionInput::GetAllKeyState();
+        return 0;
+    }
+	if (m_bStageSelect) ++m_stageSelectAge;
 	ParseKeyEvent();
 
 	return 0;
@@ -108,12 +120,70 @@ void CSelectCharaScreen::Draw()
 		}
 	}
 
+	if (m_bStageSelect) DrawStageSelect();
 	CCommonFunctionGraphic::ScreenFade((float)m_curScrFade);
+}
+
+// TH06 MainMenu::ChoosePracticeLevel: six STAGE rows, 24px spacing,
+// return to character selection on cancel; confirm starts only the chosen stage.
+void CSelectCharaScreen::DrawStageSelect()
+{
+ // Ten frames (1/6 second): expand from the center while fading in.
+ const float t=m_stageSelectAge>=10 ? 1.f : float(m_stageSelectAge)/10.f;
+ const float expand=1.f-(1.f-t)*(1.f-t)*(1.f-t);
+ const int left=440-int(160*expand), right=440+int(160*expand);
+ const int top=272-int(92*expand), bottom=272+int(92*expand);
+ CCommonFunctionGraphic::DrawRectangle(0,40,639,439,0,0,0,.5f*t);
+ if (right<=left || bottom<=top) return;
+ CCommonFunctionGraphic::DrawRectangle(float(left),float(top),float(right),float(bottom),0,0,0,t);
+ CCommonFunctionGraphic::DrawRectangle(float(left),float(top),float(right),float(top),.5f,.75f,.75f,t);
+ CCommonFunctionGraphic::DrawRectangle(float(left),float(bottom),float(right),float(bottom),.5f,.75f,.75f,t);
+ CCommonFunctionGraphic::DrawRectangle(float(left),float(top),float(left),float(bottom),.5f,.75f,.75f,t);
+ CCommonFunctionGraphic::DrawRectangle(float(right),float(top),float(right),float(bottom),.5f,.75f,.75f,t);
+ GLint viewport[4]; glGetIntegerv(GL_VIEWPORT,viewport);
+ glPushAttrib(GL_SCISSOR_BIT); glEnable(GL_SCISSOR_TEST);
+ glScissor(viewport[0]+left*viewport[2]/640,viewport[1]+(480-bottom)*viewport[3]/480,
+  (right-left)*viewport[2]/640,(bottom-top)*viewport[3]/480);
+ for (int i=0;i<6;i++) {
+  const bool unlocked=CGame::GVar().PracticeStageUnlocked(i);
+  char text[48]; if(unlocked) sprintf_s(text,"STAGE %d  %09d",i+1,0);
+  else sprintf_s(text,"STAGE %d  LOCKED",i+1);
+  const bool selected=i==m_stageCursor;
+  for (int j=0;text[j];j++) {
+   // The same ZUN.COM gaiji as CHighScoreScreen's name-entry grid.
+   unsigned char glyph=0;
+   if (text[j]>='A' && text[j]<='Z') glyph=0xaa+text[j]-'A';
+   else if (text[j]>='0' && text[j]<='9') glyph=0xa0+text[j]-'0';
+   if (glyph) CTh5ExtFont::DrawExtChar(glyph,296+j*16,200+i*24,
+    unlocked?(selected?.75f:.5f):.25f,unlocked?(selected?.94f:.75f):.25f,unlocked?(selected?.94f:.75f):.25f,t);
+  }
+ }
+ glPopAttrib();
+}
+void CSelectCharaScreen::ParseStageKey(unsigned short state)
+{
+ if (m_stageSelectClosing) { m_lastKeyState=state; return; }
+ if (m_stageSelectAge<30) { m_lastKeyState=state; return; }
+ if (CCommonFunctionInput::ESCPressed(state,m_lastKeyState)||CCommonFunctionInput::XPressed(state,m_lastKeyState)) {
+  m_stageSelectClosing=true; m_stageSelectAge=10;
+  CGame::s_pCurGame->m_soundEffect.PlaySound(1);
+ } else if (CCommonFunctionInput::ZPressed(state,m_lastKeyState)) {
+  if (!CGame::GVar().PracticeStageUnlocked(m_stageCursor)) { m_lastKeyState=state; return; }
+  CGame::GVar().m_playStage=m_stageCursor;
+  CGame::GVar().OnBeginGame();
+  m_bQuit=true; m_quitCode=SELECTCHARASCREEN_END_SELECTED_CHARA;
+  CGame::s_pCurGame->m_soundEffect.PlaySound(11);
+ } else {
+  int delta=CCommonFunctionInput::DownPressed(state,m_lastKeyState)?1:CCommonFunctionInput::UpPressed(state,m_lastKeyState)?-1:0;
+  if (delta) { m_stageCursor=(m_stageCursor+delta+6)%6; CGame::s_pCurGame->m_soundEffect.PlaySound(1); }
+ }
+ m_lastKeyState=state;
 }
 
 void CSelectCharaScreen::ParseKeyEvent()
 {
 	unsigned short curState=CCommonFunctionInput::GetAllKeyState();
+	if (m_bStageSelect) { ParseStageKey(curState); return; }
 	if (CCommonFunctionInput::LeftPressed(curState,m_lastKeyState)||CCommonFunctionInput::RightPressed(curState,m_lastKeyState))
 	{
 		CGame::s_pCurGame->m_soundEffect.PlaySound(1);
@@ -134,6 +204,13 @@ void CSelectCharaScreen::ParseKeyEvent()
 		if (m_bCharaSelectable[m_cursorPos]==true)
 		{
 			CGame::GVar().m_playChara=m_cursorPos;
+			if (CGame::GVar().m_bPracticeMode)
+			{
+				m_bStageSelect=true; m_stageSelectClosing=false; m_stageSelectAge=0;
+                m_stageCursor=0;
+                for(int i=0;i<6;i++) if(CGame::GVar().PracticeStageUnlocked(i)) { m_stageCursor=i; break; }
+                m_lastKeyState=curState; return;
+			}
 			CGame::GVar().OnBeginGame();
 			m_bQuit=true;
 			m_quitCode=SELECTCHARASCREEN_END_SELECTED_CHARA;

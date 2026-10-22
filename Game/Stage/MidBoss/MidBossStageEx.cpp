@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\midbossstageex.h"
 #include "../Stage.h"
 #include "../../game.h"
@@ -201,7 +202,7 @@ void CMidBossStageEx::Phase1()
 	m_curHP-=dmg;
 
 	bool bPhaseEnd=false;
-	if (m_phase1NModeChange>=20)
+	if (practice::AllowTimeout(m_phase1NModeChange>=20))
 		bPhaseEnd=true;
 	if (!bPhaseEnd)
 	{

@@ -14,6 +14,7 @@ namespace th5w{
 
 class CGame
 {
+friend struct PracticeTests;
 public:
 	static CGame *s_pCurGame;
 	__forceinline static CGlobalVariableAndStatistics& GVar() {return s_pCurGame->m_globalVar;}
@@ -48,7 +49,7 @@ public:
 	double m_fps;
 
 protected:
-	bool Initialize();
+	bool Initialize(bool showWindow=true);
 	void UpdateFPS();
 	void LoadModConfig();
 public:

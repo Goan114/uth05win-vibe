@@ -1,5 +1,6 @@
 #include ".\stage.h"
 #include "../Game.h"
+#include "../Practice/Practice.h"
 #include "Chara/Chara.h"
 #include "CharaBullet/CharaBullet.h"
 #include "EnemyBullet/EnemyBullet.h"
@@ -366,6 +367,11 @@ void CStage::CheckBoss()
 
 int CStage::Step()
 {
+	return StepFrame(CCommonFunctionInput::GetAllKeyState());
+}
+
+int CStage::StepFrame(unsigned short liveInput)
+{
 	CGame::s_pCurGame->m_fpsLimit=56;
 	CGame::s_pCurGame->SetVSYNC(true);
 	if (m_bQuit)
@@ -385,11 +391,14 @@ int CStage::Step()
 		//make sure to upload var before close stage
 		//otherwise, replay will not get the correct score
 		if (m_quitCode==STAGE_END_CLEAR)
+		{
 			CGame::GVar().m_replay.CloseStage(true);
+			CGame::GVar().OnStageClear();
+		}
 		else
 			CGame::GVar().m_replay.CloseStage(false);
 		if (CGame::GVar().m_bReplayMode)
-			if (m_quitCode!=STAGE_END_CLEAR||CGame::GVar().m_playStage>=5)
+			if (m_quitCode!=STAGE_END_RESTART && (CGame::GVar().m_bPracticeMode || m_quitCode!=STAGE_END_CLEAR||CGame::GVar().m_playStage>=5))
 				m_quitCode=STAGE_END_REPLAY_END;
 		return m_quitCode;
 	}
@@ -397,7 +406,7 @@ int CStage::Step()
 	if (m_bLogo)
 	{
 		if (CGame::GVar().m_bReplayMode)
-			if (CCommonFunctionInput::LCtrlKey(CCommonFunctionInput::GetAllKeyState()))
+			if (CCommonFunctionInput::LCtrlKey(liveInput))
 				CGame::s_pCurGame->m_fpsLimit=1000;
 		if (StepLogo()==0)
 			return 0;
@@ -428,7 +437,7 @@ int CStage::Step()
 	if (CGame::GVar().m_bReplayMode==false)
 	{
 		m_lastGameKeyState=m_curGameKeyState;
-		m_curGameKeyState=CCommonFunctionInput::GetAllKeyState();
+		m_curGameKeyState=liveInput;
 		m_lastMenuKeyState=m_lastGameKeyState;
 		m_curMenuKeyState=m_curGameKeyState;
 		if (CCommonFunctionInput::ESCPressed(m_curMenuKeyState,m_lastMenuKeyState))
@@ -440,7 +449,7 @@ int CStage::Step()
 	else
 	{
 		m_lastMenuKeyState=m_curMenuKeyState;
-		m_curMenuKeyState=CCommonFunctionInput::GetAllKeyState();
+		m_curMenuKeyState=liveInput;
 		if (CCommonFunctionInput::ESCPressed(m_curMenuKeyState,m_lastMenuKeyState))
 		{
 			if (Pause())
@@ -770,64 +779,14 @@ void CStage::DrawLogo()
 
 void CStage::StepPause()
 {
-	m_lastMenuKeyState=m_curMenuKeyState;
-	m_curMenuKeyState=CCommonFunctionInput::GetAllKeyState();
-	if (CCommonFunctionInput::ESCPressed(m_curMenuKeyState,m_lastMenuKeyState))
-	{
-		m_bPaused=false;
-		return;
-	}
-	if (CCommonFunctionInput::ZPressed(m_curMenuKeyState,m_lastMenuKeyState)&&m_pauseCursorPos==0)
-	{
-		m_bPaused=false;
-		return;
-	}
-	if (CCommonFunctionInput::QPressed(m_curMenuKeyState,m_lastMenuKeyState))
-	{
-		if (CGame::GVar().m_bReplayMode)
-			SetQuit(STAGE_END_REPLAY_END);
-		else
-			SetQuit(STAGE_END_PLAYER_QUIT);
-		m_bPaused=false;
-		return;
-	}
-	if (CCommonFunctionInput::ZPressed(m_curMenuKeyState,m_lastMenuKeyState)&&m_pauseCursorPos==1)
-	{
-		if (CGame::GVar().m_bReplayMode)
-			SetQuit(STAGE_END_REPLAY_END);
-		else
-			SetQuit(STAGE_END_PLAYER_QUIT);
-		m_bPaused=false;
-		return;
-	}
-	if (CCommonFunctionInput::UpPressed(m_curMenuKeyState,m_lastMenuKeyState))
-		m_pauseCursorPos=1-m_pauseCursorPos;
-	if (CCommonFunctionInput::DownPressed(m_curMenuKeyState,m_lastMenuKeyState))
-		m_pauseCursorPos=1-m_pauseCursorPos;
+ m_lastMenuKeyState=m_curMenuKeyState;
+ m_curMenuKeyState=CCommonFunctionInput::GetAllKeyState();
+ // Pause-menu input is handled by the thprac ImGui adapter.
 }
 
 void CStage::DrawPause()
 {
-	if (m_bPaused==false)
-		return;
-
-	const unsigned char extPause[]={0xf0,0xf1,0};
-	const unsigned char extResume[]={0xf2,0xf3,0};
-	const unsigned char extExit[]={0xf4,0xf5,0};
-	CTh5ExtFont::DrawExtString(extPause,100,0x1a*8-32+m_playAreaUpperLeftX,0xc*16-16+m_playAreaUpperLeftY,1,1,0);
-	if (m_pauseCursorPos==0)
-	{
-		CTh5ExtFont::DrawExtString(extResume,100,0x1a*8-32+m_playAreaUpperLeftX,0xe*16-16+m_playAreaUpperLeftY,1,1,1);
-		CTh5ExtFont::DrawExtString(extExit,100,0x1a*8-32+m_playAreaUpperLeftX,0xf*16-16+m_playAreaUpperLeftY,1,1,0);
-	}
-	else
-	{
-		CTh5ExtFont::DrawExtString(extResume,100,0x1a*8-32+m_playAreaUpperLeftX,0xe*16-16+m_playAreaUpperLeftY,1,1,0);
-		CTh5ExtFont::DrawExtString(extExit,100,0x1a*8-32+m_playAreaUpperLeftX,0xf*16-16+m_playAreaUpperLeftY,1,1,1);
-	}
-	float x=(float)(212-32+m_playAreaUpperLeftX);
-	float y=(float)(239-16+m_playAreaUpperLeftY+m_pauseCursorPos*16);
-	CCommonFunctionGraphic::DrawRectangle(x,y,x+31,y,1,1,1);
+ if (m_bPaused) practice::DrawPause(*this);
 }
 
 bool CStage::Pause()
@@ -835,6 +794,7 @@ bool CStage::Pause()
 	if (m_bCanPause)
 	{
 		m_bPaused=true;
+		practice::FocusPause();
 		m_pauseCursorPos=0;
 		return true;
 	}
@@ -1011,6 +971,7 @@ int CStage::GetDamageFromChara(float ctrX,float ctrY,float halfWidth,float halfH
 	if (m_bInCharaBomb)
 		totalDmg+=m_pChara->GetBombDamage(ctrX,ctrY,halfWidth,halfHeight,isBoss);
 	totalDmg=AdjustDamageFromChara(totalDmg,isBoss);
+	if (practice::Enabled(practice::EnemyInvincible)) totalDmg=0;
 	AddScore(totalDmg);
 	return totalDmg;//*10;
 }

@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\midbossstage2.h"
 #include <stdlib.h>
 #include "../Stage.h"
@@ -52,9 +53,9 @@ void CMidBossStage2::Phase1()
 	if (dmg!=0)
 		m_bHitThisFrame=true;
 	m_curHP-=dmg;
-	if (m_curPhaseFrame>=1000||m_curHP<=400)
+	if (practice::AllowTimeout(m_curPhaseFrame>=1000)||m_curHP<=400)
 	{
-		if (m_curHP<=400&&m_curPhaseFrame<1000)
+		if (m_curHP<=400&&practice::BeforeTimeout(m_curPhaseFrame<1000))
 		{
 			AddDefeatScoreAndPopupNumbers(5);
 			m_pStage->m_pEnemyBullet->SetClearBulletTimeLeft(20);
@@ -132,9 +133,9 @@ void CMidBossStage2::Phase2()
 	if (dmg!=0)
 		m_bHitThisFrame=true;
 	m_curHP-=dmg;
-	if (m_curPhaseFrame>=800||m_curHP<=0)
+	if (practice::AllowTimeout(m_curPhaseFrame>=800)||m_curHP<=0)
 	{
-		if (m_curHP<=0&&m_curPhaseFrame<800)
+		if (m_curHP<=0&&practice::BeforeTimeout(m_curPhaseFrame<800))
 		{
 			m_pStage->m_pEnemyBullet->m_noEnemyBullet=true;
 			AddDefeatScoreAndPopupNumbers(15);

@@ -1,5 +1,6 @@
 #include ".\highscorescreen.h"
 #include "../Game.h"
+#include "../Practice/Practice.h"
 #include "../../gameLib/CommonFunction/CommonFunctionInput.h"
 #include "../../gameLib/CommonFunction/CommonFunctionGraphic.h"
 #include "../../gameLib/CommonFunction/CommonFunctionMusicSE.h"
@@ -54,7 +55,7 @@ void CHighScoreScreen::Initialize(bool bViewMode,bool clearFlag)
 	{
 		int curScore=CGame::GVar().m_curScore;
 		m_opChara=CGame::GVar().m_playChara;
-		if (curScore<=CGame::GVar().m_highScore[m_opChara][m_curPage][4])
+		if (practice::Assisted() || curScore<=CGame::GVar().m_highScore[m_opChara][m_curPage][4])
 		{
 			m_bQuit=true;
 			m_quitCode=HIGHSCORESCREEN_END_ENTER_SKIPPED;

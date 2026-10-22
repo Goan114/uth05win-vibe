@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\midbossstage1.h"
 #include <stdlib.h>
 #include "../Stage.h"
@@ -57,9 +58,9 @@ void CMidBossStage1::Phase3()
 	m_curX=192.0f*16.0f+(float)cos(m_phase3CircularMoveAngle/256.0f*2*PI)*radius;
 	m_curY=96.0f*16.0f+(float)sin(m_phase3CircularMoveAngle/256.0f*2*PI)*radius;
 	m_phase3CircularMoveAngle-=2;
-	if (m_curPhaseFrame>=1500||m_curHP<=0)
+	if (practice::AllowTimeout(m_curPhaseFrame>=1500)||m_curHP<=0)
 	{
-		if (m_curHP<=0&&m_curPhaseFrame<1500)
+		if (m_curHP<=0&&practice::BeforeTimeout(m_curPhaseFrame<1500))
 		{
 			m_pStage->m_pEnemyBullet->m_noEnemyBullet=true;
 			AddDefeatScoreAndPopupNumbers(5);

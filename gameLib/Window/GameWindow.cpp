@@ -4,6 +4,7 @@
 #include <gl/gl.h>
 #include <tchar.h>
 #include <stdio.h>
+#include "../../Game/Practice/Practice.h"
 
 namespace th5w{
 
@@ -35,6 +36,7 @@ LRESULT CALLBACK CGameWindow::WndProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM l
 
 LRESULT CGameWindow::WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
+	practice::WindowMessage(hWnd,uMsg,wParam,lParam);
 	switch (uMsg)									// Check For Windows Messages
 	{
 	case WM_PAINT:

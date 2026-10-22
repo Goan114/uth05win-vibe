@@ -20,11 +20,15 @@
 #define STAGE_END_PLAYER_QUIT 2
 #define STAGE_END_ALL_MISSED 3
 #define STAGE_END_REPLAY_END 4
+#define STAGE_END_SAVE_EXIT 5
+#define STAGE_END_RESTART 6
 
 namespace th5w{
 
 class CStage : public CScheme
 {
+friend struct PracticeTests;
+	int StepFrame(unsigned short liveInput);
 friend class CChara;
 friend class CCharaReimu;
 friend class CCharaMarisa;
@@ -188,6 +192,8 @@ public:
 	__forceinline unsigned short GetLastKeyState() {return m_lastGameKeyState;}
 
 public:
+	void PracticeResume() { m_bPaused=false; }
+	void PracticeExit(int action) { SetQuit(action==3 ? STAGE_END_RESTART : action==1 ? STAGE_END_SAVE_EXIT : STAGE_END_PLAYER_QUIT); m_bPaused=false; }
 	void Initialize();
 protected:
 	void DownloadVarFromGlobal();

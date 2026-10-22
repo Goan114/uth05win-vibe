@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\bossstage2.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -178,7 +179,7 @@ void CBossStage2::Phase2()
 			m_curPhaseFrame=0;
 			m_nModeChange++;
 			m_curMode=m_nModeChange%2+1;
-			if (m_nModeChange>=20)
+			if (practice::AllowTimeout(m_nModeChange>=20))
 			{
 				EndPhase(1900,1);
 				return;
@@ -258,7 +259,7 @@ void CBossStage2::Phase4()
 	{
 		m_curPhaseFrame=0;
 		m_nModeChange++;
-		if (m_nModeChange>=20)
+		if (practice::AllowTimeout(m_nModeChange>=20))
 		{
 			EndPhase(500,2);
 			return;
@@ -349,7 +350,7 @@ void CBossStage2::Phase5()
 			m_curPhaseFrame=0;
 			m_nModeChange++;
 			m_curMode=m_nModeChange%2+1;
-			if (m_nModeChange>=20)
+			if (practice::AllowTimeout(m_nModeChange>=20))
 			{
 				EndPhase(0,1);
 				return;
@@ -407,7 +408,7 @@ void CBossStage2::Phase7()
 	{
 		m_curPhaseFrame=0;
 		m_nModeChange++;
-		if (m_nModeChange>=10)
+		if (practice::AllowTimeout(m_nModeChange>=10))
 		{
 			m_bSuccessDefeat=false;
 			m_curPhase=0xfd;

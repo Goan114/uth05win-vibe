@@ -1,5 +1,6 @@
 #include ".\chara.h"
 #include <stdio.h>
+#include "../../Practice/Practice.h"
 #include "../Stage.h"
 #include "../EnemyBullet/EnemyBullet.h"
 #include "../Item/Item.h"
@@ -97,7 +98,7 @@ void CChara::DropBomb()
 {
 	if (m_pStage->m_bInCharaBomb)
 		return;
-	if (m_pStage->m_nCurBomb==0)
+	if (m_pStage->m_nCurBomb==0 && !practice::Enabled(practice::InfiniteBombs))
 		return;
 	if (m_bBombDisabled)
 		return;
@@ -110,7 +111,7 @@ void CChara::DropBomb()
 			m_cannotControlTimeLeft=0;			//let player control chara again, PC98 ver does not do so
 			m_bMiss=false;
 		}
-	m_pStage->m_nCurBomb--;
+	if (!practice::Enabled(practice::InfiniteBombs)) m_pStage->m_nCurBomb--;
 	m_pStage->m_bInCharaBomb=true;
 	m_bombTimer=0;
 	m_invulnerableTimeLeft=m_bombInvulnerableTime;
@@ -301,6 +302,17 @@ void CChara::CaughtItem(float itemX,float itemY,unsigned char itemType)
 
 void CChara::Step()
 {
+ // Collision is reported by the previous enemy/bullet callbacks.
+ // Resolve the tool before the native death sequence consumes that collision.
+ if (m_bMiss && m_invulnerableTimeLeft==0 && m_nextLifeComeTimeLeft==0) {
+  if (practice::Enabled(practice::Invincible)) {
+   m_bMiss=false;
+   m_invulnerableTimeLeft=6;
+   m_pStage->m_bPlaySound[2]=true;
+  } else if (practice::Enabled(practice::AutoBomb)) {
+   DropBomb();
+  }
+ }
 	if (m_invulnerableTimeLeft>0)
 	{
 		m_invulnerableTimeLeft--;
@@ -359,7 +371,7 @@ void CChara::Step()
 				OnMissDropItem();
 				int powerDec=m_power/4;
 				if (powerDec>16) powerDec=16;
-				SetPower(m_power-powerDec);
+				if (!practice::Enabled(practice::KeepPower)) SetPower(m_power-powerDec);
 				m_pStage->m_bPlaySound[2]=true;
 				if (m_pStage->m_playerPerformance>38)
 					m_pStage->m_playerPerformance=38;
@@ -383,14 +395,14 @@ void CChara::Step()
 				m_lastY=m_curY;
 				m_deltaX=0;
 				m_deltaY=-2.0f*16.0f;
-				if (m_pStage->m_nCurLife<=1)
+				if (m_pStage->m_nCurLife<=1 && !practice::Enabled(practice::InfiniteLives))
 				{
 					m_pStage->EnableContinueScreen();
 					DisableDraw();
 				}
 				else
 				{
-					m_pStage->m_nCurLife--;
+					if (!practice::Enabled(practice::InfiniteLives)) m_pStage->m_nCurLife--;
 					m_pStage->m_nCurBomb=m_pStage->m_nBombOnMiss;
 					m_pStage->m_pEnemyBullet->SetClearBulletTimeLeft(32);
 				}

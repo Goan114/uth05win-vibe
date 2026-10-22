@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\midbossstage3.h"
 #include <stdlib.h>
 #include "../Stage.h"
@@ -215,7 +216,7 @@ void CMidBossStage3::Phase1()
 			m_phase1CurMode=m_phase1NModeChange%3+1;
 			m_phase1NModeChange++;
 			m_curPhaseFrame=0;
-			if (m_phase1NModeChange>=13)
+			if (practice::AllowTimeout(m_phase1NModeChange>=13))
 				bPhaseEnd=true;
 		}
 		break;

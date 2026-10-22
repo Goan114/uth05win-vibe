@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\bossstageex.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -622,7 +623,7 @@ void CBossStageEx::Phase2()
 			m_curPhaseFrame=0;
 			m_nModeChange++;
 			m_curMode++;
-			if (m_nModeChange>=32)
+			if (practice::AllowTimeout(m_nModeChange>=32))
 				bEndPhase=true;
 		}
 	}
@@ -697,7 +698,7 @@ void CBossStageEx::Phase7_11_15()
 void CBossStageEx::Phase8_12()
 {
 	CommonShootOuter();
-	if (m_curPhaseFrame<=4000)
+	if (practice::BeforeTimeout(m_curPhaseFrame<=4000))
 		if (GetDmgVerStageEx()!=0)
 			AddDefeatScoreAndPopupNumbers(20);
 		else
@@ -754,7 +755,7 @@ void CBossStageEx::Phase16()
 	if (CommonShootOuter()!=0)
 	{
 		m_nModeChange++;
-		if (m_nModeChange>8)
+		if (practice::AllowTimeout(m_nModeChange>8))
 		{
 			EndPhaseVerStageEx(0,4);
 			m_pStage->m_pEnemyBullet->m_dotBulletShadowColor[0]=m_pStage->m_pStageRes->m_palette[9*3]/255.0f;
@@ -838,7 +839,7 @@ void CBossStageEx::Phase17()
 		}
 	}
 	Phase17Shoot();
-	if (m_curPhaseFrame<=5000)
+	if (practice::BeforeTimeout(m_curPhaseFrame<=5000))
 	{
 		if (GetDmgVerStageEx()!=0)
 			m_bSuccessDefeat=true;

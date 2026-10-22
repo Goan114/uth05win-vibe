@@ -3,6 +3,7 @@
 #include "../gameLib/Graphic/Th5ExtFont.h"
 #include "../gameLib/CommonFunction/CommonFunctionSystem.h"
 #include <time.h>
+#include "Practice/Practice.h"
 
 namespace th5w{
 
@@ -18,6 +19,7 @@ CGame::CGame(void)
 	m_playArea.bottom=m_playArea.top+368;
 
 	m_pCurScheme=NULL;
+	m_curSchemeID=0;
 
 	memset(m_fpsTimeArray,0,sizeof(m_fpsTimeArray));
 	m_fpsTimeIdx=0;
@@ -118,7 +120,7 @@ void CGame::LoadModConfig()
 	}
 }
 
-bool CGame::Initialize()
+bool CGame::Initialize(bool showWindow)
 {
 	m_globalVar.Initialize();
 
@@ -266,7 +268,7 @@ bool CGame::Initialize()
 	//set random seed
 	srand((unsigned)time(NULL));
 
-	ShowWindow(m_gameWindow.m_hWnd,SW_SHOW);
+	if (showWindow) ShowWindow(m_gameWindow.m_hWnd,SW_SHOW);
 
 	return true;
 }
@@ -280,6 +282,8 @@ void CGame::Run()
 		return;
 	}
 
+	m_gameWindow.m_pGLContext->MakeCurrent();
+	if (!practice::Initialize(m_gameWindow.m_hWnd)) { OnGameEnd(); return; }
 	CSchemeSwitcher::GetFirstScheme(&m_pCurScheme,&m_curSchemeID);
 
 	ACCEL accel[]={FALT|FVIRTKEY, VK_RETURN, 0};
@@ -328,6 +332,8 @@ void CGame::Run()
 
 			//LARGE_INTEGER a;
 			//QueryPerformanceCounter(&a);
+			m_gameWindow.m_pGLContext->MakeCurrent();
+			practice::BeginFrame();
 			int stepRes=m_pCurScheme->Step();
 			//LARGE_INTEGER b;
 			//QueryPerformanceCounter(&b);
@@ -335,6 +341,8 @@ void CGame::Run()
 
 			m_gameWindow.m_pGLContext->MakeCurrent();
 			m_pCurScheme->Draw();
+			practice::DrawStatus();
+			practice::EndFrame();
 			glFinish();
 
 			CPMDPlayer::FillSoftwareBuffer(1000);
@@ -426,6 +434,7 @@ void CGame::OnActivate()
 
 void CGame::OnGameEnd()
 {
+	practice::Shutdown();
 	m_globalVar.SaveConfig();
 	CPC98Font::FinalizeCache();
 	CPC98Font::DestroyTextureForCommonChar();
@@ -437,8 +446,11 @@ void CGame::OnGameEnd()
 void CGame::OnPaintInactivate()
 {
 	m_gameWindow.m_pGLContext->MakeCurrent();
+	practice::BeginFrame();
 	if (m_pCurScheme)
 		m_pCurScheme->Draw();
+	practice::DrawStatus();
+	practice::EndFrame();
 	m_gameWindow.m_pGLContext->SwapBuffers();
 }
 

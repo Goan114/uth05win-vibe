@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\midbossstage5.h"
 #include "../Stage.h"
 #include "../../game.h"
@@ -180,7 +181,7 @@ void CMidBossStage5::Phase1()
 			m_curPhaseFrame=0;
 			m_phase1NModeChange++;
 			m_phase1CurMode=m_phase1NModeChange%3+1;
-			if (m_phase1NModeChange>=16)
+			if (practice::AllowTimeout(m_phase1NModeChange>=16))
 				bPhaseEnd=true;
 		}
 	}

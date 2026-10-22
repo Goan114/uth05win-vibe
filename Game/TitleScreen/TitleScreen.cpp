@@ -15,11 +15,12 @@ namespace th5w{
 
 #define MAIN_MENU_START 0
 #define MAIN_MENU_EXTRA_START 1
-#define MAIN_MENU_REPLAY 2
-#define MAIN_MENU_HISCORE 3
-#define MAIN_MENU_MUSIC_ROOM 4
-#define MAIN_MENU_OPTION 5
-#define MAIN_MENU_QUIT 6
+#define MAIN_MENU_PRACTICE 2
+#define MAIN_MENU_REPLAY 3
+#define MAIN_MENU_HISCORE 4
+#define MAIN_MENU_MUSIC_ROOM 5
+#define MAIN_MENU_OPTION 6
+#define MAIN_MENU_QUIT 7
 
 
 char mainMenuDesc[][100]={"",
@@ -49,7 +50,7 @@ char difficultyDesc[][100]={"難易度をやさしくします　     （初心者向け）　 ",
 
 CTitleScreen::CTitleScreen(void)
 {
-	m_mainMenuNItem=7;
+	m_mainMenuNItem=8;
 	m_optionMenuNItem=8;
 	m_pBGImage=NULL;
 	m_pMenuImgPractice=NULL;
@@ -289,22 +290,30 @@ void CTitleScreen::DrawMainMenuItems()
 		menuItemColor[0]=m_globalPalette[itemColorIdx*3]/255.0f;
 		menuItemColor[1]=m_globalPalette[itemColorIdx*3+1]/255.0f;
 		menuItemColor[2]=m_globalPalette[itemColorIdx*3+2]/255.0f;
-		if (i==MAIN_MENU_REPLAY)
+		if (i==MAIN_MENU_PRACTICE)
+		{
+			// Reuse the menu's Practice bitmap and its original Start sprite.
+            if (m_pMenuImgPractice) m_pMenuImgPractice->DrawColorScaled(244.f,float(270+i*18),menuItemColor[0],menuItemColor[1],menuItemColor[2]);
+            m_spriteArray.GetImagePtr(10)->DrawColorScaled(313.f,float(270+i*18),menuItemColor[0],menuItemColor[1],menuItemColor[2]);
+		}
+		else if (i==MAIN_MENU_REPLAY)
 		{
 			if (m_pMenuImgReplay!=NULL)
-				m_pMenuImgReplay->DrawColorScaled((float)272,(float)230+i*20+40,menuItemColor[0],menuItemColor[1],menuItemColor[2]);
+				m_pMenuImgReplay->DrawColorScaled((float)272,(float)270+i*18,menuItemColor[0],menuItemColor[1],menuItemColor[2]);
 		}
 		else
 		{
-			int idx=10+i;
+			int idx=10+i-(i>MAIN_MENU_PRACTICE ? 1 : 0);
 			if (i>MAIN_MENU_REPLAY)
 				idx--;
-			m_spriteArray.GetImagePtr(idx)->DrawColorScaled((float)272,(float)230+i*20+40,menuItemColor[0],menuItemColor[1],menuItemColor[2]);
+			m_spriteArray.GetImagePtr(idx)->DrawColorScaled((float)272,(float)270+i*18,menuItemColor[0],menuItemColor[1],menuItemColor[2]);
 		}
 	}
 
-	if (m_mainMenuCursorPosition!=0)
-		DrawDescString(mainMenuDesc[m_mainMenuCursorPosition]);
+	if (m_mainMenuCursorPosition==MAIN_MENU_PRACTICE)
+		DrawDescString("Practice a single stage");
+	else if (m_mainMenuCursorPosition!=0)
+		DrawDescString(mainMenuDesc[m_mainMenuCursorPosition-(m_mainMenuCursorPosition>MAIN_MENU_PRACTICE ? 1 : 0)]);
 	else
 		DrawDescString(startGameDesc[CGame::GVar().m_initDifficulty]);
 }
@@ -385,8 +394,8 @@ void CTitleScreen::DrawOptionMenuItems()
 
 void CTitleScreen::DrawMainMenuCursor()
 {
-	m_spriteArray.GetImagePtr(35)->Draw((float)256,(float)230+m_mainMenuCursorPosition*20+40);
-	m_spriteArray.GetImagePtr(36)->Draw((float)352,(float)230+m_mainMenuCursorPosition*20+40);
+	m_spriteArray.GetImagePtr(35)->Draw((float)(m_mainMenuCursorPosition==MAIN_MENU_PRACTICE?232:256),(float)270+m_mainMenuCursorPosition*18);
+	m_spriteArray.GetImagePtr(36)->Draw((float)(m_mainMenuCursorPosition==MAIN_MENU_PRACTICE?392:352),(float)270+m_mainMenuCursorPosition*18);
 }
 
 void CTitleScreen::DrawOptionMenuCursor()
@@ -458,6 +467,14 @@ void CTitleScreen::ParseKeyEvent()
 					CGame::GVar().m_bReplayMode=false;
 					m_bQuit=true;
 					m_quitCode=TITLESCREEN_END_START_GAME;
+					break;
+				case MAIN_MENU_PRACTICE:
+					CGame::GVar().m_playDifficulty=CGame::GVar().m_initDifficulty;
+					CGame::GVar().m_playStage=0;
+					CGame::GVar().m_bPracticeMode=true;
+					CGame::GVar().m_bReplayMode=false;
+					m_bQuit=true;
+					m_quitCode=TITLESCREEN_END_START_PRACTICE;
 					break;
 				case MAIN_MENU_EXTRA_START:
 					CGame::GVar().m_playDifficulty=4;

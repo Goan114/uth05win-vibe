@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\bossstage4yuki.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -167,7 +168,7 @@ void CBossStage4Yuki::Phase3()
 			m_curPhaseFrame=0;
 			m_curMode++;
 			m_nModeChange++;
-			if (m_nModeChange>=12)
+			if (practice::AllowTimeout(m_nModeChange>=12))
 			{
 				EndPhase(3200,1);
 				return;
@@ -283,7 +284,7 @@ void CBossStage4Yuki::Phase5()
 			m_curPhaseFrame=0;
 			m_curMode++;
 			m_nModeChange++;
-			if (m_nModeChange>=24)
+			if (practice::AllowTimeout(m_nModeChange>=24))
 			{
 				EndPhase(1200,2);
 				return;
@@ -349,7 +350,7 @@ void CBossStage4Yuki::Phase7()
 {
 	bool bEndPhase=false;
 	Phase7Shoot();
-	if (m_curPhaseFrame>=2000)
+	if (practice::AllowTimeout(m_curPhaseFrame>=2000))
 		bEndPhase=true;
 	if (!bEndPhase)
 	{
@@ -453,7 +454,7 @@ void CBossStage4Yuki::Phase9()
 			m_curPhaseFrame=0;
 			m_curMode++;
 			m_nModeChange++;
-			if (m_nModeChange>=36)
+			if (practice::AllowTimeout(m_nModeChange>=36))
 			{
 				bPhaseEnd=true;
 				m_bSuccessDefeat=false;

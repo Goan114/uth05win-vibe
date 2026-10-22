@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\bossstage3.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -637,7 +638,7 @@ void CBossStage3::Phase3_6_9_12()
 			m_curMode=1;
 			m_curPhaseFrame=0;
 			m_nModeChange++;
-			if (m_nModeChange>=24)
+			if (practice::AllowTimeout(m_nModeChange>=24))
 				bPhaseEnd=true;
 			else
 				m_curMode=rand()%3+1;
@@ -826,7 +827,7 @@ void CBossStage3::Phase14()
 	m_puppet[0].mode=4;
 	m_puppet[1].mode=4;
 	Phase14Shoot();
-	if (m_curPhaseFrame>=1000)
+	if (practice::AllowTimeout(m_curPhaseFrame>=1000))
 		m_bSuccessDefeat=false;
 	if (GetDmgOnAndCrashChara()==0)
 		return;

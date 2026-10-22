@@ -8,11 +8,13 @@
 #define TITLESCREEN_END_START_EXTRA 3
 #define TITLESCREEN_END_CHOOSE_REPLAY 4
 #define TITLESCREEN_END_VIEW_HIGHSCORE 5
+#define TITLESCREEN_END_START_PRACTICE 6
 
 namespace th5w{
 
 class CTitleScreen : public CScheme
 {
+friend struct PracticeTests;
 protected:
 	int m_curFrame;
 
@@ -36,11 +38,11 @@ protected:
 	//menu vars
 	int m_mainMenuNItem;
 	int m_mainMenuCursorPosition;
-	bool m_bMainMenuItemEnabled[6];
+	bool m_bMainMenuItemEnabled[8];
 
 	int m_optionMenuNItem;
 	int m_optionMenuCursorPosition;
-	bool m_bOptionMenuItemEnabled[6];
+	bool m_bOptionMenuItemEnabled[8];
 
 	int m_curMenu;			//1 for main menu, 1 for option menu
     bool m_bMenuOn;

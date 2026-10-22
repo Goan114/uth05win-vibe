@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\bossstage4mai.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -168,7 +169,7 @@ void CBossStage4Mai::Phase3()
 			m_curPhaseFrame=0;
 			m_curMode++;
 			m_nModeChange++;
-			if (m_nModeChange>=36)
+			if (practice::AllowTimeout(m_nModeChange>=36))
 			{
 				EndPhase(2800,1);
 				return;
@@ -332,7 +333,7 @@ void CBossStage4Mai::Phase5Shoot()
 void CBossStage4Mai::Phase5()
 {
 	Phase5Shoot();
-	if (m_curPhaseFrame<5000)
+	if (practice::BeforeTimeout(m_curPhaseFrame<5000))
 		if (GetDmgOnAndCrashChara()==0)
 			return;
 		else
@@ -455,7 +456,7 @@ void CBossStage4Mai::Phase7()
 			m_curPhaseFrame=0;
 			m_curMode++;
 			m_nModeChange++;
-			if (m_nModeChange>=36)
+			if (practice::AllowTimeout(m_nModeChange>=36))
 			{
 				EndPhase(0,1);
 				return;
@@ -572,7 +573,7 @@ void CBossStage4Mai::Phase9()
 			m_curPhaseFrame=0;
 			m_curMode++;
 			m_nModeChange++;
-			if (m_nModeChange>=20)
+			if (practice::AllowTimeout(m_nModeChange>=20))
 			{
 				m_bSuccessDefeat=false;
 				AddExplodeEffect(4,m_curX,m_curY);

@@ -1,3 +1,4 @@
+#include "../../Practice/Practice.h"
 #include ".\bossstage5.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -281,7 +282,7 @@ void CBossStage5::Phase2_5()
 			m_curPhaseFrame=0;
 			m_curMode++;
 			m_nModeChange++;
-			if (m_nModeChange>=20)
+			if (practice::AllowTimeout(m_nModeChange>=20))
 				bPhaseEnd=true;
 		}
 	}
@@ -466,7 +467,7 @@ void CBossStage5::Phase4_7()
 		Phase4Shoot();
 	else
 		Phase7Shoot();
-	if (m_curPhaseFrame<2000)
+	if (practice::BeforeTimeout(m_curPhaseFrame<2000))
 		if (GetDmgOnAndCrashChara()==0)
 			return;
 		else
@@ -559,7 +560,7 @@ void CBossStage5::Phase8Shoot()
 void CBossStage5::Phase8()
 {
 	Phase8Shoot();
-	if (m_curPhaseFrame<2000)
+	if (practice::BeforeTimeout(m_curPhaseFrame<2000))
 		if (GetDmgOnAndCrashChara()==0)
 			return;
 		else
@@ -620,7 +621,7 @@ void CBossStage5::Phase10Shoot()
 void CBossStage5::Phase10()
 {
 	Phase10Shoot();
-	if (m_curPhaseFrame<1200)
+	if (practice::BeforeTimeout(m_curPhaseFrame<1200))
 	{
 		if (GetDmgOnAndCrashChara()==0)
 			return;

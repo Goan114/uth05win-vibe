@@ -13,6 +13,7 @@ class CStage;
 
 class CMidBoss
 {
+friend struct PracticeTests;
 friend class CStage;
 
 protected:

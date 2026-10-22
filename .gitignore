@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Local builds and dependency import libraries
+/artifacts/
+/Debug/
+/Release/
+/lib/
+
+# Native per-stage practice unlock progress
+/practice-progress.dat
+/practice-progress.dat.tmp
