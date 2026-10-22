@@ -24,6 +24,18 @@ CPC98Font::~CPC98Font(void)
 {
 }
 
+GLuint CPC98Font::LoadAuxiliaryAtlas(const char* path)
+{
+ GLuint old=s_fontTex;bool loaded=s_bFontLoaded;
+ const bool ok=LoadAnex86BMP(path);GLuint result=ok?s_fontTex:0;s_fontTex=old;s_bFontLoaded=loaded;return result;
+}
+bool CPC98Font::DrawStringFromAtlas(GLuint atlas,char* text,int count,int x,int y,float r,float g,float b,float alpha)
+{
+ if(!atlas)return false;GLuint old=s_fontTex;bool loaded=s_bFontLoaded,system=CGame::GVar().m_bUseSystemFont;
+ s_fontTex=atlas;s_bFontLoaded=true;CGame::GVar().m_bUseSystemFont=false;
+ bool result=DrawString(text,count,x,y,r,g,b,alpha);
+ s_fontTex=old;s_bFontLoaded=loaded;CGame::GVar().m_bUseSystemFont=system;return result;
+}
 bool CPC98Font::LoadAnex86BMP(const char *fileName)
 {
 	CImage fontImg;

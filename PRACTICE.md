@@ -79,3 +79,19 @@ ImGui 来源：<https://github.com/ocornut/imgui/tree/v1.82>。
 解锁状态写入原生 game.cfg 的版本化扩展区，保留前 52 字节设置字段；支持读取原 52 字节存档，并迁移先前 practice-progress.dat 的数据。新增进度不再写单独的解锁文件。
 
 普通 Practice 通关直接打开原生录像保存页，名字表 END 执行保存。带 thprac 版本也保留保存入口；临时 F1–F6／U 开关不写入录像，未来的大 Practice 初始参数将另行接入录像状态。
+
+## 原生 Music Room
+
+主菜单 Music Room 进入旧五作音乐室：左右切换作品，上下选曲并滚动，Z／Enter 重新播放所选曲，Esc 或列表底部返回标题。默认从 TH05 开始；五组依次有 14、18、24、28、23 首，共 107 首。播放曲目使用单独的高亮色，选择框可以在播放期间浏览其他曲目。
+
+布局依据 ReC98 提交 `b6ba5b0a529edbb31efdf8c0e939263804f8ee47` 的 `th02/op/m_music.cpp`（GAME=5）、`th05/shiftjis/music.hpp` 和 `th05/op/piano_c.cpp`：12 行曲目列表、原 MUSIC.PI 背景、14 个运动多边形（仅设置 B 色平面，保留底图点阵）、原版逐曲空格排版、右侧曲名与九行评论、FM1–5 和 SSG 钢琴。钢琴读取 PMDWin 当前声部的音符与门限，不生成虚拟音符。
+
+汉化音乐评论以原始定长字节记录读取，由指定汉化版的字库绘制。资源导入工具只读原 HDI，向游戏目录写入 `music.dat` 与 `music-font.bmp`；资源不进入源码提交：
+
+```powershell
+python scripts/prepare-music-room.py --source "原版汉化版目录" --game "Windows游戏资源目录"
+```
+
+`--source` 目录包含 `thow_cn.hdi` 与 `f-c1.bmp`。缺少音乐室资源时入口禁用，其他游戏功能照常使用。两个分支均提供 Music Room，且不依赖 ImGui。
+
+参考：https://github.com/nmlgc/ReC98/blob/master/th02/op/m_music.cpp 。测试覆盖全部 107 首实际 PMD 加载、定长评论、切换作品、12 行滚动、循环选择、播放高亮、返回标题和钢琴音符范围；截图位于测试 sandbox。

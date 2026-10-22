@@ -40,3 +40,7 @@
 # Native per-stage practice unlock progress
 /practice-progress.dat
 /practice-progress.dat.tmp
+
+# Original Music Room data imported locally
+/music.dat
+/music-font.bmp

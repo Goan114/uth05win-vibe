@@ -11,6 +11,7 @@ New-Item -ItemType Directory -Path $sandbox -Force | Out-Null
 foreach($name in @('kaiki1.DAT','kaiki2.DAT','ZUN.COM','anex86.bmp','glew32.dll','PMDWin.dll','replay.bmp')) {
  Copy-Item -LiteralPath (Join-Path $gamePath $name) -Destination $sandbox -Force
 }
+foreach($musicAsset in @('music.dat','music-font.bmp')) { if(Test-Path -LiteralPath (Join-Path $gamePath $musicAsset)) {Copy-Item -LiteralPath (Join-Path $gamePath $musicAsset) -Destination $sandbox -Force} }
 Copy-Item -LiteralPath (Join-Path $projectRoot 'practice.bmp') -Destination $sandbox -Force
 Copy-Item -LiteralPath (Join-Path $gamePath 'SE') -Destination $sandbox -Recurse -Force
 New-Item -ItemType Directory -Path (Join-Path $sandbox 'replay') -Force | Out-Null

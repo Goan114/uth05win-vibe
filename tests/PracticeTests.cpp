@@ -2,6 +2,8 @@
 #include "../Game/Practice/Practice.h"
 #include "../Game/Stage/Stage.h"
 #include "../Game/SchemeSwitcher.h"
+#include "../Game/MusicRoom/MusicRoom.h"
+#include "../Game/MusicRoom/MusicTracks.h"
 #include "../Game/SelectReplayScreen/SelectReplayScreen.h"
 #include <imm.h>
 #pragma comment(lib,"imm32.lib")
@@ -176,6 +178,33 @@ struct PracticeTests {
   bool oldClear=g.m_bClear[g.m_playChara][g.m_playDifficulty];g.m_bClear[g.m_playChara][g.m_playDifficulty]=false;g.OnClear();
   Check(!g.m_bClear[g.m_playChara][g.m_playDifficulty],"Practice does not unlock normal-game clears");g.m_bClear[g.m_playChara][g.m_playDifficulty]=oldClear;
  }
+ static void MusicRoom(CGame& game){
+  Check(CMusicRoom::Available(),"original Music Room resource package is available");
+  CMusicRoom room;Check(room.Initialize(),"original MUSIC.PI, translated font, comments and archive load");
+  Check(room.m_game==4&&room.m_selection==0&&room.m_playing==0,"Music Room opens at TH05 first track");
+  for(int i=0;i<15;i++)room.Step();room.Draw();glFinish();Screenshot("music-room-th05.bmp");
+  const int expected[]={14,18,24,28,23};int total=0;
+  for(int g=0;g<5;g++){
+   Check(musicTrackCounts[g]==expected[g],"original per-game track counts");room.m_game=g;
+   for(int track=0;track<musicTrackCounts[g];track++){
+    Check(!room.Line(g,track,0).empty(),"original fixed-record comment has a title");
+    Check(room.Play(track),"actual PMDWin accepts and starts the original song");
+    Check(room.m_playing==track&&!room.m_playFailed,"selected song is the playing song");++total;
+   }
+  }
+  Check(total==107,"all 107 songs use the original order and play successfully");
+  room.m_game=4;room.m_selection=0;room.m_top=0;room.Play(0);room.Input(0);room.Input(1);
+  Check(room.m_selection==23&&room.m_top==12,"Up wraps to Quit and scrolls to last twelve rows");room.Input(0);room.Input(2);
+  Check(room.m_selection==0&&room.m_top==0,"Down from Quit wraps to the first track");
+  for(int i=0;i<13;i++){room.Input(0);room.Input(2);}Check(room.m_selection==13&&room.m_top==2,"track list scrolls past twelve rows");
+  room.Input(0);room.Input(8);Check(room.m_game==0&&room.m_selection==0&&room.m_playing==0,"Right wraps TH05 to TH01 and starts its title theme");
+  room.Input(0);room.Input(4);Check(room.m_game==4&&room.m_top==0,"Left wraps TH01 to TH05");
+  room.m_selection=22;room.Input(0);room.Input(32);Check(room.m_playing==22,"Z starts the selected track");
+  room.m_fade=100;room.m_commentAge=30;room.Draw();glFinish();Screenshot("music-room-comment.bmp");
+  auto notes=CPMDPlayer::PianoNotes();for(auto note:notes)Check(note==255||(note>=0&&(note&15)<12&&(note>>4)<8),"piano notes come from valid live PMD work data");
+  room.Input(0);room.Input(4096);Check(room.m_quit,"Esc exits Music Room");int ended=0;for(int i=0;i<20&&!ended;i++)ended=room.Step();Check(ended==1,"Music Room fades out before returning");
+  CScheme* next=NULL;int id=0;Check(CSchemeSwitcher::SwitchScheme(&next,&id,8,1)&&id==2,"Music Room exit returns to native title");delete next;
+ }
  static int Run() {
   CGame game; CGame::s_pCurGame=&game;
   Check(game.Initialize(false),"hidden production OpenGL/game initialization");
@@ -267,7 +296,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);MusicRoom(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

@@ -9,7 +9,7 @@ for name in ['glew32','PMDWin']:
  text=subprocess.check_output([str(args.tools/'dumpbin.exe'),'/exports',str(dll)]).decode(errors='replace')
  names=re.findall(r'^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]{8}\s+(\S+)',text,re.M)
  if name=='PMDWin':
-  required={'pmdwininit':4,'setpcmrate':4,'music_load2':8,'music_start':0,'music_stop':0,'getpcmdata':8}
+  required={'pmdwininit':4,'setpcmrate':4,'music_load2':8,'music_start':0,'music_stop':0,'getpcmdata':8,'getpartwork':4}
   if not required.keys()<=set(names):raise SystemExit('Unsupported PMDWin DLL exports')
   names=[n+'@'+str(size) for n,size in required.items()]
  definition=out/(name+'.def');definition.write_text('LIBRARY '+name+'.dll\nEXPORTS\n'+'\n'.join(names)+'\n',encoding='ascii')

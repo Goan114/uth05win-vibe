@@ -118,6 +118,7 @@
     <ClCompile Include="gameLib\Window\GameWindow.cpp" />
     <ClCompile Include="Game\Ed\Ending.cpp" />
     <ClCompile Include="Game\Game.cpp" />
+    <ClCompile Include="Game\MusicRoom\MusicRoom.cpp" />
     <ClCompile Include="Game\GlobalVariableAndStatistics.cpp" />
     <ClCompile Include="Game\HighScoreScreen\HighScoreScreen.cpp" />
     <ClCompile Include="Game\Op\Opening.cpp" />
@@ -200,6 +201,8 @@
     <ClInclude Include="gameLib\Window\GameWindow.h" />
     <ClInclude Include="Game\Ed\Ending.h" />
     <ClInclude Include="Game\Game.h" />
+    <ClInclude Include="Game\MusicRoom\MusicRoom.h" />
+    <ClInclude Include="Game\MusicRoom\MusicTracks.h" />
     <ClInclude Include="Game\GlobalVariableAndStatistics.h" />
     <ClInclude Include="Game\HighScoreScreen\HighScoreScreen.h" />
     <ClInclude Include="Game\Op\Opening.h" />

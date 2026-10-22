@@ -34,6 +34,8 @@ protected:
 	static GLuint GetDisplayListForChar(int charIdx);
 
 public:
+	static GLuint LoadAuxiliaryAtlas(const char* path);
+	static bool DrawStringFromAtlas(GLuint atlas,char* text,int count,int x,int y,float r,float g,float b,float alpha=1);
 	static bool LoadAnex86BMP(const char *fileName);
 	static bool DrawString(char *str,int nChar,int drawX,int drawY,float colorR,float colorG,float colorB,
 						   float fadeInScale=1.0,bool coordIsUpperLeft=true);	//the string must be in Shift-JIS code
