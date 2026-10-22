@@ -64,3 +64,10 @@ Windows 原生 ImGui 接入，界面依据本地紫版 thprac 的现有实现移
 ImGui 来源：<https://github.com/ocornut/imgui/tree/v1.82>。
 
 选关窗口用 10 帧从中心向外展开并淡入，文字按展开范围裁切。X／Esc 返回时反向收拢并淡出，关闭完成后回到选角。Practice Start 使用随项目提供的 practice.bmp 与主菜单原生 Start 贴图组合。
+
+## 分支与工作树
+
+- `thprac`：本目录 `C:\Users\w3051\Desktop\uth05win`，包含原生 Practice Start、F1–F6／U 和紫版 ImGui 暂停界面；构建输出 `Release/uth05win-thprac.exe`。
+- `native-practice`：`C:\Users\w3051\Desktop\uth05win-practice`，保留原生 Practice Start、解锁与录像，使用游戏原生暂停菜单，不包含作弊代码和 ImGui；输出 `Release/uth05win-practice.exe`。
+
+两个工作树独立编译，不共享构建输出和测试 sandbox。
