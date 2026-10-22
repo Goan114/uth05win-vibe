@@ -328,6 +328,7 @@ struct PracticeTests {
   Check(stage->m_nCurLife==2,"F2 no-continue mapping consumes spare lives normally");
   stage->m_nCurLife=1;player.m_nextLifeComeTimeLeft=1;player.m_cannotControlTimeLeft=1;player.Step();Check(stage->m_nCurLife==1&&!stage->m_bContinueScr,"F2 no-continue retains the last life without Game Over");
   opts.noContinue=false;stage->m_nCurLife=3;player.m_nextLifeComeTimeLeft=1;player.m_cannotControlTimeLeft=1;player.Step();Check(stage->m_nCurLife==3,"unmapped F2 still locks all lives");ResetTools();
+  opts.numericDream=opts.numericPower=true;Frame(*stage);Screenshot("f12-numeric-hud.bmp");opts.numericDream=opts.numericPower=false;
   player.m_curX=3072;player.m_curY=5120;player.m_nextLifeComeTimeLeft=0;player.m_invulnerableTimeLeft=0;player.m_collisionAreaAlpha=0;
   stage->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);player.EnableDraw();
   std::vector<unsigned char> hidden(20*20*3),visible(20*20*3);const int x=stage->m_playAreaUpperLeftX+192-10,y=480-(stage->m_playAreaUpperLeftY+320)-10;
@@ -360,8 +361,8 @@ struct PracticeTests {
   test.Start(1000,1200,true);test.Tick(2200,false);test.Tick(2250,true);Check(test.results.size()==1&&test.results[0]==50,"reaction latency is measured from the actual color-change deadline");
   test.Reset();test.type=1;test.Start(0,1500,true);test.Tick(100,true);test.Tick(1600,true);test.Tick(1640,false);Check(test.results.size()==1&&test.results[0]==40,"release reaction waits for hold then measures release latency");
   test.Reset();test.progress=true;test.Start(1000,1200,true);test.Tick(2150,true);Check(test.results.size()==1&&test.results[0]==-50&&test.frameCounts[0]==3,"progress mode preserves negative early-reaction timing");
-  opts.fps=84;opts.noContinue=opts.disableX=opts.showKeys=opts.showHitbox=opts.alwaysHitbox=true;practice::SaveAdvancedOptions();opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();
-  Check(opts.fps==84&&opts.noContinue&&opts.disableX&&opts.showKeys&&opts.showHitbox&&opts.alwaysHitbox,"advanced preferences round-trip independently of game and replay saves");
+  opts.fps=84;opts.noContinue=opts.disableX=opts.showKeys=opts.showHitbox=opts.alwaysHitbox=opts.numericDream=opts.numericPower=true;practice::SaveAdvancedOptions();opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();
+  Check(opts.fps==84&&opts.noContinue&&opts.disableX&&opts.showKeys&&opts.showHitbox&&opts.alwaysHitbox&&opts.numericDream&&opts.numericPower,"advanced preferences round-trip independently of game and replay saves");
   opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();practice::SetAdvancedOpen(false);
  }
  static void MusicRoom(CGame& game){

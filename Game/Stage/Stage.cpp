@@ -897,7 +897,7 @@ void CStage::DrawStatistics()
 		unsigned char extReimu[]={0xdc,0xdd,0};
 		CTh5ExtFont::DrawExtString(extReimu,100,0x39*8,0xd*16+40,1,1,0);
 		unsigned char extReiryoku[]={0xde,0xdf,0};
-		CTh5ExtFont::DrawExtString(extReiryoku,100,0x3e*8,0x15*16+40,1,1,0);
+		CTh5ExtFont::DrawExtString(extReiryoku,100,(practice::Options().numericPower?0x39:0x3e)*8,0x15*16+40,1,1,0);
 	}
 	else
 	{
@@ -906,7 +906,7 @@ void CStage::DrawStatistics()
 		unsigned char extPlayer[]={0xe2,0xe3,0};
 		CTh5ExtFont::DrawExtString(extPlayer,100,0x39*8,0xd*16+40,1,1,0);
 		unsigned char extPower[]={0xe4,0xe5,0};
-		CTh5ExtFont::DrawExtString(extPower,100,0x3e*8,0x15*16+40,1,1,0);
+		CTh5ExtFont::DrawExtString(extPower,100,(practice::Options().numericPower?0x39:0x3e)*8,0x15*16+40,1,1,0);
 	}
 
 	//draw bomb row
@@ -937,16 +937,20 @@ void CStage::DrawStatistics()
 	CTh5ExtFont::DrawExtString(extRuikei,100,0x39*8,0xf*16+40,0,1,1);
 	m_pStageRes->DrawNumber(0x3e*8,0x10*16+40,m_curNPointItem,5,false,true,1,1,1);
 	m_pStageRes->DrawNumber(0x3e*8,0xf*16+40,m_totalNPointItem,5,false,true,0,1,1);
-	CTh5ExtFont::DrawExtChar(0xe7,0x3f*8,0x13*16+40,1,1,0);			//Ten
+	CTh5ExtFont::DrawExtChar(0xe7,(practice::Options().numericDream?0x3a:0x3f)*8,0x13*16+40,1,1,0);			//Ten
 	CTh5ExtFont::DrawExtChar(0xe8,0x3a*8,0x12*16+40,1,1,0);			//Dan
 	m_pStageRes->DrawNumber(0x3e*8,0x12*16+40,m_curNGraze,5,false,true,1,1,1);
 
 	//draw dream and power gauge
 	float powerGaugeColor[][3]={{1,0,0},{1,0,0},{1,0,0},{1,0,1},{1,0,1},{0,0,1},{0,0,1},{0,1,1},{1,1,0},{1,1,1}};
 	float dreamGaugeColor[][3]={{1,0,0},{1,0,0},{1,0,1},{1,0,1},{0,0,1},{0,0,1},{0,1,1},{1,1,0},{1,1,1}};
-	m_pStageRes->DrawGauge(m_curDream,128,0x38*8,0x14*16+40,dreamGaugeColor[m_curDream/16][0],
+	if (practice::Options().numericDream)
+		m_pStageRes->DrawNumber(0x3e*8,0x13*16+40,m_curDream,5,false,true,1,1,1);
+	else m_pStageRes->DrawGauge(m_curDream,128,0x38*8,0x14*16+40,dreamGaugeColor[m_curDream/16][0],
 			  dreamGaugeColor[m_curDream/16][1],dreamGaugeColor[m_curDream/16][2]);
-	m_pStageRes->DrawGauge(m_pChara->GetPower(),128,0x38*8,0x16*16+40,powerGaugeColor[m_pChara->m_powerLevel][0],
+	if (practice::Options().numericPower)
+		m_pStageRes->DrawNumber(0x3e*8,0x15*16+40,m_pChara->GetPower(),5,false,true,1,1,1);
+	else m_pStageRes->DrawGauge(m_pChara->GetPower(),128,0x38*8,0x16*16+40,powerGaugeColor[m_pChara->m_powerLevel][0],
 			  powerGaugeColor[m_pChara->m_powerLevel][1],powerGaugeColor[m_pChara->m_powerLevel][2]);
 
 	//draw difficulty
