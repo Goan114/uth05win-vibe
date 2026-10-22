@@ -24,10 +24,10 @@ CPC98Font::~CPC98Font(void)
 {
 }
 
-GLuint CPC98Font::LoadAuxiliaryAtlas(const char* path)
+GLuint CPC98Font::LoadAuxiliaryAtlas(const char* path,bool simplifiedChinese)
 {
  GLuint old=s_fontTex;bool loaded=s_bFontLoaded;
- const bool ok=LoadAnex86BMP(path);GLuint result=ok?s_fontTex:0;s_fontTex=old;s_bFontLoaded=loaded;return result;
+ const bool ok=LoadAnex86BMP(path,simplifiedChinese);GLuint result=ok?s_fontTex:0;s_fontTex=old;s_bFontLoaded=loaded;return result;
 }
 bool CPC98Font::DrawStringFromAtlas(GLuint atlas,char* text,int count,int x,int y,float r,float g,float b,float alpha)
 {
@@ -36,7 +36,7 @@ bool CPC98Font::DrawStringFromAtlas(GLuint atlas,char* text,int count,int x,int 
  bool result=DrawString(text,count,x,y,r,g,b,alpha);
  s_fontTex=old;s_bFontLoaded=loaded;CGame::GVar().m_bUseSystemFont=system;return result;
 }
-bool CPC98Font::LoadAnex86BMP(const char *fileName)
+bool CPC98Font::LoadAnex86BMP(const char *fileName,bool simplifiedChinese)
 {
 	CImage fontImg;
 	TCHAR fileNameBuf[1000];
@@ -65,6 +65,35 @@ bool CPC98Font::LoadAnex86BMP(const char *fileName)
 		pData-=fontImg.GetPitch();
 	}
 
+ // Simplify Chinese glyphs in-place while retaining the original SJIS cells,
+ // byte widths, ASCII/kana sprites and fixed-record comment timing/layout.
+ // This atlas belongs only to Music Room; the game's main font is untouched.
+ if(simplifiedChinese) {
+  HDC dc=CreateCompatibleDC(NULL);
+  BITMAPINFO info={};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+  info.bmiHeader.biWidth=16;info.bmiHeader.biHeight=-16;
+  info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+  void* pixels=NULL;HBITMAP bitmap=dc?CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,NULL,0):NULL;
+  HFONT font=CreateFontW(-16,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,GB2312_CHARSET,
+   OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,NONANTIALIASED_QUALITY,FIXED_PITCH,L"SimSun");
+  if(!dc||!bitmap||!font){if(font)DeleteObject(font);if(bitmap)DeleteObject(bitmap);if(dc)DeleteDC(dc);delete[] texImage;return false;}
+  HGDIOBJ oldBitmap=SelectObject(dc,bitmap),oldFont=SelectObject(dc,font);
+  SetTextColor(dc,RGB(255,255,255));SetBkMode(dc,TRANSPARENT);
+  for(int lead=0x81;lead<=0xfc;lead++)if(lead<=0x9f||lead>=0xe0)for(int trail=0x40;trail<=0xfc;trail++)if(trail!=0x7f){
+   char sjis[2]={char(lead),char(trail)};wchar_t original=0,simplified=0;
+   if(MultiByteToWideChar(932,MB_ERR_INVALID_CHARS,sjis,2,&original,1)!=1)continue;
+   if(LCMapStringW(0x0804,LCMAP_SIMPLIFIED_CHINESE,&original,1,&simplified,1)!=1||original==simplified)continue;
+   memset(pixels,0,16*16*4);TextOutW(dc,0,0,&simplified,1);GdiFlush();
+   float fx,fy;ConvertCharToTexXY(&fx,&fy,reinterpret_cast<unsigned char*>(sjis));
+   const int left=int(fx*2048),bottom=int(fy*2048);const unsigned char* in=static_cast<const unsigned char*>(pixels);
+   for(int y=0;y<16;y++)for(int x=0;x<16;x++){
+    const int at=((bottom+15-y)*2048+left+x)*2;
+    texImage[at]=texImage[at+1]=in[(y*16+x)*4];
+   }
+  }
+  SelectObject(dc,oldFont);SelectObject(dc,oldBitmap);DeleteObject(font);DeleteObject(bitmap);DeleteDC(dc);
+ }
+
 	glGenTextures(1,&s_fontTex);
 	glBindTexture(GL_TEXTURE_2D,s_fontTex);
 	glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE4_ALPHA4,fontImg.GetWidth(),fontImg.GetHeight(),0,GL_LUMINANCE_ALPHA,GL_UNSIGNED_BYTE,texImage);
@@ -73,7 +102,7 @@ bool CPC98Font::LoadAnex86BMP(const char *fileName)
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
 
-	delete texImage;
+	delete[] texImage;
 
 	s_bFontLoaded=true;
 

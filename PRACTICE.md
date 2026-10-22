@@ -28,7 +28,7 @@
 
 布局依据 ReC98 提交 `b6ba5b0a529edbb31efdf8c0e939263804f8ee47` 的 `th02/op/m_music.cpp`（GAME=5）、`th05/shiftjis/music.hpp` 和 `th05/op/piano_c.cpp`：12 行曲目列表、原 MUSIC.PI 背景、14 个运动多边形（仅设置 B 色平面，保留底图点阵）、原版逐曲空格排版、右侧曲名与九行评论、FM1–5 和 SSG 钢琴。钢琴读取 PMDWin 当前声部的音符与门限，不生成虚拟音符。
 
-汉化音乐评论以原始定长字节记录读取，由指定汉化版的字库绘制。资源导入工具只读原 HDI，向游戏目录写入 `music.dat` 与 `music-font.bmp`；资源不进入源码提交：
+汉化音乐评论以原始定长字节记录读取。音乐室专用字库会把繁体字映射为简体，并用 16×16 宋体点阵重绘变更的字形，保留原 ASCII、假名、逐曲排版与字节宽度；不改写原资源，也不影响游戏主字库。资源导入工具只读原 HDI，向游戏目录写入 `music.dat` 与 `music-font.bmp`；资源不进入源码提交：
 
 ```powershell
 python scripts/prepare-music-room.py --source "原版汉化版目录" --game "Windows游戏资源目录"
