@@ -4,6 +4,7 @@
 #include "SelectCharaScreen/SelectCharaScreen.h"
 #include "Stage/Stage.h"
 #include "Game.h"
+#include "MusicRoom/MusicRoom.h"
 #include "ed/Ending.h"
 #include "SelectReplayScreen/SelectReplayScreen.h"
 #include "HighScoreScreen/HighScoreScreen.h"
@@ -39,6 +40,16 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
 		return true;
 	}
 
+ if(curSchemeID==8) {
+  CTitleScreen* next=new CTitleScreen;next->Initialize(false,5,true);*ppOutNextScheme=next;*pOutNextSchemeID=SCHEME_TITLESCREEN;return true;
+ }
+ if(curSchemeID==SCHEME_TITLESCREEN && curSchemeExitValue==TITLESCREEN_END_MUSIC_ROOM) {
+  CMusicRoom* room=new CMusicRoom;if(!room->Initialize()){
+   delete room;MessageBoxW(CGame::s_pCurGame->m_gameWindow.m_hWnd,L"Music Room resources are missing or invalid.",L"Music Room",MB_OK|MB_ICONERROR);
+   CTitleScreen* next=new CTitleScreen;next->Initialize(false,5,true);*ppOutNextScheme=next;*pOutNextSchemeID=SCHEME_TITLESCREEN;return true;
+  }
+  *ppOutNextScheme=room;*pOutNextSchemeID=8;return true;
+ }
 	if (curSchemeID==SCHEME_TITLESCREEN)
 	{
 		if (curSchemeExitValue==TITLESCREEN_END_QUIT_GAME)

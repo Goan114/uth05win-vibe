@@ -1,6 +1,7 @@
 #include <windows.h>
 #include ".\titlescreen.h"
 #include "../Game.h"
+#include "../MusicRoom/MusicRoom.h"
 #include "../../gameLib/PMDPlayer/PMDPlayer.h"
 #include "../../gameLib/CommonFunction/CommonFunctionMusicSE.h"
 #include "../../gameLib/CommonFunction/CommonFunctionInput.h"
@@ -27,7 +28,7 @@ char mainMenuDesc[][100]={"",
 						  "エキストラステージを開始します",
 						  "リプレーを見ます",
 						  "現在のハイスコアを表示します",
-						  "音楽室に入ります(Not implemented)",
+						  "音楽室に入ります",
 						  "各種設定を変更出来ます",
 						  "ＷＩＮＤＯＷＳに戻ります"};
 char startGameDesc[][100]={"ゲームを開始します（イージー）",
@@ -135,6 +136,7 @@ void CTitleScreen::Initialize(bool bRollTama,int cursorInitialPos, bool bSwitchM
 		m_bMainMenuItemEnabled[i]=true;
 
 	m_bMainMenuItemEnabled[1]=false;
+	m_bMainMenuItemEnabled[MAIN_MENU_MUSIC_ROOM]=CMusicRoom::Available();
 
 	for (int i=0;i<4;i++)
 		if (CGame::GVar().m_bExtraPlayable[i])
@@ -516,6 +518,8 @@ void CTitleScreen::ParseKeyEvent()
 					m_bQuit=true;
 					m_quitCode=TITLESCREEN_END_START_EXTRA;
 					break;
+				case MAIN_MENU_MUSIC_ROOM:
+					m_bQuit=true; m_quitCode=TITLESCREEN_END_MUSIC_ROOM; break;
 				case MAIN_MENU_OPTION:
 					m_curMenu=1;
 					m_optionMenuCursorPosition=0;

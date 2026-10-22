@@ -40,7 +40,7 @@ public:
 	__forceinline int GetHeight() {return m_height;}
 public:
 	bool ExtractImageAndPalette(unsigned char *outImage, unsigned char *outPalette,
-								unsigned char *inPalette, unsigned char transparentColorIdx=-1);
+								unsigned char *inPalette, unsigned char transparentColorIdx=-1, unsigned char paletteIndexOr=0);
 public:
 	CPIFile(unsigned char *content,int contentLen);
 	~CPIFile(void);

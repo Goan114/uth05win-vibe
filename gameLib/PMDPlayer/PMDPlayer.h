@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <dsound.h>
 #include <vector>
+#include <array>
 using namespace std;
 #pragma comment(lib,"dsound.lib")
 #pragma comment(lib,"dxguid.lib")
@@ -40,6 +41,7 @@ public:
 	static bool Initialize(HWND hWnd);
 	static bool LoadPMDData(unsigned char *musicData,int size);
 	static bool UnloadPMDData();
+	static std::array<int,8> PianoNotes();
 	static void Play();
 	static void Pause();
 	static void Resume();

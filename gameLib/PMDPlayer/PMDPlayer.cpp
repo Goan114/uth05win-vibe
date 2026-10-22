@@ -29,6 +29,13 @@ CPMDPlayer::~CPMDPlayer(void)
 {
 }
 
+std::array<int,8> CPMDPlayer::PianoNotes()
+{
+ std::array<int,8> result;result.fill(255);if(!s_bInitialized||!s_bMusicDataExist)return result;
+ EnterCriticalSection(&s_csLocalBuf);
+ for(int i=0;i<8;i++){QQ* p=getpartwork(i<5?i:i+1);if(p&&p->leng>(p->qdat<4?p->qdat:4)&&p->leng>1)result[i]=p->onkai;}
+ LeaveCriticalSection(&s_csLocalBuf);return result;
+}
 bool CPMDPlayer::InitPMDWin()
 {
 	bool initres=pmdwininit(NULL);

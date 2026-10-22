@@ -75,7 +75,7 @@ bool CPIFile::ParseHeader()
 }
 
 bool CPIFile::ExtractImageAndPalette(unsigned char *outImage, unsigned char *outPalette,
-									 unsigned char *inPalette, unsigned char transparentColorIdx)
+									 unsigned char *inPalette, unsigned char transparentColorIdx, unsigned char paletteIndexOr)
 {
 	if (m_bValidFormat==false)
 		return false;
@@ -136,11 +136,12 @@ bool CPIFile::ExtractImageAndPalette(unsigned char *outImage, unsigned char *out
 		int x=i%m_width;
 		int y=i/m_width;
 		int j=(m_height-1-y)*m_width+x;
-		unsigned char idx=bmpbuf[m_width*2+i];
+		unsigned char originalIdx=bmpbuf[m_width*2+i];
+		unsigned char idx=originalIdx | (paletteIndexOr & 15);
 		outImage[j*4]=palette[idx*3];
 		outImage[j*4+1]=palette[idx*3+1];
 		outImage[j*4+2]=palette[idx*3+2];
-		if (idx==transparentColorIdx)
+		if (originalIdx==transparentColorIdx)
 			outImage[j*4+3]=0;
 		else
 			outImage[j*4+3]=255;
