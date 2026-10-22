@@ -937,7 +937,7 @@ void CStage::DrawStatistics()
 	CTh5ExtFont::DrawExtString(extRuikei,100,0x39*8,0xf*16+40,0,1,1);
 	m_pStageRes->DrawNumber(0x3e*8,0x10*16+40,m_curNPointItem,5,false,true,1,1,1);
 	m_pStageRes->DrawNumber(0x3e*8,0xf*16+40,m_totalNPointItem,5,false,true,0,1,1);
-	CTh5ExtFont::DrawExtChar(0xe7,(practice::Options().numericDream?0x3a:0x3f)*8,0x13*16+40,1,1,0);			//Ten
+	CTh5ExtFont::DrawExtChar(0xe7,(practice::Options().numericDream?0x3a:0x3f)*8,0x13*16+40+(practice::Options().numericDream?8:0),1,1,0);			//Ten
 	CTh5ExtFont::DrawExtChar(0xe8,0x3a*8,0x12*16+40,1,1,0);			//Dan
 	m_pStageRes->DrawNumber(0x3e*8,0x12*16+40,m_curNGraze,5,false,true,1,1,1);
 
@@ -945,7 +945,7 @@ void CStage::DrawStatistics()
 	float powerGaugeColor[][3]={{1,0,0},{1,0,0},{1,0,0},{1,0,1},{1,0,1},{0,0,1},{0,0,1},{0,1,1},{1,1,0},{1,1,1}};
 	float dreamGaugeColor[][3]={{1,0,0},{1,0,0},{1,0,1},{1,0,1},{0,0,1},{0,0,1},{0,1,1},{1,1,0},{1,1,1}};
 	if (practice::Options().numericDream)
-		m_pStageRes->DrawNumber(0x3e*8,0x13*16+40,m_curDream,5,false,true,1,1,1);
+		m_pStageRes->DrawNumber(0x3e*8,0x13*16+48,m_curDream,5,false,true,1,1,1);
 	else m_pStageRes->DrawGauge(m_curDream,128,0x38*8,0x14*16+40,dreamGaugeColor[m_curDream/16][0],
 			  dreamGaugeColor[m_curDream/16][1],dreamGaugeColor[m_curDream/16][2]);
 	if (practice::Options().numericPower)
