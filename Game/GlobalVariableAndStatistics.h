@@ -40,7 +40,7 @@ public:
 	unsigned char m_practiceUnlocked[4][4];
 	void LoadPracticeProgress();
 	void SavePracticeProgress();
-	void OnStageClear();
+	void OnStageEnter();
 	bool PracticeStageUnlocked(int stage) const;
 
 	//loaded from score file

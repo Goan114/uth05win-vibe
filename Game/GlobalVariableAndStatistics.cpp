@@ -98,7 +98,7 @@ void CGlobalVariableAndStatistics::LoadConfig()
 	if (fp==NULL)
 		return;
 	fseek(fp,0,SEEK_END);
-	if (ftell(fp)!=52)
+	if (ftell(fp)<52)
 	{
 		fclose(fp);
 		return;
@@ -124,6 +124,9 @@ void CGlobalVariableAndStatistics::SaveConfig()
 	fwrite(&m_bClear,1,20,fp);
 	fwrite(m_defaultHighScoreName,1,10,fp);
 	fwrite(m_defaultReplayName,1,10,fp);
+	fwrite("TH5PRC1",1,8,fp);
+	fwrite(m_modMD5,1,16,fp);
+	fwrite(m_practiceUnlocked,1,16,fp);
 	fclose(fp);
 }
 
@@ -139,7 +142,18 @@ void CGlobalVariableAndStatistics::LoadPracticeProgress()
  // Existing full-game clears are also evidence of completing all six stages.
  for(int c=0;c<4;c++) for(int d=0;d<4;d++)
   if(m_bClear[c][d]) m_practiceUnlocked[c][d]=63;
- FILE* f=fopen("practice-progress.dat","rb"); if(!f) return;
+ // The extension follows the unchanged 52-byte native configuration prefix.
+ FILE* f=fopen("game.cfg","rb");
+ unsigned char embedded[40];
+ if(f) {
+  fseek(f,52,SEEK_SET);const size_t n=fread(embedded,1,40,f);fclose(f);
+  if(n==40 && !memcmp(embedded,"TH5PRC1",8) && !memcmp(embedded+8,m_modMD5,16)) {
+   bool valid=true;for(int i=0;i<16;i++)if(embedded[24+i]>63)valid=false;
+   if(valid)for(int c=0;c<4;c++)for(int d=0;d<4;d++)m_practiceUnlocked[c][d]|=embedded[24+c*4+d];
+  }
+ }
+ // Read the earlier sidecar only as an import; all new writes go to game.cfg.
+ f=fopen("practice-progress.dat","rb"); if(!f) return;
  unsigned char data[40]; const size_t count=fread(data,1,sizeof(data),f);
  const int extra=fgetc(f); fclose(f);
  if(count!=sizeof(data)||extra!=EOF||memcmp(data,"TH5PRC1",8)||memcmp(data+8,m_modMD5,16)) return;
@@ -148,13 +162,9 @@ void CGlobalVariableAndStatistics::LoadPracticeProgress()
 }
 void CGlobalVariableAndStatistics::SavePracticeProgress()
 {
- FILE* f=fopen("practice-progress.dat.tmp","wb"); if(!f) return;
- bool ok=fwrite("TH5PRC1",1,8,f)==8 && fwrite(m_modMD5,1,16,f)==16 &&
-  fwrite(m_practiceUnlocked,1,16,f)==16;
- if(fclose(f)!=0) ok=false;
- if(ok) MoveFileExA("practice-progress.dat.tmp","practice-progress.dat",MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH);
+ SaveConfig();
 }
-void CGlobalVariableAndStatistics::OnStageClear()
+void CGlobalVariableAndStatistics::OnStageEnter()
 {
  if(m_bReplayMode || m_bPracticeMode || m_playDifficulty<0 || m_playDifficulty>=4 ||
   m_playChara<0 || m_playChara>=4 || m_playStage<0 || m_playStage>=6) return;

@@ -255,6 +255,7 @@ void CStage::Initialize()
 
 	m_lastGameKeyState=0;
 	m_curGameKeyState=0;
+	CGame::GVar().OnStageEnter();
 }
 
 void CStage::StepScore()
@@ -386,13 +387,14 @@ int CStage::StepFrame(unsigned short liveInput)
 		}
 		CPMDPlayer::Pause();
 		CPMDPlayer::SetVolume(100);
+		if (m_quitCode==STAGE_END_CLEAR && CGame::GVar().m_bPracticeMode && !CGame::GVar().m_bReplayMode)
+            CGame::GVar().m_bCanSaveReplay=true;
 		UploadVarToGlobal();
 		//make sure to upload var before close stage
 		//otherwise, replay will not get the correct score
 		if (m_quitCode==STAGE_END_CLEAR)
 		{
 			CGame::GVar().m_replay.CloseStage(true);
-			CGame::GVar().OnStageClear();
 		}
 		else
 			CGame::GVar().m_replay.CloseStage(false);

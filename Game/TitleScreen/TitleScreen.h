@@ -18,6 +18,8 @@ friend struct PracticeTests;
 protected:
 	int m_curFrame;
 
+	C2DImage *m_pPracticeDescription;
+	void CreatePracticeDescription();
 	C2DImage *m_pMenuImgPractice;
 	C2DImage *m_pMenuImgReplay;
 	th5w::C2DImageArray m_spriteArray;
