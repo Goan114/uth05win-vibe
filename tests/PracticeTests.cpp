@@ -480,6 +480,7 @@ struct PracticeTests {
     Check(room.Play(track),"actual PMDWin accepts and starts the original song");
     Check(room.m_playing==track&&!room.m_playFailed,"selected song is the playing song");++total;
    }
+   room.m_selection=musicTrackCounts[g];room.m_top=musicTrackCounts[g]-11;room.m_fade=100;room.Draw();glFinish();char shot[64];sprintf_s(shot,"music-room-return-%d.bmp",g+1);Screenshot(shot);
   }
   Check(total==107,"all 107 songs use the original order and play successfully");
   room.m_game=4;room.m_selection=0;room.m_top=0;room.Play(0);room.Input(0);room.Input(1);
@@ -492,7 +493,8 @@ struct PracticeTests {
   room.m_fade=100;room.m_commentAge=30;room.Draw();glFinish();Screenshot("music-room-comment.bmp");
   auto notes=CPMDPlayer::PianoNotes();for(auto note:notes)Check(note==255||(note>=0&&(note&15)<12&&(note>>4)<8),"piano notes come from valid live PMD work data");
   room.Input(0);room.Input(4096);Check(room.m_quit,"Esc exits Music Room");int ended=0;for(int i=0;i<20&&!ended;i++)ended=room.Step();Check(ended==1,"Music Room fades out before returning");
-  CScheme* next=NULL;int id=0;Check(CSchemeSwitcher::SwitchScheme(&next,&id,8,1)&&id==2,"Music Room exit returns to native title");delete next;
+  CScheme* next=NULL;int id=0;Check(CSchemeSwitcher::SwitchScheme(&next,&id,8,1)&&id==2,"Music Room exit returns to native title");
+  CTitleScreen* title=static_cast<CTitleScreen*>(next);title->m_bMenuOn=true;title->m_mainMenuCursorPosition=5;title->m_curScrFade=100;title->m_bgFade=100;title->m_flagRollingTama=0;title->Draw();glFinish();Screenshot("music-room-title-hint.bmp");delete next;
  }
  static int Run() {
   DeleteFileA(".\\thprac-uth05.ini");

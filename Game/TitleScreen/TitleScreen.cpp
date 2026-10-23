@@ -108,6 +108,10 @@ void CTitleScreen::Initialize(bool bRollTama,int cursorInitialPos, bool bSwitchM
 		}
 	}
 
+ // Imported legacy translations may still label the now-working Music Room as unfinished.
+ char* unfinished=strstr(mainMenuDesc[MAIN_MENU_MUSIC_ROOM-1],"(Not implemented)");
+ if(unfinished)*unfinished=0;
+
 	m_bMenuOn=false;
 	m_curMenu=0;
 
