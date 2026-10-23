@@ -203,7 +203,7 @@ void CStage::Initialize()
 		CGame::GVar().m_replay.OpenStage(CGame::GVar().m_playStage,true);
 
 	m_bQuit=false;
- m_lockTimer=0;m_lockPhase=-1;m_lockKind=0;m_fastRetryCountdown=0;m_practiceDialoguePending=false;m_bossBar=practice::BossBarAnimation();
+ m_lockTimer=0;m_lockPhase=-1;m_lockKind=0;m_fastRetryCountdown=0;m_practiceDialoguePending=false;m_bossBar=practice::BossBarAnimation();m_bossRings[0]=m_bossRings[1]=practice::BossRingAnimation();
 
 	m_bLogo=true;
 	m_logoFrame=0;
@@ -709,6 +709,8 @@ void CStage::Draw()
 	else
 		m_pBoss->DrawBackground();
 
+ if(practice::Options().ringBar)DrawBossRings();
+
 	if (m_bInCharaBomb)
 		m_pChara->DrawBomb();
 
@@ -987,8 +989,8 @@ practice::PhaseTimeout CStage::GetPhaseTimeout() const {
 
 void CStage::DrawStatistics()
 {
- if(practice::Options().eosdBar)DrawBossBar();
- if(practice::Options().phaseTimeout&&!practice::Options().eosdBar){
+ if(practice::Options().eosdBar||practice::Options().ringBar)DrawBossBar();
+ if(practice::Options().phaseTimeout&&!practice::Options().eosdBar&&!practice::Options().ringBar){
   const practice::PhaseTimeout timer=GetPhaseTimeout();
   if(timer.unit!=practice::PhaseTimeout::None){
    const int right=m_playAreaUpperLeftX+384-8;

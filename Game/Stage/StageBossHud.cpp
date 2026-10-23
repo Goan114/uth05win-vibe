@@ -3,6 +3,7 @@
 #include "Stage.h"
 #include "../../gameLib/Graphic/PC98Font.h"
 #include "../Game.h"
+#include "Chara/Chara.h"
 #include "../Practice/Practice.h"
 #include "Boss/Boss.h"
 #include "Boss/BossStage4.h"
@@ -74,18 +75,25 @@ practice::BossBarData CStage::GetBossBarData() const {
 }
 
 void CStage::TickBossBar(){
+ if(practice::Options().ringBar){
+  m_bossBar=practice::BossBarAnimation();
+  for(int i=0;i<2;i++)m_bossRings[i].Step(GetBossRingData(i),m_pChara->m_curX/16.f,m_pChara->m_curY/16.f);
+  return;
+ }
+ m_bossRings[0]=m_bossRings[1]=practice::BossRingAnimation();
  if(!practice::Options().eosdBar){m_bossBar=practice::BossBarAnimation();return;}
  m_bossBar.Step(GetBossBarData());
 }
 
 void CStage::DrawBossBar(){
- if(!m_bossBar.opacity||m_bLogo||m_bQuit||m_pDialogue->IsRunning())return;
- const float alpha=m_bossBar.opacity/255.f;
- const auto& data=m_bossBar.data;
+ const bool ring=practice::Options().ringBar;
+ if((ring?!m_bossRings[0].data.present:!m_bossBar.opacity)||m_bLogo||m_bQuit||m_pDialogue->IsRunning())return;
+ const float alpha=ring?1.f:m_bossBar.opacity/255.f;
+ const auto data=ring?GetBossBarData():m_bossBar.data;
  const int x=m_playAreaUpperLeftX,y=m_playAreaUpperLeftY;
  const unsigned char enemy[]={0xea,0xeb,0xec,0};
  CTh5ExtFont::DrawExtString(enemy,3,x,y,1,1,0,alpha);
- if(practice::Options().phaseStars){
+ if(ring||practice::Options().phaseStars){
   // TH10 GuiFrame creates one boss_life_icon per remaining phase, excluding
   // the active phase. Use the native PC-98 filled-star glyph at half size.
   const bool systemFont=CGame::GVar().m_bUseSystemFont;CGame::GVar().m_bUseSystemFont=false;
@@ -93,7 +101,7 @@ void CStage::DrawBossBar(){
   CGame::GVar().m_bUseSystemFont=systemFont;
  }else Number(x+48,y,data.remaining,1,1,.5f,alpha);
  const int left=x+64,width=272,filled=int(m_bossBar.displayed*width);
- if(filled>0){
+ if(!ring&&filled>0){
   CCommonFunctionGraphic::DrawRectangle(float(left),float(y+8),float(left+filled-1),float(y+9),1,1,0,alpha);
   const int thresholds[]={data.enrage,data.cut2};
   if(data.enrage>data.end){
@@ -115,4 +123,55 @@ void CStage::DrawBossBar(){
   if(turns)CTh5ExtFont::DrawExtChar(0xbd,right-16,y,1,tint,tint,alpha);
  }
 }
+practice::BossRingData CStage::GetBossRingData(int slot) const {
+ practice::BossRingData out;if(slot<0||slot>1)return out;
+ const auto bar=GetBossBarData();if(!bar.present)return out;
+ const bool dual=m_pBoss&&dynamic_cast<CBossStage4*>(m_pBoss)!=NULL;
+ if(slot&&!dual)return out;
+ out.present=true;out.key=bar.key;out.hp=bar.hp-bar.end;out.full=bar.start-bar.end;
+ if(m_pBoss){
+  out.x=m_pBoss->m_curX/16.f;out.y=m_pBoss->m_curY/16.f;
+  if(slot){auto* boss=static_cast<CBossStage4*>(m_pBoss);out.x=boss->m_2curX/16.f;out.y=boss->m_2curY/16.f;}
+ }else {out.x=m_pMidBoss->m_curX/16.f;out.y=m_pMidBoss->m_curY/16.f;}
+ const int thresholds[]={bar.enrage,bar.cut2};
+ for(int hp:thresholds)if(hp>bar.end&&hp<bar.start)out.markers[out.markerCount++]=hp-bar.end;
+ return out;
+}
+namespace {
+void RingArc(float x,float y,float inner,float outer,float from,float to,float r,float g,float b,float alpha){
+ if(to<=from)return;const int segments=int(ceil((to-from)*128));glColor4f(r,g,b,alpha);
+ glBegin(GL_TRIANGLE_STRIP);
+ for(int i=0;i<=segments;i++){
+  const float a=(from+(to-from)*i/segments)*2.f*float(PI),s=-sinf(a),c=cosf(a);
+  glVertex2f(x+s*inner,y+c*inner);glVertex2f(x+s*outer,y+c*outer);
+ }
+ glEnd();
+}
+}
+void CStage::DrawBossRings(){
+ if(!practice::Options().ringBar||m_bLogo||m_bQuit||m_pDialogue->IsRunning())return;
+ glPushAttrib(GL_ENABLE_BIT|GL_COLOR_BUFFER_BIT|GL_CURRENT_BIT|GL_POLYGON_BIT);
+ glDisable(GL_TEXTURE_2D);glDisable(GL_DEPTH_TEST);glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+ glMatrixMode(GL_PROJECTION);glPushMatrix();glLoadIdentity();gluOrtho2D(0,CGame::s_pCurGame->m_windowWidth,0,CGame::s_pCurGame->m_windowHeight);
+ glMatrixMode(GL_MODELVIEW);glPushMatrix();glLoadIdentity();
+ for(const auto& ring:m_bossRings){
+  const auto& data=ring.data;if(!data.present)continue;
+  const float x=m_playAreaUpperLeftX+data.x,y=CGame::s_pCurGame->m_gameWindow.m_height-1-(m_playAreaUpperLeftY+data.y),alpha=ring.dimmed?.25f:1.f;
+  // TH15: 112 HUD pixels / 2 = 56 game pixels. The marker starts at the top,
+  // then rotates counter-clockwise by fraction * 2pi (GameHudFrame).
+  RingArc(x,y,53.5f,58.5f,0,1,0,0,0,alpha*.6f);
+  RingArc(x,y,54.5f,57.5f,0,1,1,1,1,alpha*.16f);
+  RingArc(x,y,54.5f,57.5f,0,ring.displayed,1,1,1,alpha);
+  if(data.markerCount){float rage=float(data.markers[0])/data.full;if(rage>ring.displayed)rage=ring.displayed;RingArc(x,y,54.5f,57.5f,0,rage,1,.25f,.25f,alpha);}
+  for(int i=0;i<data.markerCount;i++){
+   const float fraction=float(data.markers[i])/data.full;if(fraction>=ring.displayed)continue;
+   const float a=fraction*2.f*float(PI),s=-sinf(a),c=cosf(a),tx=cosf(a),ty=sinf(a);
+   glColor4f(1,1,.5f,alpha);glBegin(GL_QUADS);
+   glVertex2f(x+s*51-tx*.6f,y+c*51-ty*.6f);glVertex2f(x+s*62-tx*.6f,y+c*62-ty*.6f);
+   glVertex2f(x+s*62+tx*.6f,y+c*62+ty*.6f);glVertex2f(x+s*51+tx*.6f,y+c*51+ty*.6f);glEnd();
+  }
+ }
+ glPopMatrix();glMatrixMode(GL_PROJECTION);glPopMatrix();glPopAttrib();
+}
+
 }

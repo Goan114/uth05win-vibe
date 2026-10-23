@@ -506,6 +506,60 @@ struct PracticeTests {
   }
   opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();
  }
+ static void RingBossBar(CGame& game){
+  auto& opts=practice::Options();opts=practice::AdvancedOptions();ResetTools();
+  Check(!opts.ringBar,"legacy settings retain native or EoSD bars by default");
+  opts.ringBar=opts.eosdBar=opts.hpPhaseMarkers=opts.phaseStars=true;opts.phaseTimeout=false;practice::SaveAdvancedOptions();
+  Check(opts.ringBar&&!opts.eosdBar&&!opts.hpPhaseMarkers&&!opts.phaseStars&&opts.phaseTimeout,"ring style excludes the two other bar styles and forces timer and native phase stars");
+  opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();Check(opts.ringBar&&!opts.eosdBar&&opts.phaseTimeout,"ring selection survives configuration reload");
+  auto& g=CGame::GVar();auto& menu=practice::MenuConfig();
+  for(int number=0;number<7;number++){
+   menu=practice::Config();menu.mode=1;menu.stage=number;menu.warp=2;g.m_bReplayMode=false;g.m_playChara=0;
+   Check(practice::StartSetup(),"ring fixture starts at an actual native boss");
+   CStage* st=new CStage;st->Initialize();game.m_pCurScheme=st;game.m_curSchemeID=4;st->m_bLogo=false;st->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);
+   CBoss* boss=st->m_pBoss;if(!boss->m_curPhaseFrame)boss->Step();
+   const auto bar=st->GetBossBarData();Check(bar.present,"ring uses the native active phase health segment");
+   for(int i=0;i<40;i++)st->TickBossBar();
+   const auto initial=st->m_bossRings[0];Check(initial.data.full==bar.start-bar.end&&initial.data.hp==bar.hp-bar.end,"each phase refills a ring with only that phase health");
+   Check(fabs(initial.displayed-1.f)<.0001f,"TH15 ring fills with 0.025-per-frame interpolation");
+   Check(st->m_bossRings[1].data.present==(number==3),"only the dual boss has a second ring");
+   Frame(*st);char shot[64];sprintf_s(shot,"ring-stage-%d.bmp",number+1);Screenshot(shot);
+   if(number==3){
+    auto* dual=static_cast<CBossStage4*>(boss);Check(st->m_bossRings[0].data.hp==st->m_bossRings[1].data.hp&&st->m_bossRings[0].displayed==st->m_bossRings[1].displayed,"Mai and Yuki share the same combined HP ring state");
+    Check(st->m_bossRings[0].data.x==boss->m_curX/16.f&&st->m_bossRings[1].data.x==dual->m_2curX/16.f,"each shared-health ring is centered on its own actor");
+    dual->m_2curHP-=1000;st->TickBossBar();Check(st->m_bossRings[0].displayed==st->m_bossRings[1].displayed&&st->m_bossRings[0].displayed<initial.displayed,"damaging either dual boss reduces both rings synchronously");
+    Frame(*st);Screenshot("ring-dual-damaged.bmp");
+    st->m_pBoss=NULL;delete boss;boss=new CBossStage4Mai;boss->m_pStage=st;boss->Initialize();boss->Step();st->m_pBoss=boss;
+    for(int i=0;i<40;i++)st->TickBossBar();Check(st->m_bossRings[0].data.present&&!st->m_bossRings[1].data.present&&st->GetBossBarData().remaining==3,"dual-to-Mai branch replaces both shared rings with one surviving actor and consumes one star");Frame(*st);Screenshot("ring-mai-branch.bmp");
+
+   }else{
+    boss->m_curHP-=int(initial.data.full*.25f);st->TickBossBar();const auto& damaged=st->m_bossRings[0];
+    Check(fabs(damaged.displayed-float(damaged.data.hp)/damaged.data.full)<.0001f,"TH15 ring clamps immediately to damage without TH06 depletion smoothing");
+   }
+   const float oldX=st->m_bossRings[0].data.x;boss->m_curX+=16*12;st->TickBossBar();Check(st->m_bossRings[0].data.x==oldX+12,"ring follows the native moving boss center");
+   st->m_pChara->m_curX=boss->m_curX;st->m_pChara->m_curY=boss->m_curY;st->TickBossBar();Check(st->m_bossRings[0].dimmed,"ring dims when player is within 80 pixels");
+   st->m_pChara->m_curY=boss->m_curY+90*16;st->TickBossBar();Check(st->m_bossRings[0].dimmed,"ring proximity dimming retains TH15 hysteresis between 80 and 96 pixels");
+   st->m_pChara->m_curY=boss->m_curY+100*16;st->TickBossBar();Check(!st->m_bossRings[0].dimmed,"ring opacity recovers outside 96 pixels");
+   const auto paused=st->m_bossRings[0];st->m_bPaused=true;st->StepFrame(0);Check(st->m_bossRings[0].displayed==paused.displayed&&st->m_bossRings[0].data.x==paused.data.x,"pause freezes native ring animation");st->m_bPaused=false;
+   if(number==4){
+    boss->m_curPhase=4;boss->m_curPhaseFrame=15;boss->m_curHP=7000;boss->m_curPhaseEndHP=5700;boss->Step();for(int i=0;i<40;i++)st->TickBossBar();
+    Check(st->m_bossRings[0].data.markerCount==1&&st->m_bossRings[0].data.markers[0]==600,"Yumeko ring places rage at its actual phase-relative HP threshold");Frame(*st);Screenshot("ring-yumeko-boundary.bmp");
+    const int key=st->m_bossRings[0].data.key,count=st->GetBossBarData().remaining;boss->m_curHP=6100;st->TickBossBar();
+    Check(st->m_bossRings[0].data.key==key&&st->GetBossBarData().remaining==count,"rage neither refills the ring nor consumes a phase star");Frame(*st);Screenshot("ring-yumeko-rage.bmp");
+   }
+   const int frame=boss->m_curPhaseFrame,hp=boss->m_curHP;srand(101);const int next=rand();srand(101);for(int i=0;i<10;i++){st->TickBossBar();Frame(*st);}
+   Check(rand()==next&&boss->m_curPhaseFrame==frame&&boss->m_curHP==hp,"ring rendering does not alter native combat, timers or replay RNG");
+   boss->m_curPhase=0xfd;st->TickBossBar();Check(!st->m_bossRings[0].data.present&&!st->m_bossRings[1].data.present,"native boss death retires all rings immediately");
+   g.m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;
+  }
+  menu=practice::Config();menu.mode=1;menu.stage=1;menu.warp=1;menu.section=2;menu.trigger=1;g.m_bReplayMode=false;g.m_initDifficulty=1;
+  Check(practice::StartSetup(),"midboss ring starts through native timeout-entry preset");CStage* mid=new CStage;mid->Initialize();game.m_pCurScheme=mid;mid->StepFrame(0);
+  for(int i=0;i<40;i++)mid->TickBossBar();Check(mid->m_bossRings[0].data.full==1400,"midboss timeout entry preserves the native 1400 HP maximum");
+  mid->m_pMidBoss->m_curHP=1000;mid->TickBossBar();Check(mid->m_bossRings[0].data.full==1400&&fabs(mid->m_bossRings[0].displayed-1000.f/1400.f)<.0001f,"midboss ring denominator stays at entry HP while native health decreases");Frame(*mid);Screenshot("ring-midboss-timeout-entry.bmp");
+  const auto frozen=mid->m_bossRings[0];practice::SetAdvancedOpen(true);mid->StepFrame(0);Check(mid->m_bossRings[0].displayed==frozen.displayed,"F12 freezes ring animation alongside combat");practice::SetAdvancedOpen(false);
+  g.m_replay.CloseStage(false);delete mid;game.m_pCurScheme=NULL;
+  opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();
+ }
  static void CycleTimeProjection(CGame& game){
   auto& g=CGame::GVar();ResetTools();practice::Options()=practice::AdvancedOptions();
   Check(!practice::Options().phaseTimeoutAsTime,"existing settings default to native round counts");
@@ -814,7 +868,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);PracticeDialogue(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);PracticeDialogue(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);RingBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

@@ -58,7 +58,7 @@ void CMidBoss::StepHPGauge(int curHP,int fullHP)
 
 void CMidBoss::DrawHPGaugeAndExtStrEnemy(int fullHP)
 {
- if(practice::Options().eosdBar)return;
+ if(practice::Options().eosdBar||practice::Options().ringBar)return;
 	const float gaugeColor[][3]={{1,0,0},{1,0,1},{0,1,1},{1,1,0},{1,1,1}};
 	if (m_lastDrawnHP>0)
 	{
