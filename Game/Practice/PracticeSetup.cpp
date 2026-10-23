@@ -92,6 +92,9 @@ int DrawSetup(int age){
     if(selected->continuous){if(p.startHP<0)p.startHP=p.warp==1&&p.stage==0&&p.rage?200:selected->startHP;SetupSlider(u8"\u8d77\u59cb\u8840\u91cf",&p.startHP,selected->endHP+1,selected->startHP);}
    }
   }
+  if(p.HasDialogue()){
+   bool dialogue=p.dialogue!=0;ImGui::Checkbox(u8"\u5bf9\u8bdd",&dialogue);p.dialogue=dialogue?1:0;
+  }
   if(p.warp==3)SetupDrag(u8"\u5e27",&p.frame,1,0,60000);
   SetupSlider(u8"\u6b8b\u673a",&p.lives,0,8);
   SetupSlider(u8"Bomb",&p.bombs,0,8);

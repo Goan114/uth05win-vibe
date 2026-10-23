@@ -203,7 +203,7 @@ void CStage::Initialize()
 		CGame::GVar().m_replay.OpenStage(CGame::GVar().m_playStage,true);
 
 	m_bQuit=false;
- m_lockTimer=0;m_lockPhase=-1;m_lockKind=0;m_fastRetryCountdown=0;m_bossBar=practice::BossBarAnimation();
+ m_lockTimer=0;m_lockPhase=-1;m_lockKind=0;m_fastRetryCountdown=0;m_practiceDialoguePending=false;m_bossBar=practice::BossBarAnimation();
 
 	m_bLogo=true;
 	m_logoFrame=0;
@@ -294,7 +294,13 @@ void CStage::ApplyPracticeWarp()
  if(p.warp==2){
   // Execute the original dialogue VM so boss graphics, palettes and music are
   // loaded in the original order. Holding Ctrl skips only its visible text.
-  CheckBoss();m_curGameKeyState=128;
+  CheckBoss();
+  const auto* section=practice::SelectedSection(p.stage,p.warp,p.section);
+  if(p.dialogue&&(!section||!section->variant)){
+   m_practiceDialoguePending=p.section!=0;
+   memset(m_bPlaySound,0,sizeof(m_bPlaySound));return;
+  }
+  m_curGameKeyState=128;
   for(int i=0;i<10000&&m_pDialogue->IsRunning();i++)m_pDialogue->Step();
   m_curGameKeyState=0;CheckBoss();m_curScrFade=100;
  }
@@ -313,7 +319,9 @@ void CStage::ApplyPracticeSection()
  if(p.warp==1){++m_curFrame;CheckMidBoss();}
  const int stageFrame=m_curFrame;
  const auto variant=[&](){return dynamic_cast<CBossStage4Mai*>(m_pBoss)?1:dynamic_cast<CBossStage4Yuki*>(m_pBoss)?2:0;};
- const auto ready=[&](){return p.warp==1?m_pMidBoss&&m_pMidBoss->m_curPhase==selected->phase:m_pBoss&&variant()==selected->variant&&m_pBoss->m_curPhase==selected->phase;};
+ const auto actualReady=[&](){return p.warp==1?m_pMidBoss&&m_pMidBoss->m_curPhase==selected->phase:m_pBoss&&variant()==selected->variant&&m_pBoss->m_curPhase==selected->phase;};
+ const auto branchDialogue=[&](){return p.dialogue&&selected->variant&&variant()==0&&m_pDialogue->IsRunning();};
+ const auto ready=[&](){return actualReady()||branchDialogue();};
  const auto step=[&](){
   ++m_curFrame;
   if(m_pDialogue->IsRunning()){m_curGameKeyState=128;m_pDialogue->Step();m_curGameKeyState=0;return;}
@@ -323,12 +331,14 @@ void CStage::ApplyPracticeSection()
  m_practiceSeekDamage=p.warp==1&&p.stage==1&&selected->phase==2&&p.trigger?2:1;
  int ticks=0;while(!ready()&&ticks++<20000)step();
  if(!ready()){m_practiceSeekDamage=0;throw std::runtime_error("Practice phase destination was not reached");}
+ m_practiceDialoguePending=branchDialogue();
  m_practiceSeekDamage=2;
  // Expired attacks and rewards are discarded; native actor state, palettes,
  // background state and the RNG reached through original transitions remain.
  memset(m_pEnemyBullet->m_bullets,0,sizeof(m_pEnemyBullet->m_bullets));
  m_pEnemyBullet->m_noEnemyBullet=false;m_pEnemyBullet->m_clearEnemyBulletTimeLeft=0;
  m_pLaser->Initialize();
+ if(!m_practiceDialoguePending){
  int hp=selected->startHP;
  if(p.warp==1&&p.stage==1&&selected->phase==2&&p.trigger)hp=1400;
  if(p.startHP>=0&&selected->continuous)hp=p.startHP;
@@ -361,6 +371,7 @@ void CStage::ApplyPracticeSection()
  };
  ticks=0;while(!rageReady()&&ticks++<10000)step();
  if(!rageReady()||!ready()){m_practiceSeekDamage=0;throw std::runtime_error("Practice rage destination was not reached");}
+ }
  m_practiceSeekDamage=0;m_curFrame=stageFrame;
  if(m_pBoss){m_pBoss->m_lastDrawnHP=0;m_pBoss->m_bHitThisFrame=false;m_pBoss->m_HPLostThisFrame=0;}
  if(m_pMidBoss)m_pMidBoss->m_lastDrawnHP=0;
@@ -645,6 +656,12 @@ int CStage::StepFrame(unsigned short liveInput)
 		}
 	if (m_pBoss)
 		m_pBoss->Step();
+ if(m_practiceDialoguePending&&!m_pDialogue->IsRunning()&&m_pBoss){
+  const auto& config=CGame::GVar().m_practiceConfig;
+  const auto* section=practice::SelectedSection(config.stage,config.warp,config.section);
+  const int variant=dynamic_cast<CBossStage4Mai*>(m_pBoss)?1:dynamic_cast<CBossStage4Yuki*>(m_pBoss)?2:0;
+  if(section&&variant==section->variant){m_practiceDialoguePending=false;ApplyPracticeSection();memset(m_bPlaySound,0,sizeof(m_bPlaySound));}
+ }
 	m_pSummary->Step();
 	m_pItem->Step();
 	m_pGatherEffect->Step();

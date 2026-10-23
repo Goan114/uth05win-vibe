@@ -362,7 +362,7 @@ struct PracticeTests {
   }
   // Convert a genuine whole-boss legacy-compatible fixture back to TPC5 v1.
   {FILE* fp=fopen("custom-roundtrip.rpy","rb");fseek(fp,0,SEEK_END);long size=ftell(fp);rewind(fp);std::vector<char> bytes(size);fread(bytes.data(),1,size,fp);fclose(fp);
-   const int at=int(bytes.size())-sizeof(practice::Config)-12;unsigned int v=1,n=56;memcpy(bytes.data()+at+4,&v,4);memcpy(bytes.data()+at+8,&n,4);bytes.resize(bytes.size()-16);
+   const int at=int(bytes.size())-sizeof(practice::Config)-12;unsigned int v=1,n=56;memcpy(bytes.data()+at+4,&v,4);memcpy(bytes.data()+at+8,&n,4);bytes.resize(bytes.size()-20);
    fp=fopen("custom-v1.rpy","wb");fwrite(bytes.data(),1,bytes.size(),fp);fclose(fp);
    Check(g.m_replay.LoadFile("custom-v1.rpy")&&g.m_replay.m_practiceConfig.section==0&&g.m_replay.m_practiceConfig.startHP==-1,"legacy fourteen-field TPC5 recordings retain whole-boss defaults");}
   g.m_bReplayMode=false;
@@ -384,6 +384,47 @@ struct PracticeTests {
    char shot[64];sprintf_s(shot,"phase-practice-options-%d.bmp",fixture);Screenshot(shot);
   }
   fprintf(stderr,"PHASE CASES %d\n",cases);g.m_bReplayMode=g.m_bPracticeMode=false;g.m_initDifficulty=g.m_playDifficulty=1;
+ }
+ static void PracticeDialogue(CGame& game){
+  ResetTools();auto& g=CGame::GVar();
+  for(int stage=0;stage<7;stage++)for(int entry=0;entry<(stage==3?4:2);entry++){
+   auto& menu=practice::MenuConfig();menu=practice::Config();menu.mode=1;menu.stage=stage;menu.warp=2;menu.section=entry==0?0:entry==1?1:entry==2?2:6;menu.dialogue=1;
+   g.m_bReplayMode=false;g.m_initDifficulty=1;g.m_playChara=stage%4;
+   Check(menu.HasDialogue()&&practice::StartSetup(),"native dialogue is offered only at original boss entrances");
+   fprintf(stderr,"DIALOGUE stage=%d entry=%d\n",stage,entry);
+   CStage* record=new CStage;record->Initialize();game.m_pCurScheme=record;game.m_curSchemeID=4;
+   Check(record->m_pDialogue->IsRunning(),"dialogue-enabled practice leaves the actual original script running");
+   Check(g.m_replay.m_keyState[stage].empty(),"visible dialogue begins before any recorded input");
+   Frame(*record);char shot[80];sprintf_s(shot,"practice-dialogue-stage-%d-entry-%d.bmp",stage+1,entry);Screenshot(shot);
+   const auto capture=[&](CStage* st){const double values[]={double(st->m_curFrame),double(st->m_pDialogue->IsRunning()),double(st->m_pBoss?st->m_pBoss->m_curPhase:-1),double(st->m_pBoss?st->m_pBoss->m_curPhaseFrame:-1),double(st->m_practiceDialoguePending),double(st->m_curScore),st->m_pChara->m_curX,st->m_pChara->m_curY};return std::vector<double>(values,values+8);};
+   std::vector<double> states;int frames=0,combatFrames=0;
+   for(;frames<10000;frames++){
+    record->StepFrame(frames<120?0:128);const auto v=capture(record);states.insert(states.end(),v.begin(),v.end());
+    if(frames==100){Frame(*record);char textShot[80];sprintf_s(textShot,"practice-dialogue-visible-%d-entry-%d.bmp",stage+1,entry);Screenshot(textShot);}
+    if(!record->m_pDialogue->IsRunning()&&!record->m_practiceDialoguePending&&record->m_pBoss&&++combatFrames>=30){++frames;break;}
+   }
+   if(frames>=10000)fprintf(stderr,"DIALOGUE stuck running=%d pending=%d phase=%d local=%d\n",record->m_pDialogue->IsRunning(),record->m_practiceDialoguePending,record->m_pBoss?record->m_pBoss->m_curPhase:-1,record->m_pBoss?record->m_pBoss->m_curPhaseFrame:-1);
+   Check(frames<10000,"original dialogue finishes with native Ctrl skip and enters the chosen practice start");
+   if(entry){const auto* section=practice::SelectedSection(stage,2,menu.section);Check(record->m_pBoss->m_curPhase==section->phase,"dialogue completion initializes the selected first phase");}
+   const int nextRandom=rand();record->SetQuit(STAGE_END_SAVE_EXIT);int end=0;for(int i=0;i<60&&!end;i++)end=record->StepFrame(0);
+   Check(g.m_replay.SaveFile("dialogue-roundtrip.rpy"),"dialogue practice records in TPC5 v3");delete record;game.m_pCurScheme=NULL;
+   Check(g.m_replay.LoadFile("dialogue-roundtrip.rpy")&&g.m_replay.m_practiceConfig.dialogue==1,"replay restores the dialogue flag");
+   g.m_bReplayMode=true;g.m_playStage=stage;g.OnBeginGame();CStage* playback=new CStage;playback->Initialize();game.m_pCurScheme=playback;
+   bool equal=true;size_t at=0;for(int i=0;i<frames;i++){playback->StepFrame(0);for(double value:capture(playback))if(value!=states[at++])equal=false;}
+   Check(equal&&rand()==nextRandom,"dialogue recording and playback match frame states and RNG");
+   g.m_replay.CloseStage(false);delete playback;game.m_pCurScheme=NULL;
+  }
+  g.m_bReplayMode=false;auto& dialogueMenu=practice::MenuConfig();dialogueMenu=practice::Config();dialogueMenu.mode=1;dialogueMenu.stage=3;dialogueMenu.warp=2;dialogueMenu.section=2;dialogueMenu.dialogue=1;
+  for(int i=0;i<3;i++){practice::BeginFrame();practice::DrawSetup(30);practice::EndFrame();}
+  ImGuiWindow* panel=ImGui::FindWindowByName("TH05 Practice");Check(panel&&panel->ScrollMax.y==0,"dialogue toggle fits alongside first-phase practice parameters");Screenshot("practice-dialogue-options.bmp");
+  practice::Config invalid;invalid.mode=1;invalid.stage=5;invalid.warp=2;invalid.section=6;invalid.dialogue=1;invalid.Clamp(1);
+  Check(!invalid.HasDialogue()&&!invalid.dialogue,"later boss phases never replay an unrelated opening dialogue");
+  invalid.warp=1;invalid.section=1;invalid.dialogue=1;invalid.Clamp(1);Check(!invalid.dialogue,"midbosses without original dialogue expose no dialogue option");
+  {FILE* fp=fopen("custom-roundtrip.rpy","rb");fseek(fp,0,SEEK_END);long size=ftell(fp);rewind(fp);std::vector<char> bytes(size);fread(bytes.data(),1,size,fp);fclose(fp);
+   const int at=int(bytes.size())-sizeof(practice::Config)-12;unsigned int version=2,length=72;memcpy(bytes.data()+at+4,&version,4);memcpy(bytes.data()+at+8,&length,4);bytes.resize(bytes.size()-4);
+   fp=fopen("custom-v2.rpy","wb");fwrite(bytes.data(),1,bytes.size(),fp);fclose(fp);
+   Check(g.m_replay.LoadFile("custom-v2.rpy")&&!g.m_replay.m_practiceConfig.dialogue,"old TPC5 v2 replay retains dialogue-disabled default");}
+  g.m_bReplayMode=g.m_bPracticeMode=false;g.m_initDifficulty=g.m_playDifficulty=1;
  }
  static void TabInfo(CGame& game){
   practice::Options()=practice::AdvancedOptions();ResetTools();CStage* st=Stage(game);
@@ -750,7 +791,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);PracticeDialogue(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }
