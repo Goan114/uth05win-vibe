@@ -1022,10 +1022,10 @@ namespace th5w {
 practice::PhaseTimeout CBossStage3::GetPhaseTimeout() const {
  switch(m_curPhase){
  case 5:case 8:case 11:return practice::PhaseTimeout::Frames(600,m_curPhaseFrame);
- case 3:return practice::PhaseTimeout::Cycles(24,m_nModeChange);
- case 6:return practice::PhaseTimeout::Cycles(24,m_nModeChange);
- case 9:return practice::PhaseTimeout::Cycles(24,m_nModeChange);
- case 12:return practice::PhaseTimeout::Cycles(24,m_nModeChange);
+ case 3:return practice::PhaseTimeout::Timeline(24,m_nModeChange,m_curMode,m_curPhaseFrame,[](int){return 96;},[](int){return 36;});
+ case 6:return practice::PhaseTimeout::Timeline(24,m_nModeChange,m_curMode,m_curPhaseFrame,[](int){return 96;},[](int){return 36;});
+ case 9:return practice::PhaseTimeout::Timeline(24,m_nModeChange,m_curMode,m_curPhaseFrame,[](int){return 96;},[](int){return 36;});
+ case 12:return practice::PhaseTimeout::Timeline(24,m_nModeChange,m_curMode,m_curPhaseFrame,[](int){return 96;},[](int){return 36;});
  case 14:return practice::PhaseTimeout::Frames(1000,m_curPhaseFrame);
  default:return practice::PhaseTimeout();
  }

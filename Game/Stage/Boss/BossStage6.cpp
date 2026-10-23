@@ -1346,8 +1346,8 @@ void CBossStage6::DrawSpecialBullet()
 namespace th5w {
 practice::PhaseTimeout CBossStage6::GetPhaseTimeout() const {
  switch(m_curPhase){
- case 2:return practice::PhaseTimeout::Cycles(16,m_nModeChange);
- case 3:return practice::PhaseTimeout::Cycles(16,m_nModeChange);
+ case 2:return practice::PhaseTimeout::Timeline(16,m_nModeChange,m_curMode,m_curPhaseFrame,[](int n){return n%2?96:60;},[](int){return 60;});
+ case 3:return practice::PhaseTimeout::Timeline(16,m_nModeChange,m_curMode,m_curPhaseFrame,[](int n){return 92;},[](int){return 60;});
  case 6:return practice::PhaseTimeout::Frames(3000,m_curPhaseFrame);
  case 7:return practice::PhaseTimeout::Frames(3000,m_curPhaseFrame);
  case 9:return practice::PhaseTimeout::Frames(3000,m_curPhaseFrame);

@@ -629,10 +629,20 @@ void CBossStage4Yuki::DrawSpecialBullet()
 namespace th5w {
 practice::PhaseTimeout CBossStage4Yuki::GetPhaseTimeout() const {
  switch(m_curPhase){
- case 3:return practice::PhaseTimeout::Cycles(12,m_nModeChange);
- case 5:return practice::PhaseTimeout::Cycles(24,m_nModeChange);
+ case 3:{
+  const int ymove=practice::PhaseTimeout::MoveAxisFrames(m_curY,96.f*16.f);
+  const int currentY=practice::PhaseTimeout::MoveAxisFrames(m_curY,m_moveTarY);
+  const int currentX=practice::PhaseTimeout::MoveAxisFrames(m_curX,m_moveTarX);const int currentMove=currentX>currentY?currentX:currentY;
+  return practice::PhaseTimeout::Timeline(12,m_nModeChange,m_curMode,m_curMode?m_curPhaseFrame:0,[](int){return 256;},[&](int n){return n==m_nModeChange&&!m_curMode?currentMove:ymove;},true);
+ }
+ case 5:{
+  const int ymove=practice::PhaseTimeout::MoveAxisFrames(m_curY,96.f*16.f);
+  const int currentY=practice::PhaseTimeout::MoveAxisFrames(m_curY,96.f*16.f);
+  const int currentX=1;const int currentMove=currentX>currentY?currentX:currentY;
+  return practice::PhaseTimeout::Timeline(24,m_nModeChange,m_curMode,m_curMode?m_curPhaseFrame:0,[](int){return 160;},[&](int n){return n==m_nModeChange&&!m_curMode?currentMove:ymove;},true);
+ }
  case 7:return practice::PhaseTimeout::Frames(2000,m_curPhaseFrame);
- case 9:return practice::PhaseTimeout::Cycles(36,m_nModeChange);
+ case 9:return practice::PhaseTimeout::Timeline(36,m_nModeChange,m_curMode,m_curPhaseFrame,[](int){return 64;},[](int){return 8;});
  default:return practice::PhaseTimeout();
  }
 }

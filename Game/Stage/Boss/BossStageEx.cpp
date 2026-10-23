@@ -1131,14 +1131,14 @@ void CBossStageEx::DrawSpecialBullet()
 namespace th5w {
 practice::PhaseTimeout CBossStageEx::GetPhaseTimeout() const {
  switch(m_curPhase){
- case 2:return practice::PhaseTimeout::Cycles(32,m_nModeChange);
- case 6:return practice::PhaseTimeout::Cycles(32,m_nModeChange);
- case 10:return practice::PhaseTimeout::Cycles(32,m_nModeChange);
- case 14:return practice::PhaseTimeout::Cycles(32,m_nModeChange);
+ case 2:return practice::PhaseTimeout::Timeline(32,m_nModeChange,m_curMode,m_curPhaseFrame,[](int n){return 128;},[](int){return 60;});
+ case 6:return practice::PhaseTimeout::Timeline(32,m_nModeChange,m_curMode,m_curPhaseFrame,[](int n){return 128;},[](int){return 60;});
+ case 10:return practice::PhaseTimeout::Timeline(32,m_nModeChange,m_curMode,m_curPhaseFrame,[](int n){return n%2?128:208;},[](int){return 60;});
+ case 14:return practice::PhaseTimeout::Timeline(32,m_nModeChange,m_curMode,m_curPhaseFrame,[](int n){return n%2?128:256;},[](int){return 60;});
  case 4:return practice::PhaseTimeout::Frames(4001,m_curPhaseFrame);
  case 8:return practice::PhaseTimeout::Frames(4001,m_curPhaseFrame);
  case 12:return practice::PhaseTimeout::Frames(4001,m_curPhaseFrame);
- case 16:return practice::PhaseTimeout::Cycles(9,m_nModeChange);
+ case 16:return practice::PhaseTimeout::WithCycles(practice::PhaseTimeout::Frames((9-m_nModeChange)*1120,m_curPhaseFrame),9-m_nModeChange);
  case 17:return practice::PhaseTimeout::Frames(5001,m_curPhaseFrame);
  default:return practice::PhaseTimeout();
  }

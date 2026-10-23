@@ -6,6 +6,10 @@
 #include "../Game/MusicRoom/MusicRoom.h"
 #include "../Game/MusicRoom/MusicTracks.h"
 #include "../Game/SelectReplayScreen/SelectReplayScreen.h"
+#include "../Game/Stage/MidBoss/MidBossStage3.h"
+#include "../Game/Stage/MidBoss/MidBossStage4.h"
+#include "../Game/Stage/MidBoss/MidBossStage5.h"
+#include "../Game/Stage/MidBoss/MidBossStageEx.h"
 #include <imm.h>
 #pragma comment(lib,"imm32.lib")
 #include "../Game/TitleScreen/TitleScreen.h"
@@ -372,6 +376,70 @@ struct PracticeTests {
   }
   opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();
  }
+ static void CycleTimeProjection(CGame& game){
+  auto& g=CGame::GVar();ResetTools();practice::Options()=practice::AdvancedOptions();
+  Check(!practice::Options().phaseTimeoutAsTime,"existing settings default to native round counts");
+  const auto exhausted=practice::PhaseTimeout::Timeline(4,5,1,200,[](int){return 96;},[](int){return 32;});
+  Check(exhausted.value==0&&exhausted.ForDisplay(false).value==0,"locked exhausted loops show zero in seconds and rounds");
+  const auto timed=practice::PhaseTimeout::Frames(112,0);
+  Check(timed.ForDisplay(false).unit==practice::PhaseTimeout::Seconds&&timed.ForDisplay(true).value==2,"frame-based phases stay seconds in either display mode");
+
+  for(int stage=0;stage<7;stage++){
+   auto& menu=practice::MenuConfig();menu=practice::Config();menu.mode=1;menu.stage=stage;menu.warp=2;
+   g.m_bReplayMode=false;g.m_initDifficulty=1;g.m_playChara=0;
+   Check(practice::StartSetup(),"cycle timer fixture starts a real native boss");
+   CStage* st=new CStage;st->Initialize();game.m_pCurScheme=st;game.m_curSchemeID=4;
+   CBoss* boss=st->m_pBoss;Check(boss!=NULL,"boss timer fixture uses the production boss instance");
+   std::vector<int> seconds;int phase=boss->m_curPhase;
+   for(int tick=0;tick<150000&&boss->m_curPhase<0xfd;tick++){
+    const auto timer=boss->GetPhaseTimeout();
+    if(timer.cycles>=0&&!timer.estimated)seconds.push_back(timer.value);
+    boss->Step();
+    if(boss->m_curPhase!=phase){
+     if(!seconds.empty()){
+      bool equal=true;for(size_t i=0;i<seconds.size();i++)if(seconds[i]!=int((seconds.size()-i+55)/56)){equal=false;fprintf(stderr,"TIMER stage=%d phase=%d frame=%d got=%d expected=%d total=%d\n",stage+1,phase,int(i),seconds[i],int((seconds.size()-i+55)/56),int(seconds.size()));break;}
+      Check(equal,"converted loop seconds match actual native frames until timeout");
+     }
+     seconds.clear();phase=boss->m_curPhase;
+    }
+    // Stage 3's pre-existing final attack does not finish on timeout alone.
+    if(stage==2&&phase==14&&boss->m_curPhaseFrame>1100)break;
+   }
+   Check(phase>=0xfd||(stage==2&&phase==14),"native timeout fixture reaches its real terminal phase");
+   g.m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;
+  }
+  // Also run both four-stage branches and each loop-driven midboss directly.
+  for(int fixture=0;fixture<6;fixture++){
+   const int stages[]={3,3,2,3,4,6};
+   auto& menu=practice::MenuConfig();menu=practice::Config();menu.mode=1;menu.stage=stages[fixture];menu.warp=0;
+   g.m_bReplayMode=false;Check(practice::StartSetup(),"branch and midboss timer fixture starts");
+   CStage* st=new CStage;st->Initialize();game.m_pCurScheme=st;game.m_curSchemeID=4;
+   CBoss* boss=NULL;CMidBoss* mid=NULL;
+   if(fixture<2){boss=fixture==0?static_cast<CBoss*>(new CBossStage4Mai):static_cast<CBoss*>(new CBossStage4Yuki);boss->m_pStage=st;boss->Initialize();st->m_pBoss=boss;}
+   else {switch(fixture){case 2:mid=new CMidBossStage3;break;case 3:mid=new CMidBossStage4;break;case 4:mid=new CMidBossStage5;break;case 5:mid=new CMidBossStageEx;break;}mid->m_pStage=st;mid->Initialize();st->m_pMidBoss=mid;}
+   int phase=boss?boss->m_curPhase:mid->m_curPhase;std::vector<int> seconds;
+   for(int tick=0;tick<50000&&phase<0xfd;tick++){
+    const auto timer=boss?boss->GetPhaseTimeout():mid->GetPhaseTimeout();
+    if(timer.cycles>=0&&!timer.estimated)seconds.push_back(timer.value);
+    if(boss)boss->Step();else mid->Step();
+    const int next=boss?boss->m_curPhase:mid->m_curPhase;
+    if(next!=phase){
+     if(!seconds.empty()){
+      bool equal=true;for(size_t i=0;i<seconds.size();i++)if(seconds[i]!=int((seconds.size()-i+55)/56)){equal=false;fprintf(stderr,"MID/BRANCH fixture=%d phase=%d frame=%d got=%d expected=%d total=%d\n",fixture,phase,int(i),seconds[i],int((seconds.size()-i+55)/56),int(seconds.size()));break;}
+      Check(equal,"branch and midboss converted seconds match native timeout frames");
+     }
+     seconds.clear();phase=next;
+    }
+   }
+   Check(phase>=0xfd,"branch and midboss projection fixture reaches native timeout end");
+   g.m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;
+  }
+  practice::Options().phaseTimeoutAsTime=true;practice::SaveAdvancedOptions();practice::Options().phaseTimeoutAsTime=false;practice::LoadAdvancedOptions();
+  Check(practice::Options().phaseTimeoutAsTime,"seconds display preference survives reload");
+  practice::Options().phaseTimeoutAsTime=false;practice::SaveAdvancedOptions();practice::LoadAdvancedOptions();
+  Check(!practice::Options().phaseTimeoutAsTime,"rounds display preference survives reload");
+  g.m_bPracticeMode=false;g.m_bReplayMode=false;g.m_initDifficulty=g.m_playDifficulty=1;
+ }
  static void PhaseTimeoutDisplay(CGame& game){
   ResetTools();practice::Options()=practice::AdvancedOptions();CStage* stage=Stage(game);
   stage->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);
@@ -381,6 +449,16 @@ struct PracticeTests {
   practice::Options().hpPhaseMarkers=true;boss->m_lastDrawnHP=4650;Frame(*stage);Screenshot("f12-hp-phase-markers.bmp");practice::Options().hpPhaseMarkers=false;
   practice::Options().phaseTimeout=true;
   Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::Turns&&stage->GetPhaseTimeout().value==32,"native loop phase starts with its remaining timeout cycles");
+  const int mode=boss->m_curMode,count=boss->m_nModeChange,localFrame=boss->m_curPhaseFrame;
+  practice::Options().phaseTimeoutAsTime=true;
+  Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::Seconds&&stage->GetPhaseTimeout().value>32,"time mode converts the native attack and movement schedule instead of treating turns as seconds");
+  srand(231);const int expectedCycleRandom=rand();srand(231);
+  for(int i=0;i<100;i++)stage->GetPhaseTimeout();
+  Check(rand()==expectedCycleRandom,"cycle-to-seconds projection does not consume gameplay RNG");
+  Frame(*stage);Screenshot("f12-phase-cycle-seconds.bmp");
+  Check(boss->m_curMode==mode&&boss->m_nModeChange==count&&boss->m_curPhaseFrame==localFrame,"switching display does not advance gameplay");
+  practice::Options().phaseTimeoutAsTime=false;
+
   boss->m_nModeChange=31;boss->m_curMode=0;boss->m_curPhaseFrame=91;
   Check(stage->GetPhaseTimeout().value==1,"last native attack loop displays one remaining turn");Frame(*stage);Screenshot("f12-phase-turns.bmp");
   boss->Step();Check(boss->m_curPhase==3&&stage->GetPhaseTimeout().value==24,"native loop timeout advances phase and the displayed count resets");
@@ -600,7 +678,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);EosdBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

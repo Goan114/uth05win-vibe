@@ -883,8 +883,8 @@ void CStage::PlayAreaFade(float fadeScale)
 
 practice::PhaseTimeout CStage::GetPhaseTimeout() const {
  if(m_bLogo||m_bQuit||m_bContinueScr)return practice::PhaseTimeout();
- if(m_pBoss)return m_pBoss->GetPhaseTimeout();
- if(m_pMidBoss)return m_pMidBoss->GetPhaseTimeout();
+ if(m_pBoss)return m_pBoss->GetPhaseTimeout().ForDisplay(practice::Options().phaseTimeoutAsTime);
+ if(m_pMidBoss)return m_pMidBoss->GetPhaseTimeout().ForDisplay(practice::Options().phaseTimeoutAsTime);
  return practice::PhaseTimeout();
 }
 
@@ -900,6 +900,7 @@ void CStage::DrawStatistics()
    const bool warning=timer.value<=(suffix?5:10);
    const float tint=warning?.65f:1.f;
    m_pStageRes->DrawNumber(right-suffix-48,y,timer.value,3,false,true,1,tint,tint);
+   if(timer.estimated)CPC98Font::DrawString("~",1,right-64,y,1,tint,tint);
    if(suffix){const unsigned char turn[]={0xbd,0xbe,0xbb,0xb7,0};CTh5ExtFont::DrawExtString(turn,4,right-64,y,1,tint,tint);}
   }
  }

@@ -638,11 +638,23 @@ void CBossStage1::DrawStatistics()
 
 namespace th5w {
 practice::PhaseTimeout CBossStage1::GetPhaseTimeout() const {
- switch(m_curPhase){
- case 2:return practice::PhaseTimeout::Cycles(32,m_nModeChange);
- case 3:return practice::PhaseTimeout::Cycles(24,m_nModeChange);
- case 4:return practice::PhaseTimeout::Frames(1300,m_curPhaseFrame);
- default:return practice::PhaseTimeout();
+ if(m_curPhase==2||m_curPhase==3){
+  const bool phase2=m_curPhase==2;const int limit=phase2?32:24;
+  if(m_nModeChange>=limit)return practice::PhaseTimeout::WithCycles(practice::PhaseTimeout::Frames(0,0),0);
+  int wait=phase2?m_phase2NFrameBeforeRandomWalk:16;
+  int attack=phase2?44:m_phase3ShootNFrame;
+  int frames=-m_curPhaseFrame;
+  for(int cycle=m_nModeChange;cycle<limit;cycle++){
+   if(cycle!=m_nModeChange||m_curMode){
+    frames+=attack;
+    if(phase2){if(wait>12)wait-=12;}
+    else if(attack<180)attack+=24;
+   }
+   frames+=wait+28;
+  }
+  return practice::PhaseTimeout::WithCycles(practice::PhaseTimeout::Frames(frames,0),limit-m_nModeChange);
  }
+ if(m_curPhase==4)return practice::PhaseTimeout::Frames(1300,m_curPhaseFrame);
+ return practice::PhaseTimeout();
 }
 }

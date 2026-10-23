@@ -1,6 +1,7 @@
 // TH06-style presentation adapted from th06/src/Gui.cpp UpdateStageElements.
 // Game state remains owned by the native TH05 boss implementations.
 #include "Stage.h"
+#include "../../gameLib/Graphic/PC98Font.h"
 #include "../Game.h"
 #include "../Practice/Practice.h"
 #include "Boss/Boss.h"
@@ -104,6 +105,7 @@ void CStage::DrawBossBar(){
   const float tint=timer.value<=(turns?5:10)?.65f:1.f;
   const int right=x+384;
   Number(right-(turns?16:0),y,timer.value,1,tint,tint,alpha,true);
+  if(timer.estimated)CPC98Font::DrawString("~",1,right-48,y,1,tint,tint,alpha);
   if(turns)CTh5ExtFont::DrawExtChar(0xbd,right-16,y,1,tint,tint,alpha);
  }
 }
