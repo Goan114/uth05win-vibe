@@ -1,4 +1,5 @@
 #include ".\boss.h"
+#include "../../Practice/Practice.h"
 #include "../Stage.h"
 #include "../../Game.h"
 #include "../../../gameLib/Graphic/Th5ExtFont.h"
@@ -49,6 +50,7 @@ void CBoss::StepHPGauge(int curHP,int fullHP)
 
 void CBoss::DrawHPGaugeAndExtStrEnemy(int fullHP)
 {
+ if(practice::Options().eosdBar)return;
 	const float gaugeColor[][3]={{1,0,0},{1,0,1},{0,1,1},{1,1,0},{1,1,1}};
 	if (m_lastDrawnHP>0)
 	{

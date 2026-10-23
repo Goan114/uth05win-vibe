@@ -200,7 +200,7 @@ void CStage::Initialize()
 		CGame::GVar().m_replay.OpenStage(CGame::GVar().m_playStage,true);
 
 	m_bQuit=false;
- m_lockTimer=0;m_lockPhase=-1;m_lockKind=0;m_fastRetryCountdown=0;
+ m_lockTimer=0;m_lockPhase=-1;m_lockKind=0;m_fastRetryCountdown=0;m_bossBar=practice::BossBarAnimation();
 
 	m_bLogo=true;
 	m_logoFrame=0;
@@ -525,8 +525,7 @@ int CStage::StepFrame(unsigned short liveInput)
 			CGame::s_pCurGame->m_fpsLimit=1000;
 		}
 
-	if (m_pDialogue->Step()==0)
-		return 0;
+	if (m_pDialogue->Step()==0){TickBossBar();return 0;}
 
 	m_curFrame++;
 
@@ -576,7 +575,7 @@ int CStage::StepFrame(unsigned short liveInput)
 	m_pTextOverlay->Step();
 	m_pFloatingText->Step();
  if(practice::Options().showKeys)practice::RecordKey(5,m_curGameKeyState);
- TickLockTimer();
+ TickLockTimer();TickBossBar();
 
 	return 0;
 }
@@ -891,7 +890,8 @@ practice::PhaseTimeout CStage::GetPhaseTimeout() const {
 
 void CStage::DrawStatistics()
 {
- if(practice::Options().phaseTimeout){
+ if(practice::Options().eosdBar)DrawBossBar();
+ if(practice::Options().phaseTimeout&&!practice::Options().eosdBar){
   const practice::PhaseTimeout timer=GetPhaseTimeout();
   if(timer.unit!=practice::PhaseTimeout::None){
    const int right=m_playAreaUpperLeftX+384-8;

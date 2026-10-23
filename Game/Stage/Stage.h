@@ -1,4 +1,5 @@
 #pragma once
+#include "../Practice/BossBar.h"
 #include "../Practice/PhaseTimeout.h"
 #include "../scheme.h"
 #include "../../gameLib/Graphic/2DImageArray.h"
@@ -32,6 +33,9 @@ friend struct PracticeTests;
 	int StepFrame(unsigned short liveInput);
  int m_lockTimer,m_lockPhase,m_lockKind,m_fastRetryCountdown;
  void TickLockTimer();
+ practice::BossBarAnimation m_bossBar;
+ practice::BossBarData GetBossBarData() const;
+ void TickBossBar();void DrawBossBar();
 friend class CChara;
 friend class CCharaReimu;
 friend class CCharaMarisa;

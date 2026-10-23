@@ -14,6 +14,8 @@
 #include "../Game/Stage/Dialogue/Dialogue.h"
 #include "../Game/Stage/Item/Item.h"
 #include "../Game/Stage/Boss/BossStage1.h"
+#include "../Game/Stage/Boss/BossStage4Mai.h"
+#include "../Game/Stage/Boss/BossStage4Yuki.h"
 #include "../Game/Stage/MidBoss/MidBossStage1.h"
 #include "../Game/Stage/CharaBullet/CharaBullet.h"
 #include "../Game/Stage/EnemyBullet/EnemyBullet.h"
@@ -295,6 +297,52 @@ struct PracticeTests {
   g.m_bReplayMode=false;g.m_bPracticeMode=false;g.m_playDifficulty=1;g.OnBeginGame();
   Check(!g.m_practiceConfig.mode&&!practice::Assisted(),"normal gameplay clears custom initial settings and assisted state");
  }
+ static void EosdBossBar(CGame& game){
+  auto& opts=practice::Options();opts=practice::AdvancedOptions();ResetTools();
+  opts.eosdBar=opts.hpPhaseMarkers=true;opts.phaseTimeout=false;practice::SaveAdvancedOptions();
+  Check(opts.eosdBar&&!opts.hpPhaseMarkers&&opts.phaseTimeout,"EoSD bar excludes old markers and forces native timeout display");
+  opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();Check(opts.eosdBar&&!opts.hpPhaseMarkers&&opts.phaseTimeout,"bar preference invariants survive a fresh settings load");
+  auto& g=CGame::GVar();auto& menu=practice::MenuConfig();
+  const int remaining[]={2,3,4,4,5,6,8};
+  for(int number=0;number<7;number++){
+   menu=practice::Config();menu.mode=1;menu.stage=number;menu.warp=2;g.m_bReplayMode=false;g.m_playChara=0;
+   Check(practice::StartSetup(),"EoSD HUD fixture starts through the real practice boss warp");
+   CStage* st=new CStage;st->Initialize();game.m_pCurScheme=st;game.m_curSchemeID=4;st->m_bLogo=false;
+   st->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);CBoss* boss=st->m_pBoss;
+   Check(boss!=NULL,"EoSD HUD uses native boss instances");
+   if(boss->m_curPhaseFrame==0)boss->Step();
+   auto data=st->GetBossBarData();Check(data.present&&data.remaining==remaining[number]&&data.start>data.end,"all seven bosses expose correct health-phase counts without enrage subphases");
+   for(int i=0;i<110;i++)st->TickBossBar();
+   Frame(*st);char name[64];sprintf_s(name,"eosd-stage-%d.bmp",number+1);Screenshot(name);
+   if(number==4){
+    boss->m_curPhase=4;boss->m_curPhaseFrame=15;boss->m_curHP=7000;boss->m_curPhaseEndHP=5700;boss->Step();
+    st->TickBossBar();const int key=st->m_bossBar.data.key,count=st->m_bossBar.data.remaining;
+    Check(st->m_bossBar.data.enrage==6300&&st->m_bossBar.data.start==7500&&st->m_bossBar.data.end==5700,"Yumeko enrage is a cut within its native health segment");
+    for(int i=0;i<100;i++)st->TickBossBar();Frame(*st);Screenshot("eosd-yumeko-normal.bmp");
+    const float full=st->m_bossBar.displayed;boss->m_curHP=6100;st->TickBossBar();
+    Check(fabs(st->m_bossBar.displayed-(full-.02f))<.0001f,"EoSD depletion follows TH06's two-percent animation step");
+    for(int i=0;i<30;i++)st->TickBossBar();Frame(*st);Screenshot("eosd-yumeko-enrage.bmp");
+    Check(st->m_bossBar.data.key==key&&st->m_bossBar.data.remaining==count,"crossing enrage does not refill the bar or consume a health phase");
+    boss->m_curHP=7000;const float low=st->m_bossBar.displayed;st->TickBossBar();Check(fabs(st->m_bossBar.displayed-(low+.01f))<.0001f,"EoSD refill follows TH06's one-percent animation step");
+    const float paused=st->m_bossBar.displayed;const int alpha=st->m_bossBar.opacity;
+    st->m_bPaused=true;st->StepFrame(0);Frame(*st);Check(st->m_bossBar.displayed==paused&&st->m_bossBar.opacity==alpha,"pause freezes boss-bar interpolation");st->m_bPaused=false;
+    practice::SetAdvancedOpen(true);st->StepFrame(0);Frame(*st);Screenshot("f12-eosd-options.bmp");Check(st->m_bossBar.displayed==paused&&opts.phaseTimeout,"F12 freezes interpolation and keeps the forced timeout option");practice::SetAdvancedOpen(false);
+    const int frame=boss->m_curPhaseFrame,hp=boss->m_curHP;srand(101);const int next=rand();srand(101);
+    for(int i=0;i<10;i++){st->GetBossBarData();st->TickBossBar();Frame(*st);}Check(rand()==next&&boss->m_curPhaseFrame==frame&&boss->m_curHP==hp,"presentation does not alter native HP, attack clocks or replay RNG");
+    boss->m_curPhase=0xfd;st->TickBossBar();Check(st->m_bossBar.opacity==251,"boss exit begins TH06's four-step opacity fade");
+    for(int i=0;i<64;i++)st->TickBossBar();Check(st->m_bossBar.opacity==0&&st->m_bossBar.displayed==0,"completed exit clears the old bar before the next encounter");
+   }
+   if(number==3){
+    Check(data.start==9000&&data.remaining==4,"dual boss combines HP and reserves four subsequent branch phases");
+    st->m_pBoss=NULL;delete boss;boss=new CBossStage4Mai;boss->m_pStage=st;boss->Initialize();boss->Step();st->m_pBoss=boss;
+    data=st->GetBossBarData();Check(data.start==7800&&data.remaining==3,"Mai branch begins its own four-phase bar");
+    st->m_pBoss=NULL;delete boss;boss=new CBossStage4Yuki;boss->m_pStage=st;boss->Initialize();boss->Step();st->m_pBoss=boss;
+    data=st->GetBossBarData();Check(data.start==7900&&data.remaining==3,"Yuki branch begins its own four-phase bar");
+   }
+   g.m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;
+  }
+  opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();
+ }
  static void PhaseTimeoutDisplay(CGame& game){
   ResetTools();practice::Options()=practice::AdvancedOptions();CStage* stage=Stage(game);
   stage->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);
@@ -521,7 +569,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);EosdBossBar(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }
