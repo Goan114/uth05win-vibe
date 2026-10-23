@@ -1,5 +1,6 @@
 #include "../Game/Game.h"
 #include "../Game/Practice/Practice.h"
+#include "../Game/Practice/KeyMonitor.h"
 #include "../Game/Stage/Stage.h"
 #include "../Game/SchemeSwitcher.h"
 #include "../Game/MusicRoom/MusicRoom.h"
@@ -359,12 +360,22 @@ struct PracticeTests {
   std::vector<unsigned char> hidden(20*20*3),visible(20*20*3);const int x=stage->m_playAreaUpperLeftX+192-10,y=480-(stage->m_playAreaUpperLeftY+320)-10;
   Frame(*stage);glPixelStorei(GL_PACK_ALIGNMENT,1);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,hidden.data());
   opts.alwaysHitbox=true;Frame(*stage);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,visible.data());Check(hidden!=visible,"always-show hitbox adds pixels while unfocused");
-  opts.showKeys=true;Frame(*stage);Screenshot("f12-key-monitor-hitbox.bmp");Check(ImGui::FindWindowByName(u8"\u6309\u952e\u663e\u793a###TH05 Key Monitor")!=NULL,"key monitor uses the real stage input state");
+  opts.showKeys=true;practice::RecordKey(5,stage->GetCurKeyState());Frame(*stage);Screenshot("f12-key-monitor-hitbox.bmp");Check(ImGui::FindWindowByName(u8"\u6309\u952e\u663e\u793a###TH05 Key Monitor")==NULL,"purple key HUD renders directly without a custom monitor window");practice::RecordKey(5,1|32|64);Frame(*stage);Screenshot("f12-purple-keys-pressed.bmp");
   opts.showKeys=opts.alwaysHitbox=false;
   player.m_collisionAreaAlpha=100;stage->m_curGameKeyState=64;Frame(*stage);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,visible.data());Check(hidden==visible,"default PC98 display hides hitbox even at low speed");
   opts.showHitbox=true;Frame(*stage);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,visible.data());Check(hidden!=visible,"low-speed option shows hitbox during Shift");
   stage->m_curGameKeyState=0;Frame(*stage);glReadPixels(x,y,20,20,GL_RGB,GL_UNSIGNED_BYTE,visible.data());Check(hidden==visible,"low-speed option hides hitbox immediately after Shift release");
   practice::ResetRun();Check(practice::Assisted(),"hitbox cheat marks the run assisted before stage entry");opts.showHitbox=false;practice::ResetRun();
+  for(int i=0;i<56;i++)practice::RecordKey(5,0);
+  practice::ClearKeyRecord();practice::g_record_key_aps=true;opts.showKeys=true;
+  stage->StepFrame(1|32|64);Check(practice::GetKeyAPS().size()==1&&practice::GetKeyAPS().back()==3,"purple APS counts native key press edges once per simulation update");
+  Frame(*stage);Frame(*stage);stage->m_bPaused=true;stage->StepFrame(0);Check(practice::GetKeyAPS().size()==1,"HUD rendering and pause do not duplicate recorded APS frames");stage->m_bPaused=false;
+  stage->StepFrame(0);Check(practice::GetKeyAPS().size()==2&&practice::GetKeyAPS().back()==6,"purple APS counts release edges as well as press edges");
+  practice::SetAdvancedOpen(true);group(u8"\u5173\u4e8ethprac",false);group(u8"\u6e38\u620f\u8fdb\u884c",true);Frame(*stage);Screenshot("f12-purple-aps-options.bmp");practice::SetAdvancedOpen(false);
+  Check(practice::SaveKeyRecorded(),"purple APS recording exports to the sandbox game folder");
+  FILE* csv=fopen("APS.csv","rb");char buffer[512]={};const size_t csvSize=csv?fread(buffer,1,sizeof(buffer)-1,csv):0;if(csv)fclose(csv);
+  Check(csvSize>0&&strstr(buffer,"frame,aps,up,down,left,right,Z,X,C,D,Ctrl,Shift")&&strstr(buffer,"1,3,O,-,-,-,O,-,-,-,-,O"),"APS CSV preserves purple column order and native TH05 key mapping");
+  practice::g_record_key_aps=false;practice::ClearKeyRecord();opts.showKeys=false;
   CBossStage1* boss=new CBossStage1;boss->m_pStage=stage;boss->Initialize();boss->m_curPhase=4;stage->m_pBoss=boss;
   stage->TickLockTimer();stage->TickLockTimer();Check(stage->LockTimerFrames()==2,"phase timer counts native simulation updates");boss->m_curPhase=5;stage->TickLockTimer();Check(stage->LockTimerFrames()==1,"phase transition resets lock timing");
   stage->m_bPaused=true;const int timer=stage->LockTimerFrames();stage->StepFrame(0);Check(stage->LockTimerFrames()==timer,"paused game does not advance lock timing");stage->m_bPaused=false;

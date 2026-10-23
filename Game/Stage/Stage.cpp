@@ -1,6 +1,7 @@
 #include ".\stage.h"
 #include "../Game.h"
 #include "../Practice/Practice.h"
+#include "../Practice/KeyMonitor.h"
 #include "Chara/Chara.h"
 #include "CharaBullet/CharaBullet.h"
 #include "EnemyBullet/EnemyBullet.h"
@@ -574,6 +575,7 @@ int CStage::StepFrame(unsigned short liveInput)
 		m_pChara->StepBomb();
 	m_pTextOverlay->Step();
 	m_pFloatingText->Step();
+ if(practice::Options().showKeys)practice::RecordKey(5,m_curGameKeyState);
  TickLockTimer();
 
 	return 0;

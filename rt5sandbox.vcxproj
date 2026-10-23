@@ -268,6 +268,7 @@
     <ClCompile Include="Game\Practice\Practice.cpp" />
     <ClCompile Include="Game\Practice\PracticeSetup.cpp" />
     <ClCompile Include="Game\Practice\PracticeAdvanced.cpp" />
+    <ClCompile Include="Game\Practice\KeyMonitor.cpp" />
     <ClCompile Include="third_party\imgui\imgui.cpp" />
     <ClCompile Include="third_party\imgui\imgui_draw.cpp" />
     <ClCompile Include="third_party\imgui\imgui_widgets.cpp" />
@@ -277,6 +278,7 @@
     <ClInclude Include="Game\Practice\Practice.h" />
     <ClInclude Include="Game\Practice\PracticeConfig.h" />
     <ClInclude Include="Game\Practice\PracticeAdvanced.h" />
+    <ClInclude Include="Game\Practice\KeyMonitor.h" />
     <ClInclude Include="Game\Practice\PhaseTimeout.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
