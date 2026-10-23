@@ -38,7 +38,7 @@ public:
 	static bool DrawStringFromAtlas(GLuint atlas,char* text,int count,int x,int y,float r,float g,float b,float alpha=1);
 	static bool LoadAnex86BMP(const char *fileName,bool simplifiedChinese=false);
 	static bool DrawString(char *str,int nChar,int drawX,int drawY,float colorR,float colorG,float colorB,
-						   float fadeInScale=1.0,bool coordIsUpperLeft=true);	//the string must be in Shift-JIS code
+						   float fadeInScale=1.0,bool coordIsUpperLeft=true,float glyphScale=1.f);	//the string must be in Shift-JIS code
 	static void FinalizeCache();
 public:
 	CPC98Font(void);

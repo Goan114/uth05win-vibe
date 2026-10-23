@@ -231,7 +231,7 @@ void CPC98Font::FinalizeCache()
 }
 
 bool CPC98Font::DrawString(char *str,int nChar,int drawX,int drawY,float colorR,float colorG,
-						   float colorB,float fadeInScale,bool coordIsUpperLeft)
+						   float colorB,float fadeInScale,bool coordIsUpperLeft,float glyphScale)
 {
 	if (CGame::GVar().m_bUseSystemFont==false&&s_bFontLoaded==false)
 		return false;
@@ -256,7 +256,9 @@ bool CPC98Font::DrawString(char *str,int nChar,int drawX,int drawY,float colorR,
 	glEnable(GL_BLEND);
 
 	if (coordIsUpperLeft)
-		drawY=CGame::s_pCurGame->m_gameWindow.m_height-1-drawY-(16-1);
+		drawY=CGame::s_pCurGame->m_gameWindow.m_height-drawY-int(16*glyphScale);
+
+ if(glyphScale!=1.f){glTranslatef(float(drawX),float(drawY),0);glScalef(glyphScale,glyphScale,1);glTranslatef(float(-drawX),float(-drawY),0);}
 
 	if (CGame::GVar().m_bUseSystemFont)
 	{

@@ -450,6 +450,10 @@ struct PracticeTests {
   opts.eosdBar=opts.hpPhaseMarkers=true;opts.phaseTimeout=false;practice::SaveAdvancedOptions();
   Check(opts.eosdBar&&!opts.hpPhaseMarkers&&opts.phaseTimeout,"EoSD bar excludes old markers and forces native timeout display");
   opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();Check(opts.eosdBar&&!opts.hpPhaseMarkers&&opts.phaseTimeout,"bar preference invariants survive a fresh settings load");
+  Check(!opts.phaseStars,"phase stars default off for existing configurations");
+  opts.phaseStars=true;practice::SaveAdvancedOptions();opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();Check(opts.eosdBar&&opts.phaseStars,"phase star choice persists with the EoSD bar");
+  opts.eosdBar=false;practice::SaveAdvancedOptions();Check(!opts.phaseStars,"disabling the EoSD bar clears dependent stars");
+  opts.eosdBar=true;opts.phaseStars=false;practice::SaveAdvancedOptions();
   auto& g=CGame::GVar();auto& menu=practice::MenuConfig();
   const int remaining[]={2,3,4,4,5,6,8};
   for(int number=0;number<7;number++){
@@ -462,6 +466,17 @@ struct PracticeTests {
    auto data=st->GetBossBarData();Check(data.present&&data.remaining==remaining[number]&&data.start>data.end,"all seven bosses expose correct health-phase counts without enrage subphases");
    for(int i=0;i<110;i++)st->TickBossBar();
    Frame(*st);char name[64];sprintf_s(name,"eosd-stage-%d.bmp",number+1);Screenshot(name);
+   const int sx=st->m_playAreaUpperLeftX,sy=st->m_playAreaUpperLeftY+18;
+   std::vector<unsigned char> beforeStars(80*8*3),afterStars(80*8*3);glReadPixels(sx,480-sy-8,80,8,GL_RGB,GL_UNSIGNED_BYTE,beforeStars.data());
+   opts.phaseStars=true;Frame(*st);sprintf_s(name,"eosd-stars-stage-%d.bmp",number+1);Screenshot(name);
+   glReadPixels(sx,480-sy-8,80,8,GL_RGB,GL_UNSIGNED_BYTE,afterStars.data());
+   for(int slot=0;slot<10;slot++){
+    bool different=false;for(int yy=0;yy<8;yy++)for(int xx=slot*8;xx<slot*8+8;xx++)for(int c=0;c<3;c++)if(beforeStars[(yy*80+xx)*3+c]!=afterStars[(yy*80+xx)*3+c])different=true;
+    Check(different==(slot<data.remaining),"rendered stars below Enemy match future native health phases exactly");
+   }
+   if(number==6){st->m_bossBar.data.remaining=0;Frame(*st);Screenshot("eosd-stars-final-phase.bmp");st->m_bossBar.data.remaining=data.remaining;}
+   opts.phaseStars=false;
+
    if(number==4){
     boss->m_curPhase=4;boss->m_curPhaseFrame=15;boss->m_curHP=7000;boss->m_curPhaseEndHP=5700;boss->Step();
     st->TickBossBar();const int key=st->m_bossBar.data.key,count=st->m_bossBar.data.remaining;

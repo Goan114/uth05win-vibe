@@ -85,7 +85,13 @@ void CStage::DrawBossBar(){
  const int x=m_playAreaUpperLeftX,y=m_playAreaUpperLeftY;
  const unsigned char enemy[]={0xea,0xeb,0xec,0};
  CTh5ExtFont::DrawExtString(enemy,3,x,y,1,1,0,alpha);
- Number(x+48,y,data.remaining,1,1,.5f,alpha);
+ if(practice::Options().phaseStars){
+  // TH10 GuiFrame creates one boss_life_icon per remaining phase, excluding
+  // the active phase. Use the native PC-98 filled-star glyph at half size.
+  const bool systemFont=CGame::GVar().m_bUseSystemFont;CGame::GVar().m_bUseSystemFont=false;
+  for(int i=0;i<data.remaining;i++)CPC98Font::DrawString("\x81\x9a",1,x+i*8,y+18,1,1,1,alpha,true,.5f);
+  CGame::GVar().m_bUseSystemFont=systemFont;
+ }else Number(x+48,y,data.remaining,1,1,.5f,alpha);
  const int left=x+64,width=272,filled=int(m_bossBar.displayed*width);
  if(filled>0){
   CCommonFunctionGraphic::DrawRectangle(float(left),float(y+8),float(left+filled-1),float(y+9),1,1,0,alpha);
