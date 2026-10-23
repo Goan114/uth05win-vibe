@@ -13,9 +13,9 @@ bool tools[ToolCount] = {}, assisted = false, initialized = false, focusPause = 
 bool overlayOpen = false,infoOpen=false,preparingSection=false;
 float pauseAlpha = 0;
 int pauseAge = 0, pauseAction = -1, actionAge = 0;
-const char* keys[ToolCount] = {"F1", "F2", "F3", "F4", "F5", "F6", "U", ""};
+const char* keys[ToolCount] = {"F1", "F2", "F3", "F4", "F5", "F6", "F7", "U"};
 const char* labels[ToolCount] = {
- u8"\u65e0\u654c", u8"\u9501\u6b8b/\u4e0d\u75ae", u8"\u9501Bomb", u8"\u9501\u706b\u529b", u8"\u9501\u65f6", u8"\u81ea\u52a8B", u8"\u654c\u4eba\u65e0\u654c", u8"\u9501\u68a6\u70b9"
+ u8"\u65e0\u654c", u8"\u9501\u6b8b/\u4e0d\u75ae", u8"\u9501\u68a6\u70b9", u8"\u9501Bomb", u8"\u9501\u706b\u529b", u8"\u9501\u65f6", u8"\u81ea\u52a8B", u8"\u654c\u4eba\u65e0\u654c"
 };
 const char* pauseLabels[] = {u8"\u7ee7\u7eed\u6e38\u620f", u8"\u9000\u51fa\u6e38\u620f", u8"\u4e0d\u5b58rep\u9000\u51fa\u6e38\u620f", u8"\u91cd\u65b0\u5f00\u59cb"};
 bool Replay() { return CGame::s_pCurGame && CGame::GVar().m_bReplayMode; }
@@ -61,7 +61,7 @@ void WindowMessage(HWND window,UINT message,WPARAM key,LPARAM data) {
   ImGui::GetIO().KeysDown[VK_TAB]=false;
  }
  if (message==WM_KEYDOWN && !(data & (1L<<30))) {
-  if (key>=VK_F1 && key<=VK_F6) Toggle(Tool(key-VK_F1));
+  if (key>=VK_F1 && key<=VK_F7) Toggle(Tool(key-VK_F1));
   else if (key=='U') Toggle(EnemyInvincible);
   else if (key==VK_BACK && !ImGui::IsAnyItemActive()) overlayOpen=!overlayOpen;
  }

@@ -5,7 +5,7 @@
 namespace th5w {
 class CStage;
 namespace practice {
-enum Tool { Invincible, InfiniteLives, InfiniteBombs, KeepPower, LockTimeout, AutoBomb, EnemyInvincible, LockDream, ToolCount };
+enum Tool { Invincible, InfiniteLives, LockDream, InfiniteBombs, KeepPower, LockTimeout, AutoBomb, EnemyInvincible, ToolCount };
 bool Enabled(Tool tool);
 void PreparingSection(bool value);
 void Toggle(Tool tool);

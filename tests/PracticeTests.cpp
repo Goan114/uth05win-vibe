@@ -371,7 +371,7 @@ struct PracticeTests {
   CBossStage4 nativePair;Check(nativePair.m_2forceGoUpOrDown==0,"ordinary stage-four boss initializes the second actor movement direction");
   practice::Toggle(practice::LockTimeout);practice::Toggle(practice::EnemyInvincible);
   auto& menu=practice::MenuConfig();menu=practice::Config();menu.mode=1;menu.stage=5;menu.warp=2;menu.section=6;menu.rage=2;menu.trigger=1;g.m_initDifficulty=1;
-  Check(practice::StartSetup(),"phase preset starts with F5 and U enabled");
+  Check(practice::StartSetup(),"phase preset starts with F6 and U enabled");
   CStage* guarded=new CStage;guarded->Initialize();game.m_pCurScheme=guarded;game.m_curSchemeID=4;
   Check(guarded->m_pBoss->m_curPhase==10&&static_cast<CBossStage6*>(guarded->m_pBoss)->m_phase10Timer>65,"live timeout and enemy invincibility cannot block phase preparation");
   Check(practice::Enabled(practice::LockTimeout)&&practice::Enabled(practice::EnemyInvincible),"phase preparation preserves live hotkey states");
@@ -582,7 +582,7 @@ struct PracticeTests {
   boss->m_curPhaseFrame=1243;Check(stage->GetPhaseTimeout().value==2,"remaining seconds round upward at the native 56-fps boundary");
   boss->m_curPhaseFrame=1299;Frame(*stage);Screenshot("f12-phase-seconds.bmp");
   srand(55);const int expected=rand();srand(55);for(int i=0;i<100;i++)stage->GetPhaseTimeout();Check(rand()==expected&&boss->m_curPhaseFrame==1299,"timer reads do not mutate the native phase or consume replay RNG");
-  practice::Toggle(practice::LockTimeout);boss->Step();Check(boss->m_curPhase==4&&stage->GetPhaseTimeout().value==0,"F5 keeps the exhausted native timeout at zero without advancing phase");
+  practice::Toggle(practice::LockTimeout);boss->Step();Check(boss->m_curPhase==4&&stage->GetPhaseTimeout().value==0,"F6 keeps the exhausted native timeout at zero without advancing phase");
   Frame(*stage);Screenshot("f12-phase-locked.bmp");ResetTools();boss->Step();Check(boss->m_curPhase==0xfd&&stage->GetPhaseTimeout().unit==practice::PhaseTimeout::None,"releasing lock permits the real timeout and hides the finished phase timer");
   stage->m_pBoss=NULL;delete boss;
   CMidBossStage1* mid=new CMidBossStage1;mid->m_pStage=stage;mid->Initialize();stage->m_pMidBoss=mid;mid->m_curPhase=3;mid->m_curPhaseFrame=1499;mid->m_curHP=1000;
@@ -655,7 +655,7 @@ struct PracticeTests {
   g.m_replay.CloseStage(false);delete stage;game.m_pCurScheme=NULL;
   auto& menu=practice::MenuConfig();menu=practice::Config();menu.mode=1;menu.warp=2;menu.lives=3;
   Check(practice::StartSetup(),"advanced runtime test starts a real practice boss");stage=new CStage;stage->Initialize();game.m_pCurScheme=stage;
-  opts.lockTimer=true;Key(game,VK_F5);stage->StepFrame(0);Frame(*stage);Screenshot("f12-lock-timer.bmp");ResetTools();opts.lockTimer=false;
+  opts.lockTimer=true;Key(game,VK_F6);stage->StepFrame(0);Frame(*stage);Screenshot("f12-lock-timer.bmp");ResetTools();opts.lockTimer=false;
   opts.fastRetry=true;stage->m_pChara->m_invulnerableTimeLeft=0;stage->m_pChara->m_bMiss=true;stage->m_pChara->Step();
   Check(stage->m_fastRetryCountdown==15&&stage->m_bPaused,"practice Miss opens the original fast-retry countdown");
   int end=0;for(int i=0;i<20&&!end;i++)end=stage->StepFrame(0);Check(end==STAGE_END_RESTART,"fast retry exits through the real restart route");
@@ -708,39 +708,39 @@ struct PracticeTests {
   Check(practice::Initialize(game.m_gameWindow.m_hWnd),"ImGui Win32/OpenGL2 initialization");
   CStage* s=Stage(game); CChara& p=*s->m_pChara;
   InactiveFloatingText(*s);
-  for(int i=0;i<6;i++) { Key(game,VK_F1+i);Check(practice::Enabled(practice::Tool(i)),"F1-F6 enabled");Key(game,VK_F1+i,true);Check(practice::Enabled(practice::Tool(i)),"key repeat does not toggle"); }
-  Key(game,'U');Check(practice::Enabled(practice::EnemyInvincible),"U enabled");Key(game,VK_F7);Check(practice::Enabled(practice::EnemyInvincible),"F7 does not modify tools");ResetTools();
+  for(int i=0;i<7;i++) { Key(game,VK_F1+i);Check(practice::Enabled(practice::Tool(i)),"F1-F7 enabled");Key(game,VK_F1+i,true);Check(practice::Enabled(practice::Tool(i)),"key repeat does not toggle"); }
+  Key(game,'U');Check(practice::Enabled(practice::EnemyInvincible),"U enabled");Key(game,VK_F8);Check(practice::Enabled(practice::EnemyInvincible),"F8 does not modify tools");ResetTools();
   Key(game,VK_F1);p.m_bMiss=true;const int life=s->m_nCurLife,power=p.m_power,bombs=s->m_nCurBomb;p.Step();
   Check(!p.m_bMiss&&p.m_nextLifeComeTimeLeft==0&&s->m_nCurLife==life&&p.m_power==power&&s->m_nCurBomb==bombs&&s->m_nMiss==0,"F1 collision leaves resources/state intact");Check(s->m_bPlaySound[2],"F1 collision miss sound");ResetTools();p.m_invulnerableTimeLeft=0;
-  Key(game,VK_F3);s->m_nCurBomb=0;p.DropBomb();Check(s->m_bInCharaBomb&&s->m_nCurBomb==0,"F3 zero-stock Bomb does not underflow");ResetTools();s->m_bInCharaBomb=false;s->m_nCurBomb=2;p.m_invulnerableTimeLeft=0;
-  Key(game,VK_F6);p.m_bMiss=true;p.Step();Check(s->m_bInCharaBomb&&s->m_nCurBomb==1&&p.m_nextLifeComeTimeLeft==0&&s->m_nMiss==0,"F6 collision uses native Bomb before death");ResetTools();s->m_bInCharaBomb=false;
+  Key(game,VK_F4);s->m_nCurBomb=0;p.DropBomb();Check(s->m_bInCharaBomb&&s->m_nCurBomb==0,"F4 zero-stock Bomb does not underflow");ResetTools();s->m_bInCharaBomb=false;s->m_nCurBomb=2;p.m_invulnerableTimeLeft=0;
+  Key(game,VK_F7);p.m_bMiss=true;p.Step();Check(s->m_bInCharaBomb&&s->m_nCurBomb==1&&p.m_nextLifeComeTimeLeft==0&&s->m_nMiss==0,"F7 collision uses native Bomb before death");ResetTools();s->m_bInCharaBomb=false;
   p.m_invulnerableTimeLeft=0;p.m_nextLifeComeTimeLeft=33;p.m_cannotControlTimeLeft=1;p.m_bMiss=false;p.SetPower(100);s->m_nCurLife=1;
-  Key(game,VK_F2);Key(game,VK_F4);p.Step();Check(p.m_power==100,"F4 preserves Miss firepower");
+  Key(game,VK_F2);Key(game,VK_F5);p.Step();Check(p.m_power==100,"F5 preserves Miss firepower");
   p.m_nextLifeComeTimeLeft=1;p.Step();Check(s->m_nCurLife==1&&!s->m_bContinueScr,"F2 last life revives without game over");ResetTools();
-  s->SetDream(64);practice::Toggle(practice::LockDream);
+  s->SetDream(64);Key(game,VK_F3);Check(practice::Enabled(practice::LockDream),"F3 toggles Dream lock");
   s->SetDream(1);Check(s->GetDream()==64,"Dream lock prevents Miss and Bomb dream loss");
   s->SetDream(128);Check(s->GetDream()==64,"Dream lock also preserves current value against item gains");
   CGame::GVar().m_bReplayMode=true;s->SetDream(63);Check(s->GetDream()==63,"live Dream lock cannot alter replay playback");CGame::GVar().m_bReplayMode=false;
   practice::PreparingSection(true);s->SetDream(62);Check(s->GetDream()==62,"Dream lock is isolated from phase preparation");practice::PreparingSection(false);
   ResetTools();s->SetDream(61);Check(s->GetDream()==61,"disabling Dream lock restores native updates");
-  Check(practice::AllowTimeout(true)&&!practice::AllowTimeout(false),"normal deadline gate");Key(game,VK_F5);Check(!practice::AllowTimeout(true)&&practice::BeforeTimeout(false),"F5 blocks timeout while retaining hit path");
+  Check(practice::AllowTimeout(true)&&!practice::AllowTimeout(false),"normal deadline gate");Key(game,VK_F6);Check(!practice::AllowTimeout(true)&&practice::BeforeTimeout(false),"F6 blocks timeout while retaining hit path");
   // Original Phase4 runs its attack and tests damage after the time cap.
   CBossStage1 boss;boss.m_pStage=s;boss.Initialize();boss.m_curPhase=4;boss.m_curPhaseFrame=1299;boss.m_curHP=400;boss.m_curPhaseEndHP=0;
   s->m_pChara->m_invulnerableTimeLeft=10000;
-  boss.Step();Check(boss.m_curPhase==4&&boss.m_curPhaseFrame==1300,"F5 keeps Boss phase advancing past deadline");
+  boss.Step();Check(boss.m_curPhase==4&&boss.m_curPhaseFrame==1300,"F6 keeps Boss phase advancing past deadline");
   s->m_pCharaBullet->AddBullet(boss.m_curX,boss.m_curY,3,0,0,0,0,255);
   s->m_pCharaBullet->AddBullet(boss.m_curX,boss.m_curY,3,0,0,0,0,255);
-  boss.Step();Check(boss.m_curPhase==0xfd&&boss.m_bSuccessDefeat,"F5 still permits defeat after expired deadline");
+  boss.Step();Check(boss.m_curPhase==0xfd&&boss.m_bSuccessDefeat,"F6 still permits defeat after expired deadline");
   s->m_pCharaBullet->Initialize();
   CMidBossStage1 mid;mid.m_pStage=s;mid.Initialize();mid.m_curPhase=3;mid.m_curPhaseFrame=1499;
-  mid.Step();Check(mid.m_curPhase==3&&mid.m_curPhaseFrame==1500,"F5 keeps MidBoss alive beyond deadline");
+  mid.Step();Check(mid.m_curPhase==3&&mid.m_curPhaseFrame==1500,"F6 keeps MidBoss alive beyond deadline");
   const int rewardBefore=s->m_curScore;mid.m_curHP=100;
   for(int i=0;i<10;i++)s->m_pCharaBullet->AddBullet(mid.m_curX,mid.m_curY,3,0,0,0,0,255);
   mid.Step();Check(mid.m_curPhase==0xfe&&s->m_curScore>rewardBefore,"expired locked MidBoss still grants defeat reward");
   ResetTools();s->m_pCharaBullet->Initialize();boss.Initialize();boss.m_curPhase=4;boss.m_curPhaseFrame=1299;boss.m_curHP=400;
-  boss.Step();Check(boss.m_curPhase==0xfd&&!boss.m_bSuccessDefeat,"disabling F5 restores original timeout");
+  boss.Step();Check(boss.m_curPhase==0xfd&&!boss.m_bSuccessDefeat,"disabling F6 restores original timeout");
   Key(game,'U');s->m_pCharaBullet->AddBullet(1000,1000,3,0,0,0,0,80);Check(s->GetDamageFromChara(1000,1000,300,300,true)==0,"U suppresses actual projectile damage");ResetTools();
-  CGame::GVar().m_bReplayMode=true;for(int i=0;i<6;i++)Key(game,VK_F1+i);Key(game,'U');
+  CGame::GVar().m_bReplayMode=true;for(int i=0;i<7;i++)Key(game,VK_F1+i);Key(game,'U');
   for(int i=0;i<practice::ToolCount;i++)Check(!practice::Enabled(practice::Tool(i)),"Replay isolates live tools");
   CGame::GVar().m_bReplayMode=false;for(int i=0;i<practice::ToolCount;i++)Check(!practice::Enabled(practice::Tool(i)),"replay hotkeys do not arm future cheats");ResetTools();
   Check(s->Pause(),"Esc pause entry");for(int i=0;i<12;i++)Frame(*s);Screenshot();
