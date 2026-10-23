@@ -339,6 +339,7 @@ struct PracticeTests {
      if(selected.continuous)Check((warp==1?record->m_pMidBoss->m_curHP:record->m_pBoss->m_curHP)==menu.startHP,"continuous rage uses the selected starting HP");
      if(rageChoice){auto* boss=static_cast<CBossStage6*>(record->m_pBoss);Check(boss->m_curHP==(trigger?8600:rage==1?5600:3800),"Shinki rage preserves selected HP/time trigger semantics");Check(boss->m_phase10Timer>=(rage==1?65:66),"Shinki enters the native laser rage state");}
      if(stage==4&&warp==2&&rage){auto* boss=static_cast<CBossStage5*>(record->m_pBoss);Check(selected.phase==4?boss->m_phase4CrazyMode:boss->m_phase7CrazyMode,"Yumeko rage is the actual native CrazyMode");}
+     if(stage==2&&warp==2&&selected.phase>=13)Check(record->m_pBoss->m_curHP==800,"Alice final native phase starts at 800 HP");
      const auto capture=[&](CStage* st){
       const int current=warp==1?st->m_pMidBoss->m_curPhase:st->m_pBoss->m_curPhase;
       const int frame=warp==1?st->m_pMidBoss->m_curPhaseFrame:st->m_pBoss->m_curPhaseFrame;
@@ -346,6 +347,7 @@ struct PracticeTests {
       const double v[]={double(st->m_curFrame),double(current),double(frame),double(hp),st->m_pChara->m_curX,st->m_pChara->m_curY,double(st->m_curScore),double(st->m_nCurLife),double(st->m_nCurBomb)};return std::vector<double>(v,v+9);
      };
      std::vector<double> states;for(int f=0;f<100;f++){record->StepFrame((f/30)%2?4:8);const auto v=capture(record);states.insert(states.end(),v.begin(),v.end());}
+     if(stage==2&&warp==2&&selected.phase>=13)Check(record->m_pBoss->m_curHP==800,"Alice final practice keeps native 800 HP without delayed puppet death damage");
      const int nextRandom=rand();record->SetQuit(STAGE_END_SAVE_EXIT);int end=0;for(int f=0;f<60&&!end;f++)end=record->StepFrame(0);
      Check(g.m_replay.SaveFile("phase-roundtrip.rpy"),"phase preset saves the version-two TPC5 extension");delete record;game.m_pCurScheme=NULL;
      Check(g.m_replay.LoadFile("phase-roundtrip.rpy"),"phase preset reloads from the real replay file");

@@ -1155,6 +1155,9 @@ int CStage::GetDamageFromChara(float ctrX,float ctrY,float halfWidth,float halfH
 {
  if(m_practiceSeekDamage){
   if(m_practiceSeekDamage==2)return 0;
+  // Seeking Alice phases must not kill puppets: their delayed death takes
+  // 300 HP from Alice each, even after the destination HP has been restored.
+  if(!isBoss&&dynamic_cast<CBossStage3*>(m_pBoss))return 0;
   const auto* selected=practice::SelectedSection(CGame::GVar().m_practiceConfig.stage,CGame::GVar().m_practiceConfig.warp,CGame::GVar().m_practiceConfig.section);
   if(selected&&selected->variant&&dynamic_cast<CBossStage4*>(m_pBoss)){
    const bool first=ctrX==m_pBoss->m_curX&&ctrY==m_pBoss->m_curY;
