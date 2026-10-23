@@ -625,3 +625,15 @@ void CBossStage4Yuki::DrawSpecialBullet()
 
 
 
+
+namespace th5w {
+practice::PhaseTimeout CBossStage4Yuki::GetPhaseTimeout() const {
+ switch(m_curPhase){
+ case 3:return practice::PhaseTimeout::Cycles(12,m_nModeChange);
+ case 5:return practice::PhaseTimeout::Cycles(24,m_nModeChange);
+ case 7:return practice::PhaseTimeout::Frames(2000,m_curPhaseFrame);
+ case 9:return practice::PhaseTimeout::Cycles(36,m_nModeChange);
+ default:return practice::PhaseTimeout();
+ }
+}
+}

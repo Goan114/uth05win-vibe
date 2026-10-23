@@ -1,4 +1,5 @@
 #pragma once
+#include "../Practice/PhaseTimeout.h"
 #include "../scheme.h"
 #include "../../gameLib/Graphic/2DImageArray.h"
 #include "../../gameLib/CommonFunction/CommonFunctionGraphic.h"
@@ -194,7 +195,8 @@ public:
 	__forceinline unsigned short GetLastKeyState() {return m_lastGameKeyState;}
 
 public:
-	int LockTimerFrames() const {return m_lockTimer;}
+	practice::PhaseTimeout GetPhaseTimeout() const;
+ int LockTimerFrames() const {return m_lockTimer;}
  void RequestFastRetry();
  void PracticeResume() { m_bPaused=false; }
 	void PracticeExit(int action) { SetQuit(action==3 ? STAGE_END_RESTART : action==1 ? STAGE_END_SAVE_EXIT : STAGE_END_PLAYER_QUIT); m_bPaused=false; }

@@ -23,6 +23,7 @@ protected:
 	int FadeOutAndIn();
 
 public:
+ virtual practice::PhaseTimeout GetPhaseTimeout() const override;
 	virtual void Initialize();
 	virtual int Step();
 	virtual void Draw();

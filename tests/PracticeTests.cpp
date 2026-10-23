@@ -294,6 +294,31 @@ struct PracticeTests {
   g.m_bReplayMode=false;g.m_bPracticeMode=false;g.m_playDifficulty=1;g.OnBeginGame();
   Check(!g.m_practiceConfig.mode&&!practice::Assisted(),"normal gameplay clears custom initial settings and assisted state");
  }
+ static void PhaseTimeoutDisplay(CGame& game){
+  ResetTools();practice::Options()=practice::AdvancedOptions();CStage* stage=Stage(game);
+  stage->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);
+  Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::None,"no timer is shown outside a timed boss phase");
+  CBossStage1* concrete=new CBossStage1;CBoss* boss=concrete;boss->m_pStage=stage;boss->Initialize();stage->m_pBoss=boss;boss->Step();
+  boss->m_curPhase=1;boss->m_curPhaseFrame=31;boss->Step();
+  practice::Options().phaseTimeout=true;
+  Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::Turns&&stage->GetPhaseTimeout().value==32,"native loop phase starts with its remaining timeout cycles");
+  boss->m_nModeChange=31;boss->m_curMode=0;boss->m_curPhaseFrame=91;
+  Check(stage->GetPhaseTimeout().value==1,"last native attack loop displays one remaining turn");Frame(*stage);Screenshot("f12-phase-turns.bmp");
+  boss->Step();Check(boss->m_curPhase==3&&stage->GetPhaseTimeout().value==24,"native loop timeout advances phase and the displayed count resets");
+  boss->m_curPhase=4;boss->m_curPhaseFrame=1244;boss->m_curHP=450;boss->m_curPhaseEndHP=0;
+  Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::Seconds&&stage->GetPhaseTimeout().value==1,"last 56 native frames display one second");
+  boss->m_curPhaseFrame=1243;Check(stage->GetPhaseTimeout().value==2,"remaining seconds round upward at the native 56-fps boundary");
+  boss->m_curPhaseFrame=1299;Frame(*stage);Screenshot("f12-phase-seconds.bmp");
+  srand(55);const int expected=rand();srand(55);for(int i=0;i<100;i++)stage->GetPhaseTimeout();Check(rand()==expected&&boss->m_curPhaseFrame==1299,"timer reads do not mutate the native phase or consume replay RNG");
+  practice::Toggle(practice::LockTimeout);boss->Step();Check(boss->m_curPhase==4&&stage->GetPhaseTimeout().value==0,"F5 keeps the exhausted native timeout at zero without advancing phase");
+  Frame(*stage);Screenshot("f12-phase-locked.bmp");ResetTools();boss->Step();Check(boss->m_curPhase==0xfd&&stage->GetPhaseTimeout().unit==practice::PhaseTimeout::None,"releasing lock permits the real timeout and hides the finished phase timer");
+  stage->m_pBoss=NULL;delete boss;
+  CMidBossStage1* mid=new CMidBossStage1;mid->m_pStage=stage;mid->Initialize();stage->m_pMidBoss=mid;mid->m_curPhase=3;mid->m_curPhaseFrame=1499;mid->m_curHP=1000;
+  Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::Seconds&&stage->GetPhaseTimeout().value==1,"native midboss timeout is exposed by the same HUD");
+  mid->Step();Check(mid->m_curPhase==0xfe&&stage->GetPhaseTimeout().unit==practice::PhaseTimeout::None,"midboss timeout hides at its actual death transition");
+  stage->m_pMidBoss=NULL;delete mid;CGame::GVar().m_replay.CloseStage(false);delete stage;game.m_pCurScheme=NULL;
+  practice::Options()=practice::AdvancedOptions();
+ }
  static void AdvancedMenu(CGame& game){
   auto& opts=practice::Options();auto& g=CGame::GVar();opts=practice::AdvancedOptions();ResetTools();
   CStage* stage=Stage(game);auto& player=*stage->m_pChara;
@@ -361,8 +386,8 @@ struct PracticeTests {
   test.Start(1000,1200,true);test.Tick(2200,false);test.Tick(2250,true);Check(test.results.size()==1&&test.results[0]==50,"reaction latency is measured from the actual color-change deadline");
   test.Reset();test.type=1;test.Start(0,1500,true);test.Tick(100,true);test.Tick(1600,true);test.Tick(1640,false);Check(test.results.size()==1&&test.results[0]==40,"release reaction waits for hold then measures release latency");
   test.Reset();test.progress=true;test.Start(1000,1200,true);test.Tick(2150,true);Check(test.results.size()==1&&test.results[0]==-50&&test.frameCounts[0]==3,"progress mode preserves negative early-reaction timing");
-  opts.fps=84;opts.noContinue=opts.disableX=opts.showKeys=opts.showHitbox=opts.alwaysHitbox=opts.numericDream=opts.numericPower=true;practice::SaveAdvancedOptions();opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();
-  Check(opts.fps==84&&opts.noContinue&&opts.disableX&&opts.showKeys&&opts.showHitbox&&opts.alwaysHitbox&&opts.numericDream&&opts.numericPower,"advanced preferences round-trip independently of game and replay saves");
+  opts.fps=84;opts.noContinue=opts.disableX=opts.showKeys=opts.showHitbox=opts.alwaysHitbox=opts.numericDream=opts.numericPower=opts.phaseTimeout=true;practice::SaveAdvancedOptions();opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();
+  Check(opts.fps==84&&opts.noContinue&&opts.disableX&&opts.showKeys&&opts.showHitbox&&opts.alwaysHitbox&&opts.numericDream&&opts.numericPower&&opts.phaseTimeout,"advanced preferences round-trip independently of game and replay saves");
   opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();practice::SetAdvancedOpen(false);
  }
  static void MusicRoom(CGame& game){
@@ -484,7 +509,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

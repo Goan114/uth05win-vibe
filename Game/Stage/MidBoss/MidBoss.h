@@ -1,4 +1,5 @@
 #pragma once
+#include "../../Practice/PhaseTimeout.h"
 #include "../EnemyBullet/EnemyBullet.h"
 #include "../Item/Item.h"
 #include "../SparkEffect/SparkEffect.h"
@@ -41,6 +42,7 @@ protected:
 	void StepHPGauge(int curHP,int fullHP);
 	void DrawHPGaugeAndExtStrEnemy(int fullHP);
 public:
+	virtual practice::PhaseTimeout GetPhaseTimeout() const {return practice::PhaseTimeout();}
 	virtual void Initialize();
 	virtual int Step()=0;		//return 0 for continue, 1 for midboss end
 	virtual void Draw()=0;

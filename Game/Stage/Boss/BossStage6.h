@@ -97,6 +97,7 @@ protected:
 	void FloatMove();
 
 public:
+ virtual practice::PhaseTimeout GetPhaseTimeout() const override;
 	virtual void Initialize();
 	virtual void Step();
 	virtual void DrawBoss();

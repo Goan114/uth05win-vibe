@@ -287,3 +287,12 @@ void CMidBossStage5::DrawStatistics()
 
 
 
+
+namespace th5w {
+practice::PhaseTimeout CMidBossStage5::GetPhaseTimeout() const {
+ switch(m_curPhase){
+ case 1:return practice::PhaseTimeout::Cycles(16,m_phase1NModeChange);
+ default:return practice::PhaseTimeout();
+ }
+}
+}

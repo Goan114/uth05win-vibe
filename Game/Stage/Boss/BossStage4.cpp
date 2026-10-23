@@ -950,3 +950,12 @@ void CBossStage4::DrawSpecialBullet()
 
 
 
+
+namespace th5w {
+practice::PhaseTimeout CBossStage4::GetPhaseTimeout() const {
+ switch(m_curPhase){
+ case 2:return practice::PhaseTimeout::Cycles(36,m_nModeChange);
+ default:return practice::PhaseTimeout();
+ }
+}
+}

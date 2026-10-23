@@ -28,6 +28,7 @@ protected:
 	int BounceWalk(int nFrame,float speed);
 
 public:
+ virtual practice::PhaseTimeout GetPhaseTimeout() const override;
 	virtual void Initialize();
 	virtual void Step();
 	virtual void DrawBoss();

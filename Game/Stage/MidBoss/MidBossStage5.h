@@ -22,6 +22,7 @@ protected:
 	int Phase1Mode3Shoot();
 
 public:
+ virtual practice::PhaseTimeout GetPhaseTimeout() const override;
 	virtual void Initialize();
 	virtual int Step();
 	virtual void Draw();

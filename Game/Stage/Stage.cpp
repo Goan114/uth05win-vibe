@@ -880,8 +880,25 @@ void CStage::PlayAreaFade(float fadeScale)
 }
 
 
+practice::PhaseTimeout CStage::GetPhaseTimeout() const {
+ if(m_bLogo||m_bQuit||m_bContinueScr)return practice::PhaseTimeout();
+ if(m_pBoss)return m_pBoss->GetPhaseTimeout();
+ if(m_pMidBoss)return m_pMidBoss->GetPhaseTimeout();
+ return practice::PhaseTimeout();
+}
+
 void CStage::DrawStatistics()
 {
+ if(practice::Options().phaseTimeout){
+  const practice::PhaseTimeout timer=GetPhaseTimeout();
+  if(timer.unit!=practice::PhaseTimeout::None){
+   const int right=m_playAreaUpperLeftX+384-8;
+   const int y=m_playAreaUpperLeftY+8;
+   const int suffix=timer.unit==practice::PhaseTimeout::Turns?80:0;
+   m_pStageRes->DrawNumber(right-suffix-48,y,timer.value,3,false,true,1,1,1);
+   if(suffix){const unsigned char turn[]={0xbd,0xbe,0xbb,0xb7,0};CTh5ExtFont::DrawExtString(turn,4,right-64,y,1,1,1);}
+  }
+ }
 	//draw score and highscore
 	unsigned char extHiScore[]={0xd6,0xd7,0xd8,0xd9,0};
 	CTh5ExtFont::DrawExtString(extHiScore,100,0x3c*8,3*16+40,1,1,0);

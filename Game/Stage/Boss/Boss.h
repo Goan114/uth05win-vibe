@@ -1,4 +1,5 @@
 #pragma once
+#include "../../Practice/PhaseTimeout.h"
 #include "../EnemyBullet/EnemyBullet.h"
 #include "../Item/Item.h"
 #include "../SparkEffect/SparkEffect.h"
@@ -95,6 +96,7 @@ protected:
 protected:
 	bool m_bDrawBoss;
 public:
+	virtual practice::PhaseTimeout GetPhaseTimeout() const {return practice::PhaseTimeout();}
 	virtual void Initialize();
 	virtual void Step()=0;
 	void Draw();

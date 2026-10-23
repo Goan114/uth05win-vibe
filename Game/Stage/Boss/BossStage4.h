@@ -61,6 +61,7 @@ protected:
 	int RandomWalkVerStage4(int frameIdx,float &angle,int &forceMove,float &x,float &y,float &vx,float &vy,int &img);
 	void DeathSequenceVerStage4();
 public:
+ virtual practice::PhaseTimeout GetPhaseTimeout() const override;
 	virtual void Initialize();
 	virtual void Step();
 	virtual void DrawBoss();

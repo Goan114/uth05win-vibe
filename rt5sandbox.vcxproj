@@ -277,6 +277,7 @@
     <ClInclude Include="Game\Practice\Practice.h" />
     <ClInclude Include="Game\Practice\PracticeConfig.h" />
     <ClInclude Include="Game\Practice\PracticeAdvanced.h" />
+    <ClInclude Include="Game\Practice\PhaseTimeout.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

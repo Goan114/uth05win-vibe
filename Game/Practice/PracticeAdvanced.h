@@ -3,8 +3,8 @@
 #include <vector>
 namespace th5w { namespace practice {
 struct AdvancedOptions {
- int fps;bool freeFPS,noContinue,disableX,disableShift,disableZ,forceShift,showKeys,lockTimer,fastRetry,showHitbox,alwaysHitbox,numericDream,numericPower;
- AdvancedOptions():fps(56),freeFPS(false),noContinue(false),disableX(false),disableShift(false),disableZ(false),forceShift(false),showKeys(false),lockTimer(false),fastRetry(false),showHitbox(false),alwaysHitbox(false),numericDream(false),numericPower(false){}
+ int fps;bool freeFPS,noContinue,disableX,disableShift,disableZ,forceShift,showKeys,lockTimer,fastRetry,showHitbox,alwaysHitbox,numericDream,numericPower,phaseTimeout;
+ AdvancedOptions():fps(56),freeFPS(false),noContinue(false),disableX(false),disableShift(false),disableZ(false),forceShift(false),showKeys(false),lockTimer(false),fastRetry(false),showHitbox(false),alwaysHitbox(false),numericDream(false),numericPower(false),phaseTimeout(false){}
 };
 AdvancedOptions& Options();
 void LoadAdvancedOptions();void SaveAdvancedOptions();

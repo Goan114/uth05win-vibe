@@ -546,3 +546,15 @@ void CBossStage2::DrawStatistics()
 
 
 
+
+namespace th5w {
+practice::PhaseTimeout CBossStage2::GetPhaseTimeout() const {
+ switch(m_curPhase){
+ case 2:return practice::PhaseTimeout::Cycles(20,m_nModeChange);
+ case 4:return practice::PhaseTimeout::Cycles(20,m_nModeChange);
+ case 5:return practice::PhaseTimeout::Cycles(20,m_nModeChange);
+ case 7:return practice::PhaseTimeout::Cycles(10,m_nModeChange);
+ default:return practice::PhaseTimeout();
+ }
+}
+}
