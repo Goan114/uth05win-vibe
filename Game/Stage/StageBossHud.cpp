@@ -159,16 +159,20 @@ void CStage::DrawBossRings(){
   const float x=m_playAreaUpperLeftX+data.x,y=CGame::s_pCurGame->m_gameWindow.m_height-1-(m_playAreaUpperLeftY+data.y),alpha=ring.dimmed?.25f:1.f;
   // TH15: 112 HUD pixels / 2 = 56 game pixels. The marker starts at the top,
   // then rotates counter-clockwise by fraction * 2pi (GameHudFrame).
-  RingArc(x,y,53.5f,58.5f,0,1,0,0,0,alpha*.6f);
+  // Opaque dark shoulders separate the white arc from light boss sprites.
+  RingArc(x,y,53.f,59.f,0,1,0,0,0,alpha);
   RingArc(x,y,54.5f,57.5f,0,1,1,1,1,alpha*.16f);
   RingArc(x,y,54.5f,57.5f,0,ring.displayed,1,1,1,alpha);
   if(data.markerCount){float rage=float(data.markers[0])/data.full;if(rage>ring.displayed)rage=ring.displayed;RingArc(x,y,54.5f,57.5f,0,rage,1,.25f,.25f,alpha);}
   for(int i=0;i<data.markerCount;i++){
    const float fraction=float(data.markers[i])/data.full;if(fraction>=ring.displayed)continue;
    const float a=fraction*2.f*float(PI),s=-sinf(a),c=cosf(a),tx=cosf(a),ty=sinf(a);
-   glColor4f(1,1,.5f,alpha);glBegin(GL_QUADS);
-   glVertex2f(x+s*51-tx*.6f,y+c*51-ty*.6f);glVertex2f(x+s*62-tx*.6f,y+c*62-ty*.6f);
-   glVertex2f(x+s*62+tx*.6f,y+c*62+ty*.6f);glVertex2f(x+s*51+tx*.6f,y+c*51+ty*.6f);glEnd();
+   for(int pass=0;pass<2;pass++){
+    const float width=pass?.6f:1.8f,lo=pass?51.f:50.f,hi=pass?62.f:63.f;
+    glColor4f(pass?1.f:0.f,pass?1.f:0.f,pass?.5f:0.f,alpha);glBegin(GL_QUADS);
+    glVertex2f(x+s*lo-tx*width,y+c*lo-ty*width);glVertex2f(x+s*hi-tx*width,y+c*hi-ty*width);
+    glVertex2f(x+s*hi+tx*width,y+c*hi+ty*width);glVertex2f(x+s*lo+tx*width,y+c*lo+ty*width);glEnd();
+   }
   }
  }
  glPopMatrix();glMatrixMode(GL_PROJECTION);glPopMatrix();glPopAttrib();

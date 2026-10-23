@@ -560,6 +560,25 @@ struct PracticeTests {
   g.m_replay.CloseStage(false);delete mid;game.m_pCurScheme=NULL;
   opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();
  }
+ static void ShinkiRingVisibility(CGame& game){
+  auto& opts=practice::Options();opts=practice::AdvancedOptions();opts.ringBar=true;ResetTools();
+  auto& g=CGame::GVar();auto& menu=practice::MenuConfig();
+  for(int section:{3,5}){
+   menu=practice::Config();menu.mode=1;menu.stage=5;menu.warp=2;menu.section=section;g.m_bReplayMode=false;g.m_initDifficulty=1;
+   Check(practice::StartSetup(),"wing visibility starts via Shinki native phase initialization");CStage* st=new CStage;st->Initialize();game.m_pCurScheme=st;game.m_curSchemeID=4;st->StepFrame(0);
+   Check(st->m_pBoss->m_curImage==(section==3?184:192),"fixture renders the actual original white or black wing sprite");
+   for(int i=0;i<50;i++)st->TickBossBar();Check(st->m_bossRings[0].displayed==1&&!st->m_bossRings[0].dimmed,"wing contrast fixture has a full undimmed ring");
+   Frame(*st);std::vector<unsigned char> composed(640*480*3),foreground(composed.size());glReadPixels(0,0,640,480,GL_RGB,GL_UNSIGNED_BYTE,composed.data());
+   st->DrawBossRings();glFinish();glReadPixels(0,0,640,480,GL_RGB,GL_UNSIGNED_BYTE,foreground.data());
+   Check(composed==foreground,"native wings cannot overpaint the foreground health arc or its dark contrast shoulders");
+   char shot[64];sprintf_s(shot,"ring-shinki-%s-wings.bmp",section==3?"white":"black");Screenshot(shot);
+   const int cx=st->m_playAreaUpperLeftX+int(st->m_bossRings[0].data.x),cy=480-1-st->m_playAreaUpperLeftY-int(st->m_bossRings[0].data.y);
+   const size_t light=((cy+56)*640+cx)*3,dark=((cy+58)*640+cx)*3;
+   Check(composed[light]>240&&composed[dark]<30,"white arc retains a dark edge even on a white wing");
+   g.m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;
+  }
+  opts=practice::AdvancedOptions();
+ }
  static void CycleTimeProjection(CGame& game){
   auto& g=CGame::GVar();ResetTools();practice::Options()=practice::AdvancedOptions();
   Check(!practice::Options().phaseTimeoutAsTime,"existing settings default to native round counts");
@@ -868,7 +887,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);PracticeDialogue(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);RingBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);PracticeDialogue(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);RingBossBar(game);ShinkiRingVisibility(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

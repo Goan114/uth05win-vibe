@@ -709,8 +709,6 @@ void CStage::Draw()
 	else
 		m_pBoss->DrawBackground();
 
- if(practice::Options().ringBar)DrawBossRings();
-
 	if (m_bInCharaBomb)
 		m_pChara->DrawBomb();
 
@@ -719,6 +717,10 @@ void CStage::Draw()
 	if (m_pMidBoss)
 		m_pMidBoss->Draw();
 	m_pEnemy->Draw();
+
+ // Keep health rings above large boss sprites (including Shinki wings),
+ // while player shots, bullets and lasers remain in front of the indicator.
+ if(practice::Options().ringBar)DrawBossRings();
 
 	m_pCharaBullet->Draw();
 	m_pChara->Draw();
