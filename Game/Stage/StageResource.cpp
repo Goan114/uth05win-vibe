@@ -1,5 +1,6 @@
 #include ".\stageresource.h"
 #include "../Game.h"
+#include "../Practice/Practice.h"
 #include "Stage.h"
 #include "../../gameLib/Graphic/Th5ExtFont.h"
 #include "../../gameLib/Graphic/PC98Font.h"
@@ -387,6 +388,46 @@ void CStageResource::DrawGauge(int curValue,int fullValue,int drawX,int drawY,fl
 			str[curValue/16]=curValue%16+0x20-1;
 	}
 	CTh5ExtFont::DrawExtString(str,8,drawX,drawY,colorR,colorG,colorB);
+}
+
+// Native phase boundaries plus discrete HP-triggered changes; no time/cycle thresholds.
+void CStageResource::DrawHPPhaseMarkers(int curHP,int fullHP,int drawX,int drawY,bool midBoss)
+{
+ if(!practice::Options().hpPhaseMarkers||curHP<=0||fullHP<=0)return;
+ const int* marks=NULL;int count=0;
+ const auto use=[&](const int* values,int n){marks=values;count=n;};
+ const int stage=CGame::GVar().m_playStage;
+ if(midBoss){
+  static const int mid1[]={200},mid2[]={800,600,400},midEx[]={1000};
+  if(stage==0)use(mid1,1);else if(stage==1)use(mid2,3);else if(stage==6)use(midEx,1);
+ }else{
+  static const int stage1[]={2550,450};
+  static const int stage2[]={3000,1900,500};
+  static const int stage3[]={7400,5200,3000,800};
+  static const int stage4[]={5500,2250};
+  static const int mai[]={5800,2800,1200};
+  static const int yuki[]={4600,3200,1200};
+  static const int stage5[]={7500,6300,5700,4500,3200,2700,1200};
+  static const int stage6[]={20600,18400,14600,11600,8600,5600,3800,2800};
+  static const int extra[]={23800,21000,18100,15100,12600,9600,6800,3400};
+  switch(stage){
+   case 0:use(stage1,2);break;
+   case 1:use(stage2,3);break;
+   case 2:use(stage3,4);break;
+   case 3:if(fullHP==7800)use(mai,3);else if(fullHP==7900)use(yuki,3);else use(stage4,2);break;
+   case 4:use(stage5,7);break;
+   case 5:use(stage6,8);break;
+   case 6:use(extra,8);break;
+  }
+ }
+ const int filled=(curHP<fullHP?curHP:fullHP)*128/fullHP;
+ for(int i=0;i<count;i++){
+  const int pixel=marks[i]*128/fullHP;
+  if(pixel<=0||pixel>=filled)continue;
+  // ZUN.COM's gauge glyph occupies rows 4..11. Inclusive rectangle = one pixel wide.
+  const float x=float(drawX+pixel);
+  CCommonFunctionGraphic::DrawRectangle(x,float(drawY+4),x,float(drawY+11),0,0,0);
+ }
 }
 
 void CStageResource::DrawNumber(int numX,int numY,int number,int nDigit,bool leadingZero,bool rightAlign,float colorR,float colorG,float colorB)

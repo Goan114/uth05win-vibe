@@ -301,6 +301,7 @@ struct PracticeTests {
   Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::None,"no timer is shown outside a timed boss phase");
   CBossStage1* concrete=new CBossStage1;CBoss* boss=concrete;boss->m_pStage=stage;boss->Initialize();stage->m_pBoss=boss;boss->Step();
   boss->m_curPhase=1;boss->m_curPhaseFrame=31;boss->Step();
+  practice::Options().hpPhaseMarkers=true;boss->m_lastDrawnHP=4650;Frame(*stage);Screenshot("f12-hp-phase-markers.bmp");practice::Options().hpPhaseMarkers=false;
   practice::Options().phaseTimeout=true;
   Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::Turns&&stage->GetPhaseTimeout().value==32,"native loop phase starts with its remaining timeout cycles");
   boss->m_nModeChange=31;boss->m_curMode=0;boss->m_curPhaseFrame=91;
@@ -397,8 +398,8 @@ struct PracticeTests {
   test.Start(1000,1200,true);test.Tick(2200,false);test.Tick(2250,true);Check(test.results.size()==1&&test.results[0]==50,"reaction latency is measured from the actual color-change deadline");
   test.Reset();test.type=1;test.Start(0,1500,true);test.Tick(100,true);test.Tick(1600,true);test.Tick(1640,false);Check(test.results.size()==1&&test.results[0]==40,"release reaction waits for hold then measures release latency");
   test.Reset();test.progress=true;test.Start(1000,1200,true);test.Tick(2150,true);Check(test.results.size()==1&&test.results[0]==-50&&test.frameCounts[0]==3,"progress mode preserves negative early-reaction timing");
-  opts.fps=84;opts.noContinue=opts.disableX=opts.showKeys=opts.showHitbox=opts.alwaysHitbox=opts.numericDream=opts.numericPower=opts.phaseTimeout=true;practice::SaveAdvancedOptions();opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();
-  Check(opts.fps==84&&opts.noContinue&&opts.disableX&&opts.showKeys&&opts.showHitbox&&opts.alwaysHitbox&&opts.numericDream&&opts.numericPower&&opts.phaseTimeout,"advanced preferences round-trip independently of game and replay saves");
+  opts.fps=84;opts.noContinue=opts.disableX=opts.showKeys=opts.showHitbox=opts.alwaysHitbox=opts.numericDream=opts.numericPower=opts.phaseTimeout=opts.hpPhaseMarkers=true;practice::SaveAdvancedOptions();opts=practice::AdvancedOptions();practice::LoadAdvancedOptions();
+  Check(opts.fps==84&&opts.noContinue&&opts.disableX&&opts.showKeys&&opts.showHitbox&&opts.alwaysHitbox&&opts.numericDream&&opts.numericPower&&opts.phaseTimeout&&opts.hpPhaseMarkers,"advanced preferences round-trip independently of game and replay saves");
   opts=practice::AdvancedOptions();practice::SaveAdvancedOptions();practice::SetAdvancedOpen(false);
  }
  static void MusicRoom(CGame& game){

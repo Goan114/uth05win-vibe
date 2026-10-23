@@ -53,6 +53,7 @@ public:
 
 public:
 	void DrawGauge(int curValue,int fullValue,int drawX,int drawY,float colorR,float colorG,float colorB);
+	void DrawHPPhaseMarkers(int curHP,int fullHP,int drawX,int drawY,bool midBoss);
 	void DrawNumber(int numX,int numY,int number,int nDigit,bool leadingZero,bool rightAlign,
 					float colorR,float colorG,float colorB);
 	void DrawStageObjectImage(C2DImage *pImage,float gameCoordX,float gameCoordY);
