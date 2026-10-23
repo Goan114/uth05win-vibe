@@ -717,6 +717,12 @@ struct PracticeTests {
   p.m_invulnerableTimeLeft=0;p.m_nextLifeComeTimeLeft=33;p.m_cannotControlTimeLeft=1;p.m_bMiss=false;p.SetPower(100);s->m_nCurLife=1;
   Key(game,VK_F2);Key(game,VK_F4);p.Step();Check(p.m_power==100,"F4 preserves Miss firepower");
   p.m_nextLifeComeTimeLeft=1;p.Step();Check(s->m_nCurLife==1&&!s->m_bContinueScr,"F2 last life revives without game over");ResetTools();
+  s->SetDream(64);practice::Toggle(practice::LockDream);
+  s->SetDream(1);Check(s->GetDream()==64,"Dream lock prevents Miss and Bomb dream loss");
+  s->SetDream(128);Check(s->GetDream()==64,"Dream lock also preserves current value against item gains");
+  CGame::GVar().m_bReplayMode=true;s->SetDream(63);Check(s->GetDream()==63,"live Dream lock cannot alter replay playback");CGame::GVar().m_bReplayMode=false;
+  practice::PreparingSection(true);s->SetDream(62);Check(s->GetDream()==62,"Dream lock is isolated from phase preparation");practice::PreparingSection(false);
+  ResetTools();s->SetDream(61);Check(s->GetDream()==61,"disabling Dream lock restores native updates");
   Check(practice::AllowTimeout(true)&&!practice::AllowTimeout(false),"normal deadline gate");Key(game,VK_F5);Check(!practice::AllowTimeout(true)&&practice::BeforeTimeout(false),"F5 blocks timeout while retaining hit path");
   // Original Phase4 runs its attack and tests damage after the time cap.
   CBossStage1 boss;boss.m_pStage=s;boss.Initialize();boss.m_curPhase=4;boss.m_curPhaseFrame=1299;boss.m_curHP=400;boss.m_curPhaseEndHP=0;

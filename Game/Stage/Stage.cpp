@@ -1141,6 +1141,7 @@ void CStage::SetQuit(int quitCode)
 
 void CStage::SetDream(int newDream)
 {
+ if(practice::Enabled(practice::LockDream))return;
 	if (newDream>128) newDream=128;
 	if (newDream<1) newDream=1;
 	if (newDream==128&&m_curDream<=127)

@@ -13,9 +13,9 @@ bool tools[ToolCount] = {}, assisted = false, initialized = false, focusPause = 
 bool overlayOpen = false,infoOpen=false,preparingSection=false;
 float pauseAlpha = 0;
 int pauseAge = 0, pauseAction = -1, actionAge = 0;
-const char* keys[ToolCount] = {"F1", "F2", "F3", "F4", "F5", "F6", "U"};
+const char* keys[ToolCount] = {"F1", "F2", "F3", "F4", "F5", "F6", "U", ""};
 const char* labels[ToolCount] = {
- u8"\u65e0\u654c", u8"\u9501\u6b8b/\u4e0d\u75ae", u8"\u9501Bomb", u8"\u9501\u706b\u529b", u8"\u9501\u65f6", u8"\u81ea\u52a8B", u8"\u654c\u4eba\u65e0\u654c"
+ u8"\u65e0\u654c", u8"\u9501\u6b8b/\u4e0d\u75ae", u8"\u9501Bomb", u8"\u9501\u706b\u529b", u8"\u9501\u65f6", u8"\u81ea\u52a8B", u8"\u654c\u4eba\u65e0\u654c", u8"\u9501\u68a6\u70b9"
 };
 const char* pauseLabels[] = {u8"\u7ee7\u7eed\u6e38\u620f", u8"\u9000\u51fa\u6e38\u620f", u8"\u4e0d\u5b58rep\u9000\u51fa\u6e38\u620f", u8"\u91cd\u65b0\u5f00\u59cb"};
 bool Replay() { return CGame::s_pCurGame && CGame::GVar().m_bReplayMode; }
@@ -135,16 +135,21 @@ void DrawStatus() {
  ImGui::Begin("Mod Menu",NULL,ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoResize|
   ImGuiWindowFlags_NoMove|ImGuiWindowFlags_AlwaysAutoResize|ImGuiWindowFlags_NoSavedSettings|
   ImGuiWindowFlags_NoFocusOnAppearing|ImGuiWindowFlags_NoNav);
- for (int i=0;i<ToolCount;i++) {
+ const Tool order[]={Invincible,InfiniteLives,LockDream,InfiniteBombs,KeepPower,LockTimeout,AutoBomb,EnemyInvincible};
+ for (Tool tool:order) {
+  const int i=int(tool);
   char text[128]; const bool enabled=Enabled(Tool(i));
-  sprintf_s(text,enabled?"[%s: %s]":"%s: %s",keys[i],labels[i]);
+  if(keys[i][0])sprintf_s(text,enabled?"[%s: %s]":"%s: %s",keys[i],labels[i]);
+  else sprintf_s(text,enabled?"[%s]":"%s",labels[i]);
   if (i==InfiniteLives&&Options().noContinue)sprintf_s(text,enabled?"[F2: %s]":"F2: %s",u8"\u4e0d\u75ae");
   if (enabled) ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,1,0,1));
   const ImVec2 cursor=ImGui::GetCursorPos();
   ImGui::TextUnformatted(text);
   ImGui::SetCursorPos(cursor);
   if (enabled) ImGui::PopStyleColor();
-  if (ImGui::InvisibleButton(keys[i],ImGui::CalcTextSize(text))) Toggle(Tool(i));
+  ImGui::PushID(i);
+  if (ImGui::InvisibleButton("##tool",ImGui::CalcTextSize(text))) Toggle(Tool(i));
+  ImGui::PopID();
  }
  char infoText[128];sprintf_s(infoText,infoOpen?"[Tab: %s]":"Tab: %s",u8"\u66f4\u591a\u6e38\u620f\u4fe1\u606f");
  if(infoOpen)ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,1,0,1));
