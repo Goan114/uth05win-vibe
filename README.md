@@ -1,3 +1,9 @@
+# **这是被vibe coding魔改的uth05win**
+**This project is vibe coded**
+您需要自行提供有效的游戏文件。
+本仓库不分发任何游戏的素材。
+You should provide your own legal copy of the game.
+
 The following text was taken from the original author Pegasy
 
 Introduction
@@ -66,6 +72,4 @@ This program uses:
 * PMDWin (http://c60.fmp.jp/)
 
 
-Misc
-====
-For bug report and feature request, please contact the one you received this program from:)
+
