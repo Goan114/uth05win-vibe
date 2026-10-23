@@ -200,6 +200,7 @@ public:
 
 public:
 	practice::PhaseTimeout GetPhaseTimeout() const;
+ void DrawPracticeInfo();
  int LockTimerFrames() const {return m_lockTimer;}
  void RequestFastRetry();
  void PracticeResume() { m_bPaused=false; }

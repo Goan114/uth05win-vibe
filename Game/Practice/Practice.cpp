@@ -10,7 +10,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND,UINT,WPARAM,LP
 namespace th5w { namespace practice {
 namespace {
 bool tools[ToolCount] = {}, assisted = false, initialized = false, focusPause = false;
-bool overlayOpen = false;
+bool overlayOpen = false,infoOpen=false;
 float pauseAlpha = 0;
 int pauseAge = 0, pauseAction = -1, actionAge = 0;
 const char* keys[ToolCount] = {"F1", "F2", "F3", "F4", "F5", "F6", "U"};
@@ -23,6 +23,7 @@ bool Replay() { return CGame::s_pCurGame && CGame::GVar().m_bReplayMode; }
 bool Enabled(Tool tool) { return tools[tool] && !Replay(); }
 void Toggle(Tool tool) { if (!Replay()) { tools[tool] = !tools[tool]; if (tools[tool]) MarkAssisted(); } }
 bool Assisted() { return assisted; }
+bool InGameInfoOpen(){return infoOpen;}
 void MarkAssisted() {
  if (Replay()) return;
  assisted = true;
@@ -39,7 +40,7 @@ bool Initialize(HWND window) {
  char font[MAX_PATH]; GetWindowsDirectoryA(font,MAX_PATH);
  strcat_s(font,"\\Fonts\\msyh.ttc");
  static ImVector<ImWchar> glyphRanges;ImFontGlyphRangesBuilder ranges;
- ranges.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());ranges.AddText(u8"\u5e27\u9636\u6bb5\u4ece\u5173\u5361\u8d77\u59cb\u5904\u5f00\u59cb\uff08\u6ca1\u6709\u9053\u4e2d\uff09");ranges.AddText(AdvancedGlyphs());ranges.BuildRanges(&glyphRanges);
+ ranges.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());ranges.AddText(u8"\u5e27\u9636\u6bb5\u4ece\u5173\u5361\u8d77\u59cb\u5904\u5f00\u59cb\uff08\u6ca1\u6709\u9053\u4e2d\uff09");ranges.AddText(u8"\u66f4\u591a\u6e38\u620f\u4fe1\u606f\u7075\u68a6\u9b54\u7406\u6c99\u9b45\u5e7d\u9999");ranges.AddText(AdvancedGlyphs());ranges.BuildRanges(&glyphRanges);
  if (!io.Fonts->AddFontFromFileTTF(font,16,NULL,glyphRanges.Data)) io.Fonts->AddFontDefault();
  if (!ImGui_ImplWin32_Init(window)) { ImGui::DestroyContext(); return false; }
  if (!ImGui_ImplOpenGL2_Init()) { ImGui_ImplWin32_Shutdown(); ImGui::DestroyContext(); return false; }
@@ -54,6 +55,10 @@ void WindowMessage(HWND window,UINT message,WPARAM key,LPARAM data) {
  if (!initialized) return;
  ImGui_ImplWin32_WndProcHandler(window,message,key,data);
  AdvancedKeyEvent(message,key,data);
+ if(message==WM_KEYDOWN&&key==VK_TAB&&CGame::s_pCurGame&&CGame::s_pCurGame->m_curSchemeID==4&&!AdvancedOpen()&&!ImGui::IsAnyItemActive()){
+  if(!(data&(1L<<30)))infoOpen=!infoOpen;
+  ImGui::GetIO().KeysDown[VK_TAB]=false;
+ }
  if (message==WM_KEYDOWN && !(data & (1L<<30))) {
   if (key>=VK_F1 && key<=VK_F6) Toggle(Tool(key-VK_F1));
   else if (key=='U') Toggle(EnemyInvincible);
@@ -140,6 +145,11 @@ void DrawStatus() {
   if (enabled) ImGui::PopStyleColor();
   if (ImGui::InvisibleButton(keys[i],ImGui::CalcTextSize(text))) Toggle(Tool(i));
  }
+ char infoText[128];sprintf_s(infoText,infoOpen?"[Tab: %s]":"Tab: %s",u8"\u66f4\u591a\u6e38\u620f\u4fe1\u606f");
+ if(infoOpen)ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,1,0,1));
+ const ImVec2 infoPos=ImGui::GetCursorPos();ImGui::TextUnformatted(infoText);ImGui::SetCursorPos(infoPos);
+ if(infoOpen)ImGui::PopStyleColor();
+ if(ImGui::InvisibleButton("Tab",ImGui::CalcTextSize(infoText)))infoOpen=!infoOpen;
  ImGui::End();DrawAdvanced();
 }
 } }

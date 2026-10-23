@@ -191,6 +191,7 @@ void DrawRuntimeHUD(){
  if(options.lockTimer&&Enabled(LockTimeout)&&stage->LockTimerFrames()>0){
   char value[32];sprintf_s(value,"%.2f",stage->LockTimerFrames()/56.f);auto* draw=ImGui::GetForegroundDrawList();ImVec2 size=ImGui::CalcTextSize(value);draw->AddRectFilled(ImVec2(32,0),ImVec2(110,size.y),IM_COL32_WHITE);draw->AddText(ImVec2(110-size.x,0),IM_COL32_BLACK,value);
  }
+ if(InGameInfoOpen())stage->DrawPracticeInfo();
  if(!options.showKeys)return;
  KeyRectStyle style;style.size=ImVec2(48,48);style.separated=true;style.padding=ImVec2(0,0);
  style.border_color_press=style.border_color_release=0xFFFFFFFF;

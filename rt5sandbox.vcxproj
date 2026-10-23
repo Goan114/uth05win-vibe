@@ -270,6 +270,7 @@
     <ClCompile Include="Game\Practice\PracticeAdvanced.cpp" />
     <ClCompile Include="Game\Practice\KeyMonitor.cpp" />
     <ClCompile Include="Game\Stage\StageBossHud.cpp" />
+    <ClCompile Include="Game\Stage\StagePracticeInfo.cpp" />
     <ClCompile Include="third_party\imgui\imgui.cpp" />
     <ClCompile Include="third_party\imgui\imgui_draw.cpp" />
     <ClCompile Include="third_party\imgui\imgui_widgets.cpp" />

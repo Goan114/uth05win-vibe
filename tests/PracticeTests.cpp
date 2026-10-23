@@ -297,6 +297,23 @@ struct PracticeTests {
   g.m_bReplayMode=false;g.m_bPracticeMode=false;g.m_playDifficulty=1;g.OnBeginGame();
   Check(!g.m_practiceConfig.mode&&!practice::Assisted(),"normal gameplay clears custom initial settings and assisted state");
  }
+ static void TabInfo(CGame& game){
+  practice::Options()=practice::AdvancedOptions();ResetTools();CStage* st=Stage(game);
+  st->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);st->m_nMiss=2;st->m_nBomb=3;
+  Check(!practice::InGameInfoOpen(),"Tab information is hidden by default");Key(game,VK_TAB);Check(practice::InGameInfoOpen(),"Tab opens the purple-style in-game information panel");
+  Frame(*st);ImGuiWindow* panel=ImGui::FindWindowByName("TH05 In-Game Info");
+  Check(panel&&panel->Pos.x==432&&panel->Pos.y==152&&panel->Size.x==192&&panel->Size.y==60,"Tab panel uses fixed native sidebar coordinates");
+  Check(panel->Pos.x>=st->m_playAreaUpperLeftX+384&&panel->Pos.y>=152&&panel->Pos.y+panel->Size.y<=216,"Tab panel avoids playfield, scores and Bomb row");
+  Check((panel->Flags&ImGuiWindowFlags_NoInputs)==ImGuiWindowFlags_NoInputs&&(panel->Flags&ImGuiWindowFlags_NoMove),"Tab panel retains purple's non-interactive non-draggable behavior");
+  Key(game,VK_TAB,true);Check(practice::InGameInfoOpen()&&!ImGui::GetIO().KeysDown[VK_TAB],"holding Tab neither flickers the panel nor steals pause-menu focus");
+  const int frame=st->m_curFrame;const size_t replay=CGame::GVar().m_replay.m_keyState[0].size();Frame(*st);Frame(*st);Check(st->m_curFrame==frame&&CGame::GVar().m_replay.m_keyState[0].size()==replay,"information drawing does not advance or record gameplay");
+  practice::Options().showKeys=true;practice::RecordKey(5,32|64);Frame(*st);Screenshot("tab-info-and-keys.bmp");practice::Options().showKeys=false;
+  CGame::GVar().m_bReplayMode=true;Frame(*st);Check(panel->LastFrameActive==ImGui::GetFrameCount(),"Tab information remains available during native replay playback");CGame::GVar().m_bReplayMode=false;
+  practice::SetAdvancedOpen(true);Key(game,VK_TAB);Check(practice::InGameInfoOpen(),"Tab inside advanced settings does not toggle the gameplay panel");practice::SetAdvancedOpen(false);
+  Key(game,VK_BACK);Frame(*st);Screenshot("tab-info-mod-menu.bmp");Key(game,VK_BACK);
+  Key(game,VK_TAB);Check(!practice::InGameInfoOpen(),"Tab closes the information panel");
+  CGame::GVar().m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;practice::Options()=practice::AdvancedOptions();practice::SaveAdvancedOptions();
+ }
  static void EosdBossBar(CGame& game){
   auto& opts=practice::Options();opts=practice::AdvancedOptions();ResetTools();
   opts.eosdBar=opts.hpPhaseMarkers=true;opts.phaseTimeout=false;practice::SaveAdvancedOptions();
@@ -569,7 +586,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);EosdBossBar(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);EosdBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

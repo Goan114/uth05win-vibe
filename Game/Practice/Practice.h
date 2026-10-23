@@ -10,6 +10,7 @@ bool Enabled(Tool tool);
 void Toggle(Tool tool);
 void ResetRun();
 bool Assisted();
+bool InGameInfoOpen();
 void MarkAssisted();
 bool AllowTimeout(bool expired);
 bool BeforeTimeout(bool beforeDeadline);
