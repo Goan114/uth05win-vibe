@@ -897,8 +897,10 @@ void CStage::DrawStatistics()
    const int right=m_playAreaUpperLeftX+384-8;
    const int y=m_playAreaUpperLeftY+8;
    const int suffix=timer.unit==practice::PhaseTimeout::Turns?80:0;
-   m_pStageRes->DrawNumber(right-suffix-48,y,timer.value,3,false,true,1,1,1);
-   if(suffix){const unsigned char turn[]={0xbd,0xbe,0xbb,0xb7,0};CTh5ExtFont::DrawExtString(turn,4,right-64,y,1,1,1);}
+   const bool warning=timer.value<=(suffix?5:10);
+   const float tint=warning?.65f:1.f;
+   m_pStageRes->DrawNumber(right-suffix-48,y,timer.value,3,false,true,1,tint,tint);
+   if(suffix){const unsigned char turn[]={0xbd,0xbe,0xbb,0xb7,0};CTh5ExtFont::DrawExtString(turn,4,right-64,y,1,tint,tint);}
   }
  }
 	//draw score and highscore
