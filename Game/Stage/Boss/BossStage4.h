@@ -7,6 +7,7 @@ namespace th5w{
 class CBossStage4 : public CBoss
 {
 friend class CStage;
+friend struct PracticeTests;
 protected:
 	float m_2curX,m_2curY;
 	float m_2lastX,m_2lastY;

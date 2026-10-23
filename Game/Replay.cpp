@@ -131,7 +131,7 @@ bool CReplay::SaveFile(const char *fileName)
 			FAIL_CLOSE_RETURN(fwrite(m_keyState[i].data(),2,nkey,fp)!=nkey)
 		}
  if(m_practiceConfig.mode){
-  const unsigned int version=1,size=sizeof(practice::Config);
+  const unsigned int version=2,size=sizeof(practice::Config);
   FAIL_CLOSE_RETURN(fwrite("TPC5",1,4,fp)!=4)
   FAIL_CLOSE_RETURN(fwrite(&version,4,1,fp)!=1)
   FAIL_CLOSE_RETURN(fwrite(&size,4,1,fp)!=1)
@@ -197,8 +197,8 @@ bool CReplay::LoadFile(const char *fileName)
  if(replayVersion!=CGame::GVar().m_gameVersion){
   char sig[4];unsigned int version=0,size=0;
   FAIL_CLOSE_RETURN(fread(sig,1,4,fp)!=4||memcmp(sig,"TPC5",4)!=0)
-  FAIL_CLOSE_RETURN(fread(&version,4,1,fp)!=1||version!=1)
-  FAIL_CLOSE_RETURN(fread(&size,4,1,fp)!=1||size!=sizeof(practice::Config))
+  FAIL_CLOSE_RETURN(fread(&version,4,1,fp)!=1||(version!=1&&version!=2))
+  FAIL_CLOSE_RETURN(fread(&size,4,1,fp)!=1||size!=(version==1?14*4:sizeof(practice::Config)))
   FAIL_CLOSE_RETURN(fread(&m_practiceConfig,1,size,fp)!=size)
   FAIL_CLOSE_RETURN(m_playDifficulty<0||m_playDifficulty>4||m_playChara<0||m_playChara>3)
   FAIL_CLOSE_RETURN(!m_bPracticeMode||m_practiceConfig.mode!=1||!m_practiceConfig.ValidReplay(m_playDifficulty))

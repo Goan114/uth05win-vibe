@@ -24,6 +24,8 @@ typedef struct strBG_PARTICLE{
 
 class CBossStage6 : public CBoss
 {
+friend class CStage;
+friend struct PracticeTests;
 protected:
 	unsigned char m_bgColor[3];
 	LINE_SET m_lineSet[2];

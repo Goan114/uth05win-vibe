@@ -10,6 +10,9 @@
 #include "../Game/Stage/MidBoss/MidBossStage4.h"
 #include "../Game/Stage/MidBoss/MidBossStage5.h"
 #include "../Game/Stage/MidBoss/MidBossStageEx.h"
+#include "../Game/Stage/Boss/BossStage5.h"
+#include "../Game/Stage/Boss/BossStage6.h"
+#include "../Game/Stage/Boss/BossStage4.h"
 #include <imm.h>
 #pragma comment(lib,"imm32.lib")
 #include "../Game/TitleScreen/TitleScreen.h"
@@ -312,6 +315,75 @@ struct PracticeTests {
   g.m_bReplayMode=true;g.m_playStage=5;g.OnBeginGame();Check(!g.m_practiceConfig.mode&&g.m_playerPerformanceLowerBound!=48,"legacy replay does not inherit current custom rank locking");
   g.m_bReplayMode=false;g.m_bPracticeMode=false;g.m_playDifficulty=1;g.OnBeginGame();
   Check(!g.m_practiceConfig.mode&&!practice::Assisted(),"normal gameplay clears custom initial settings and assisted state");
+ }
+ static void PhasePractice(CGame& game){
+  ResetTools();auto& g=CGame::GVar();practice::Options()=practice::AdvancedOptions();int cases=0;
+  for(int stage=0;stage<7;stage++)for(int difficulty=0;difficulty<(stage==6?1:4);difficulty++)for(int warp=1;warp<=2;warp++){
+   int count=0;const auto* list=practice::Sections(stage,warp,count);
+   for(int index=0;index<count;index++)for(int rage=0;rage<=list[index].rageCount;rage++){
+    const auto& selected=list[index];const bool entryChoice=stage==1&&warp==1&&selected.phase==2;
+    const bool rageChoice=stage==5&&warp==2&&selected.phase==10&&rage;
+    for(int trigger=0;trigger<=(entryChoice||rageChoice?1:0);trigger++){
+     auto& menu=practice::MenuConfig();menu=practice::Config();menu.mode=1;menu.stage=stage;menu.warp=warp;menu.section=index+1;menu.rage=rage;menu.trigger=trigger;menu.score=123450;menu.graze=111;menu.totalPoints=222;menu.points=33;
+     if(selected.continuous)menu.startHP=stage==0&&warp==1&&rage?100:437;
+     g.m_bReplayMode=false;g.m_initDifficulty=difficulty;g.m_playChara=0;
+     Check(practice::StartSetup(),"every native phase and rage preset can start");
+     fprintf(stderr,"PHASE stage=%d difficulty=%d warp=%d section=%d rage=%d trigger=%d\n",stage+1,difficulty,warp,index+1,rage,trigger);
+     CStage* record=new CStage;record->Initialize();game.m_pCurScheme=record;game.m_curSchemeID=4;
+     const int phase=warp==1?record->m_pMidBoss->m_curPhase:record->m_pBoss->m_curPhase;
+     Check(phase==selected.phase,"selected phase enters the actual native state");
+     Check(record->m_curScore==12345&&record->m_curNGraze==111&&record->m_totalNPointItem==222&&record->m_curNPointItem==33,"phase initialization preserves configured score and counters");
+     Check(g.m_replay.m_keyState[stage].empty(),"phase initialization records no synthetic inputs");
+     if(stage==3&&warp==2){Check((selected.variant==1)==(dynamic_cast<CBossStage4Mai*>(record->m_pBoss)!=NULL),"Mai selection follows the native branch");Check((selected.variant==2)==(dynamic_cast<CBossStage4Yuki*>(record->m_pBoss)!=NULL),"Yuki selection follows the native branch");}
+     if(entryChoice)Check(record->m_pMidBoss->m_curHP==(trigger?1400:400),"stage-two midboss preserves the chosen entry HP");
+     if(selected.continuous)Check((warp==1?record->m_pMidBoss->m_curHP:record->m_pBoss->m_curHP)==menu.startHP,"continuous rage uses the selected starting HP");
+     if(rageChoice){auto* boss=static_cast<CBossStage6*>(record->m_pBoss);Check(boss->m_curHP==(trigger?8600:rage==1?5600:3800),"Shinki rage preserves selected HP/time trigger semantics");Check(boss->m_phase10Timer>=(rage==1?65:66),"Shinki enters the native laser rage state");}
+     if(stage==4&&warp==2&&rage){auto* boss=static_cast<CBossStage5*>(record->m_pBoss);Check(selected.phase==4?boss->m_phase4CrazyMode:boss->m_phase7CrazyMode,"Yumeko rage is the actual native CrazyMode");}
+     const auto capture=[&](CStage* st){
+      const int current=warp==1?st->m_pMidBoss->m_curPhase:st->m_pBoss->m_curPhase;
+      const int frame=warp==1?st->m_pMidBoss->m_curPhaseFrame:st->m_pBoss->m_curPhaseFrame;
+      const int hp=warp==1?st->m_pMidBoss->m_curHP:st->m_pBoss->m_curHP;
+      const double v[]={double(st->m_curFrame),double(current),double(frame),double(hp),st->m_pChara->m_curX,st->m_pChara->m_curY,double(st->m_curScore),double(st->m_nCurLife),double(st->m_nCurBomb)};return std::vector<double>(v,v+9);
+     };
+     std::vector<double> states;for(int f=0;f<100;f++){record->StepFrame((f/30)%2?4:8);const auto v=capture(record);states.insert(states.end(),v.begin(),v.end());}
+     const int nextRandom=rand();record->SetQuit(STAGE_END_SAVE_EXIT);int end=0;for(int f=0;f<60&&!end;f++)end=record->StepFrame(0);
+     Check(g.m_replay.SaveFile("phase-roundtrip.rpy"),"phase preset saves the version-two TPC5 extension");delete record;game.m_pCurScheme=NULL;
+     Check(g.m_replay.LoadFile("phase-roundtrip.rpy"),"phase preset reloads from the real replay file");
+     const auto& saved=g.m_replay.m_practiceConfig;Check(saved.section==index+1&&saved.rage==rage&&saved.trigger==trigger&&saved.startHP==menu.startHP,"replay restores all phase preset fields");
+     g.m_bReplayMode=true;g.m_playStage=stage;g.OnBeginGame();CStage* playback=new CStage;playback->Initialize();game.m_pCurScheme=playback;
+     bool equal=true;size_t at=0;for(int f=0;f<100;f++){playback->StepFrame(0);const auto v=capture(playback);for(double n:v){if(n!=states[at]){if(equal)fprintf(stderr,"DIFF frame=%d field=%d actual=%f expected=%f\n",f,int(at%9),n,states[at]);equal=false;}++at;}}
+     Check(equal&&rand()==nextRandom,"phase replay matches every gameplay frame and the native RNG sequence");
+     if((stage==2&&warp==2&&selected.phase==5)||(rageChoice&&rage==2&&trigger==1)||(selected.continuous)){
+      Frame(*playback);char shot[96];sprintf_s(shot,"phase-stage-%d-warp-%d-section-%d-rage-%d-trigger-%d.bmp",stage+1,warp,index+1,rage,trigger);Screenshot(shot);
+     }
+     g.m_replay.CloseStage(false);delete playback;game.m_pCurScheme=NULL;++cases;
+    }
+   }
+  }
+  // Convert a genuine whole-boss legacy-compatible fixture back to TPC5 v1.
+  {FILE* fp=fopen("custom-roundtrip.rpy","rb");fseek(fp,0,SEEK_END);long size=ftell(fp);rewind(fp);std::vector<char> bytes(size);fread(bytes.data(),1,size,fp);fclose(fp);
+   const int at=int(bytes.size())-sizeof(practice::Config)-12;unsigned int v=1,n=56;memcpy(bytes.data()+at+4,&v,4);memcpy(bytes.data()+at+8,&n,4);bytes.resize(bytes.size()-16);
+   fp=fopen("custom-v1.rpy","wb");fwrite(bytes.data(),1,bytes.size(),fp);fclose(fp);
+   Check(g.m_replay.LoadFile("custom-v1.rpy")&&g.m_replay.m_practiceConfig.section==0&&g.m_replay.m_practiceConfig.startHP==-1,"legacy fourteen-field TPC5 recordings retain whole-boss defaults");}
+  g.m_bReplayMode=false;
+  CBossStage4 nativePair;Check(nativePair.m_2forceGoUpOrDown==0,"ordinary stage-four boss initializes the second actor movement direction");
+  practice::Toggle(practice::LockTimeout);practice::Toggle(practice::EnemyInvincible);
+  auto& menu=practice::MenuConfig();menu=practice::Config();menu.mode=1;menu.stage=5;menu.warp=2;menu.section=6;menu.rage=2;menu.trigger=1;g.m_initDifficulty=1;
+  Check(practice::StartSetup(),"phase preset starts with F5 and U enabled");
+  CStage* guarded=new CStage;guarded->Initialize();game.m_pCurScheme=guarded;game.m_curSchemeID=4;
+  Check(guarded->m_pBoss->m_curPhase==10&&static_cast<CBossStage6*>(guarded->m_pBoss)->m_phase10Timer>65,"live timeout and enemy invincibility cannot block phase preparation");
+  Check(practice::Enabled(practice::LockTimeout)&&practice::Enabled(practice::EnemyInvincible),"phase preparation preserves live hotkey states");
+  g.m_replay.CloseStage(false);delete guarded;game.m_pCurScheme=NULL;ResetTools();
+  for(int fixture=0;fixture<3;fixture++){
+   menu=practice::Config();menu.mode=1;menu.stage=fixture==0?5:fixture==1?6:0;menu.warp=fixture==2?1:2;menu.section=fixture==0?6:fixture==1?9:1;menu.rage=fixture==0?2:0;menu.trigger=fixture==0?1:0;
+   for(int frame=0;frame<3;frame++){practice::BeginFrame();practice::DrawSetup(30);practice::EndFrame();glFinish();}
+   ImGuiWindow* panel=ImGui::FindWindowByName("TH05 Practice");
+   Check(panel&&panel->Pos.y>=0&&panel->Pos.y+panel->Size.y<=480,"phase practice panel remains inside the game viewport");
+   Check(panel->ScrollMax.y==0,"stage, rage, trigger and custom resource controls fit together without scrolling");
+   Check(ImGui::GetFont()->FindGlyphNoFallback(0x72c2)&&ImGui::GetFont()->FindGlyphNoFallback(0x76fe),"rage and shield labels have real glyphs");
+   char shot[64];sprintf_s(shot,"phase-practice-options-%d.bmp",fixture);Screenshot(shot);
+  }
+  fprintf(stderr,"PHASE CASES %d\n",cases);g.m_bReplayMode=g.m_bPracticeMode=false;g.m_initDifficulty=g.m_playDifficulty=1;
  }
  static void TabInfo(CGame& game){
   practice::Options()=practice::AdvancedOptions();ResetTools();CStage* st=Stage(game);
@@ -678,7 +750,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

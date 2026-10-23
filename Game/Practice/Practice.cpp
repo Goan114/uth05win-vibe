@@ -10,7 +10,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND,UINT,WPARAM,LP
 namespace th5w { namespace practice {
 namespace {
 bool tools[ToolCount] = {}, assisted = false, initialized = false, focusPause = false;
-bool overlayOpen = false,infoOpen=false;
+bool overlayOpen = false,infoOpen=false,preparingSection=false;
 float pauseAlpha = 0;
 int pauseAge = 0, pauseAction = -1, actionAge = 0;
 const char* keys[ToolCount] = {"F1", "F2", "F3", "F4", "F5", "F6", "U"};
@@ -20,7 +20,8 @@ const char* labels[ToolCount] = {
 const char* pauseLabels[] = {u8"\u7ee7\u7eed\u6e38\u620f", u8"\u9000\u51fa\u6e38\u620f", u8"\u4e0d\u5b58rep\u9000\u51fa\u6e38\u620f", u8"\u91cd\u65b0\u5f00\u59cb"};
 bool Replay() { return CGame::s_pCurGame && CGame::GVar().m_bReplayMode; }
 }
-bool Enabled(Tool tool) { return tools[tool] && !Replay(); }
+void PreparingSection(bool value){preparingSection=value;}
+bool Enabled(Tool tool) { return tools[tool] && !Replay() && !preparingSection; }
 void Toggle(Tool tool) { if (!Replay()) { tools[tool] = !tools[tool]; if (tools[tool]) MarkAssisted(); } }
 bool Assisted() { return assisted; }
 bool InGameInfoOpen(){return infoOpen;}
@@ -40,7 +41,7 @@ bool Initialize(HWND window) {
  char font[MAX_PATH]; GetWindowsDirectoryA(font,MAX_PATH);
  strcat_s(font,"\\Fonts\\msyh.ttc");
  static ImVector<ImWchar> glyphRanges;ImFontGlyphRangesBuilder ranges;
- ranges.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());ranges.AddText(u8"\u5e27\u9636\u6bb5\u4ece\u5173\u5361\u8d77\u59cb\u5904\u5f00\u59cb\uff08\u6ca1\u6709\u9053\u4e2d\uff09");ranges.AddText(u8"\u66f4\u591a\u6e38\u620f\u4fe1\u606f\u7075\u68a6\u9b54\u7406\u6c99\u9b45\u5e7d\u9999");ranges.AddText(AdvancedGlyphs());ranges.BuildRanges(&glyphRanges);
+ ranges.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());ranges.AddText(u8"\u5e27\u9636\u6bb5\u4ece\u5173\u5361\u8d77\u59cb\u5904\u5f00\u59cb\uff08\u6ca1\u6709\u9053\u4e2d\uff09");ranges.AddText(u8"\u66f4\u591a\u6e38\u620f\u4fe1\u606f\u7075\u68a6\u9b54\u7406\u6c99\u9b45\u5e7d\u9999");ranges.AddText(AdvancedGlyphs());ranges.AddText(SectionGlyphs());ranges.BuildRanges(&glyphRanges);
  if (!io.Fonts->AddFontFromFileTTF(font,16,NULL,glyphRanges.Data)) io.Fonts->AddFontDefault();
  if (!ImGui_ImplWin32_Init(window)) { ImGui::DestroyContext(); return false; }
  if (!ImGui_ImplOpenGL2_Init()) { ImGui_ImplWin32_Shutdown(); ImGui::DestroyContext(); return false; }

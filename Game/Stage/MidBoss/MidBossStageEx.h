@@ -5,6 +5,8 @@ namespace th5w{
 
 class CMidBossStageEx : public CMidBoss
 {
+friend class CStage;
+friend struct PracticeTests;
 protected:
 	bool m_bHitThisFrame;
 	float m_movingAngle;

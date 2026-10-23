@@ -11,6 +11,8 @@ typedef struct strLINE_SEQ{
 
 class CBossStageEx : public CBoss
 {
+friend class CStage;
+friend struct PracticeTests;
 protected:
 	int m_invulnerableTimeLeft;
 	int m_curOuterImg;

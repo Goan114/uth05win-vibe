@@ -7,6 +7,7 @@ class CStage;
 namespace practice {
 enum Tool { Invincible, InfiniteLives, InfiniteBombs, KeepPower, LockTimeout, AutoBomb, EnemyInvincible, ToolCount };
 bool Enabled(Tool tool);
+void PreparingSection(bool value);
 void Toggle(Tool tool);
 void ResetRun();
 bool Assisted();

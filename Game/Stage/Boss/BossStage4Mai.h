@@ -7,6 +7,7 @@ namespace th5w{
 class CBossStage4Mai : public CBoss
 {
 friend class CStage;
+friend struct PracticeTests;
 friend class CBossStage4;
 
 protected:

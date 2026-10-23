@@ -2,6 +2,7 @@
 #include "../Game.h"
 #include "../Practice/Practice.h"
 #include "../Practice/KeyMonitor.h"
+#include <stdexcept>
 #include "Chara/Chara.h"
 #include "CharaBullet/CharaBullet.h"
 #include "EnemyBullet/EnemyBullet.h"
@@ -35,6 +36,8 @@
 #include "Boss/BossStage2.h"
 #include "Boss/BossStage3.h"
 #include "Boss/BossStage4.h"
+#include "Boss/BossStage4Mai.h"
+#include "Boss/BossStage4Yuki.h"
 #include "Boss/BossStage5.h"
 #include "Boss/BossStage6.h"
 #include "Boss/BossStageEx.h"
@@ -295,7 +298,84 @@ void CStage::ApplyPracticeWarp()
   for(int i=0;i<10000&&m_pDialogue->IsRunning();i++)m_pDialogue->Step();
   m_curGameKeyState=0;CheckBoss();m_curScrFade=100;
  }
+ ApplyPracticeSection();
  memset(m_bPlaySound,0,sizeof(m_bPlaySound));
+}
+
+void CStage::ApplyPracticeSection()
+{
+ const auto& p=CGame::GVar().m_practiceConfig;
+ const auto* selected=practice::SelectedSection(p.stage,p.warp,p.section);
+ if(!selected)return;
+ // Only initialization calls this path. It never records synthetic key frames.
+ struct Guard {Guard(){practice::PreparingSection(true);}~Guard(){practice::PreparingSection(false);}} guard;
+ const int score=m_curScore,high=m_highScore,rank=m_playerPerformance;
+ if(p.warp==1){++m_curFrame;CheckMidBoss();}
+ const int stageFrame=m_curFrame;
+ const auto variant=[&](){return dynamic_cast<CBossStage4Mai*>(m_pBoss)?1:dynamic_cast<CBossStage4Yuki*>(m_pBoss)?2:0;};
+ const auto ready=[&](){return p.warp==1?m_pMidBoss&&m_pMidBoss->m_curPhase==selected->phase:m_pBoss&&variant()==selected->variant&&m_pBoss->m_curPhase==selected->phase;};
+ const auto step=[&](){
+  ++m_curFrame;
+  if(m_pDialogue->IsRunning()){m_curGameKeyState=128;m_pDialogue->Step();m_curGameKeyState=0;return;}
+  if(p.warp==1){if(!m_pMidBoss||m_pMidBoss->Step())throw std::runtime_error("Practice midboss phase ended before destination");}
+  else {if(!m_pBoss)throw std::runtime_error("Practice boss is missing");m_pBoss->Step();}
+ };
+ m_practiceSeekDamage=p.warp==1&&p.stage==1&&selected->phase==2&&p.trigger?2:1;
+ int ticks=0;while(!ready()&&ticks++<20000)step();
+ if(!ready()){m_practiceSeekDamage=0;throw std::runtime_error("Practice phase destination was not reached");}
+ m_practiceSeekDamage=2;
+ // Expired attacks and rewards are discarded; native actor state, palettes,
+ // background state and the RNG reached through original transitions remain.
+ memset(m_pEnemyBullet->m_bullets,0,sizeof(m_pEnemyBullet->m_bullets));
+ m_pEnemyBullet->m_noEnemyBullet=false;m_pEnemyBullet->m_clearEnemyBulletTimeLeft=0;
+ m_pLaser->Initialize();
+ int hp=selected->startHP;
+ if(p.warp==1&&p.stage==1&&selected->phase==2&&p.trigger)hp=1400;
+ if(p.startHP>=0&&selected->continuous)hp=p.startHP;
+ if(p.rage){
+  if(p.warp==1){hp=p.stage==0?200:p.stage==1?(p.rage==1?800:600):999;}
+  else if(p.stage==3)hp=p.rage==1?2750:1125;
+  else if(p.stage==4)hp=selected->endHP+(selected->phase==4?599:499);
+  else if(p.stage==5&&!p.trigger)hp=p.rage==1?5600:3800;
+ }
+ if(p.startHP>=0&&selected->continuous)hp=p.startHP;
+ if(p.warp==1)m_pMidBoss->m_curHP=hp;
+ else {
+  m_pBoss->m_curHP=hp;m_pBoss->m_curPhaseEndHP=selected->endHP;
+  if(p.stage==3&&selected->variant==0)static_cast<CBossStage4*>(m_pBoss)->m_2curHP=hp;
+ }
+ // Yumeko initializes both aimed-shot angles at frame 64. Do not lower HP
+ // until that native initialization has run, or early rage reads stale angles.
+ if(p.warp==2&&p.stage==4&&p.rage){
+  m_pBoss->m_curHP=selected->startHP;
+  while(m_pBoss->m_curPhaseFrame<64)step();
+  m_pBoss->m_curHP=hp;
+ }
+ const auto rageReady=[&](){
+  if(!p.rage)return true;
+  if(p.warp==1)return p.stage!=6||static_cast<CMidBossStageEx*>(m_pMidBoss)->m_phase1CurSubphase==1;
+  if(p.stage==3)return m_pBoss->m_nModeChange>=(p.rage==1?10:15);
+  if(p.stage==4){auto* boss=static_cast<CBossStage5*>(m_pBoss);return boss->m_curPhaseFrame>=32&&(selected->phase==4?boss->m_phase4CrazyMode:boss->m_phase7CrazyMode);}
+  if(p.stage==5){auto* boss=static_cast<CBossStage6*>(m_pBoss);return p.rage==1?boss->m_phase10Timer>=65:boss->m_phase10Timer>65;}
+  return true;
+ };
+ ticks=0;while(!rageReady()&&ticks++<10000)step();
+ if(!rageReady()||!ready()){m_practiceSeekDamage=0;throw std::runtime_error("Practice rage destination was not reached");}
+ m_practiceSeekDamage=0;m_curFrame=stageFrame;
+ if(m_pBoss){m_pBoss->m_lastDrawnHP=0;m_pBoss->m_bHitThisFrame=false;m_pBoss->m_HPLostThisFrame=0;}
+ if(m_pMidBoss)m_pMidBoss->m_lastDrawnHP=0;
+ memset(m_pEnemyBullet->m_bullets,0,sizeof(m_pEnemyBullet->m_bullets));m_pEnemyBullet->m_clearEnemyBulletTimeLeft=0;
+ if(auto* boss=dynamic_cast<CBossStage4*>(m_pBoss))boss->m_curvingBullet.Initialize();
+ if(auto* boss=dynamic_cast<CBossStage4Mai*>(m_pBoss))boss->m_largeBullet.Initialize();
+ if(auto* boss=dynamic_cast<CBossStage4Yuki*>(m_pBoss))boss->m_largeBullet.Initialize();
+ if(auto* boss=dynamic_cast<CBossStage5*>(m_pBoss))boss->m_knifeBullet.Initialize();
+ if(auto* boss=dynamic_cast<CBossStage6*>(m_pBoss)){boss->m_curvingBullet.Initialize();boss->m_shinkiBullet.Initialize();}
+ if(auto* boss=dynamic_cast<CBossStageEx*>(m_pBoss))boss->m_curvingBullet.Initialize();
+ m_pItem->Initialize();m_pPopupNumber->Initialize();m_pGatherEffect->Initialize();m_pSparkEffect->Initialize();m_pCircle->Initialize();
+ m_curScore=score;m_highScore=high;m_drawScore=score;m_drawHighScore=high;m_playerPerformance=rank;
+ m_pChara->m_bMiss=false;m_pChara->m_invulnerableTimeLeft=64;
+ m_pChara->m_bBombDisabled=false;m_pChara->m_bCharaCanShoot=m_pChara->m_bCharaCanMove=true;
+ m_curScrFade=100;m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);
 }
 
 void CStage::StepScore()
@@ -1056,6 +1136,15 @@ void CStage::SetDream(int newDream)
 
 int CStage::GetDamageFromChara(float ctrX,float ctrY,float halfWidth,float halfHeight,bool isBoss)
 {
+ if(m_practiceSeekDamage){
+  if(m_practiceSeekDamage==2)return 0;
+  const auto* selected=practice::SelectedSection(CGame::GVar().m_practiceConfig.stage,CGame::GVar().m_practiceConfig.warp,CGame::GVar().m_practiceConfig.section);
+  if(selected&&selected->variant&&dynamic_cast<CBossStage4*>(m_pBoss)){
+   const bool first=ctrX==m_pBoss->m_curX&&ctrY==m_pBoss->m_curY;
+   if(first==(selected->variant==1))return 0;
+  }
+  return 100000;
+ }
 	int totalDmg=m_pCharaBullet->GetDamage(ctrX,ctrY,halfWidth,halfHeight,isBoss);
 	if (m_bInCharaBomb)
 		totalDmg+=m_pChara->GetBombDamage(ctrX,ctrY,halfWidth,halfHeight,isBoss);

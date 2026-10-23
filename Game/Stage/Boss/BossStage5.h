@@ -6,6 +6,8 @@ namespace th5w{
 
 class CBossStage5 : public CBoss
 {
+friend class CStage;
+friend struct PracticeTests;
 protected:
 	bool m_bDrawKnives;
 	CKnifeBullet m_knifeBullet;

@@ -56,6 +56,7 @@ int DrawSetup(int age){
  ImGui::SetNextWindowBgAlpha(alpha);
  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,0.f);
  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize,0.f);
+ ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(8,2));
  ImGui::Begin("TH05 Practice",NULL,ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings|(age<10?ImGuiWindowFlags_NoInputs:0));
  ImGui::TextUnformatted(u8"\u7ec3\u4e60\u6a21\u5f0f");ImGui::Separator();ImGui::PushItemWidth(-85);
  if(age==10){ImGui::SetWindowFocus();ImGui::SetKeyboardFocusHere();}
@@ -63,13 +64,33 @@ int DrawSetup(int age){
  SetupCombo(u8"\u6a21\u5f0f",&p.mode,modes,2);
  const char* stages[]={"STAGE 1","STAGE 2","STAGE 3","STAGE 4","STAGE 5","STAGE 6","EXTRA"};
  if(!p.mode&&p.stage==6)p.stage=0;
- SetupCombo(u8"\u5173\u5361",&p.stage,stages,p.mode?7:6);
+ const int oldStage=p.stage;SetupCombo(u8"\u5173\u5361",&p.stage,stages,p.mode?7:6);
+ if(oldStage!=p.stage){p.section=p.rage=p.trigger=0;p.startHP=-1;}
  if(p.mode){
   const char* warps[]={u8"\u65e0",u8"\u9053\u4e2dBoss",u8"\u5173\u5e95Boss",u8"\u5e27"};
-  SetupCombo(u8"\u4f20\u9001",&p.warp,warps,4);
+  const int oldWarp=p.warp;SetupCombo(u8"\u4f20\u9001",&p.warp,warps,4);
+  if(oldWarp!=p.warp){p.section=p.rage=p.trigger=0;p.startHP=-1;}
   if(p.stage==5&&p.warp==1){
    int section=0;const char* choices[]={u8"\u4ece\u5173\u5361\u8d77\u59cb\u5904\u5f00\u59cb\uff08\u6ca1\u6709\u9053\u4e2d\uff09"};
    ImGui::SetNextItemWidth(-45);SetupCombo(u8"\u9636\u6bb5",&section,choices,1);
+  }
+  if((p.warp==1||p.warp==2)&&!(p.stage==5&&p.warp==1)){
+   int count=0;const Section* list=Sections(p.stage,p.warp,count);
+   const char* names[32];names[0]=u8"\u6b63\u5e38\u5f00\u59cb";
+   for(int i=0;i<count;i++)names[i+1]=list[i].name;
+   p.section=Config::Bound(p.section,0,count);
+   const int oldSection=p.section;
+   SetupCombo(u8"\u9636\u6bb5",&p.section,names,count+1);
+   if(oldSection!=p.section){p.rage=p.trigger=0;p.startHP=-1;}
+   const Section* selected=SelectedSection(p.stage,p.warp,p.section);
+   if(selected){
+    const int oldRage=p.rage;
+    if(selected->rageCount){const char* rageNames[]={u8"\u6b63\u5e38",u8"\u53d1\u72c2",u8"\u53d1\u72c2 2"};SetupCombo(u8"\u72b6\u6001",&p.rage,rageNames,selected->rageCount+1);}
+    if(p.warp==1&&p.stage==1&&selected->phase==2){const char* entries[]={u8"\u51fb\u7834\u8fdb\u5165",u8"\u8d85\u65f6\u8fdb\u5165"};SetupCombo(u8"\u8fdb\u5165\u65b9\u5f0f",&p.trigger,entries,2);}
+    if(p.warp==2&&p.stage==5&&selected->phase==10&&p.rage){const char* triggers[]={u8"\u8840\u91cf\u89e6\u53d1",u8"\u65f6\u95f4\u89e6\u53d1"};SetupCombo(u8"\u89e6\u53d1\u65b9\u5f0f",&p.trigger,triggers,2);}
+    if(p.warp==1&&p.stage==0&&oldRage!=p.rage)p.startHP=p.rage?200:selected->startHP;
+    if(selected->continuous){if(p.startHP<0)p.startHP=p.warp==1&&p.stage==0&&p.rage?200:selected->startHP;SetupSlider(u8"\u8d77\u59cb\u8840\u91cf",&p.startHP,selected->endHP+1,selected->startHP);}
+   }
   }
   if(p.warp==3)SetupDrag(u8"\u5e27",&p.frame,1,0,60000);
   SetupSlider(u8"\u6b8b\u673a",&p.lives,0,8);
@@ -94,6 +115,6 @@ int DrawSetup(int age){
  else if(!unlocked)ImGui::TextColored(ImVec4(1,.5f,.5f,1),u8"\u5b9e\u6218\u8fdb\u5165\u8be5\u5173\u5361\u540e\u89e3\u9501\u7ec3\u4e60");
  if(confirm&&valid&&unlocked)action=1;
  if(cancel)action=2;
- ImGui::End();ImGui::PopStyleVar(2);return action;
+ ImGui::End();ImGui::PopStyleVar(3);return action;
 }
 } }

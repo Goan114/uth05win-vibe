@@ -31,6 +31,8 @@ class CStage : public CScheme
 {
 friend struct PracticeTests;
 	int StepFrame(unsigned short liveInput);
+ int m_practiceSeekDamage=0;
+ void ApplyPracticeSection();
  int m_lockTimer,m_lockPhase,m_lockKind,m_fastRetryCountdown;
  void TickLockTimer();
  practice::BossBarAnimation m_bossBar;
