@@ -302,8 +302,8 @@ struct PracticeTests {
   st->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);st->m_nMiss=2;st->m_nBomb=3;
   Check(!practice::InGameInfoOpen(),"Tab information is hidden by default");Key(game,VK_TAB);Check(practice::InGameInfoOpen(),"Tab opens the purple-style in-game information panel");
   Frame(*st);ImGuiWindow* panel=ImGui::FindWindowByName("TH05 In-Game Info");
-  Check(panel&&panel->Pos.x==432&&panel->Pos.y==152&&panel->Size.x==192&&panel->Size.y==60,"Tab panel uses fixed native sidebar coordinates");
-  Check(panel->Pos.x>=st->m_playAreaUpperLeftX+384&&panel->Pos.y>=152&&panel->Pos.y+panel->Size.y<=216,"Tab panel avoids playfield, scores and Bomb row");
+  Check(panel&&panel->Pos.x==432&&panel->Pos.y==408&&panel->Size.x==192&&panel->Size.y==48,"Tab panel uses fixed native sidebar coordinates");
+  Check(panel->Pos.x>=st->m_playAreaUpperLeftX+384&&panel->Pos.y>=408&&panel->Pos.y+panel->Size.y<=460,"Tab panel avoids playfield, Power gauge and FPS");
   Check((panel->Flags&ImGuiWindowFlags_NoInputs)==ImGuiWindowFlags_NoInputs&&(panel->Flags&ImGuiWindowFlags_NoMove),"Tab panel retains purple's non-interactive non-draggable behavior");
   Key(game,VK_TAB,true);Check(practice::InGameInfoOpen()&&!ImGui::GetIO().KeysDown[VK_TAB],"holding Tab neither flickers the panel nor steals pause-menu focus");
   const int frame=st->m_curFrame;const size_t replay=CGame::GVar().m_replay.m_keyState[0].size();Frame(*st);Frame(*st);Check(st->m_curFrame==frame&&CGame::GVar().m_replay.m_keyState[0].size()==replay,"information drawing does not advance or record gameplay");
@@ -311,7 +311,7 @@ struct PracticeTests {
   CGame::GVar().m_bReplayMode=true;Frame(*st);Check(panel->LastFrameActive==ImGui::GetFrameCount(),"Tab information remains available during native replay playback");CGame::GVar().m_bReplayMode=false;
   practice::SetAdvancedOpen(true);Key(game,VK_TAB);Check(practice::InGameInfoOpen(),"Tab inside advanced settings does not toggle the gameplay panel");practice::SetAdvancedOpen(false);
   Key(game,VK_BACK);Frame(*st);Screenshot("tab-info-mod-menu.bmp");Key(game,VK_BACK);
-  Key(game,VK_TAB);Check(!practice::InGameInfoOpen(),"Tab closes the information panel");
+  Key(game,VK_TAB);Check(!practice::InGameInfoOpen(),"Tab closes the information panel");Frame(*st);Screenshot("tab-info-closed.bmp");
   CGame::GVar().m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;practice::Options()=practice::AdvancedOptions();practice::SaveAdvancedOptions();
  }
  static void EosdBossBar(CGame& game){

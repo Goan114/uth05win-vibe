@@ -1,5 +1,5 @@
 // Layout/content ported from purple thprac TH10InGameInfo (revision 17780056).
-// Compact spacing fits the native TH05 gap between Score and the Bomb row.
+// Compact spacing replaces the difficulty row without covering Power or FPS.
 #include "Stage.h"
 #include "../Game.h"
 #include "../Practice/Practice.h"
@@ -12,10 +12,10 @@ void CStage::DrawPracticeInfo(){
   ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoMove|
   ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoInputs|
   ImGuiWindowFlags_NoFocusOnAppearing|ImGuiWindowFlags_NoNav;
- ImGui::SetNextWindowPos(ImVec2(432,152),ImGuiCond_Always);
- ImGui::SetNextWindowSize(ImVec2(192,60),ImGuiCond_Always);
+ ImGui::SetNextWindowPos(ImVec2(432,408),ImGuiCond_Always);
+ ImGui::SetNextWindowSize(ImVec2(192,48),ImGuiCond_Always);
  ImGui::SetNextWindowBgAlpha(.9f);
- ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(8,6));
+ ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(8,0));
  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(8,0));
  ImGui::Begin("TH05 In-Game Info",NULL,flags);
  const char* difficulty[]={"Easy","Normal","Hard","Lunatic","Extra"};

@@ -982,7 +982,7 @@ void CStage::DrawStatistics()
 										 {0xae,0xc1,0xbd,0xbb,0xaa,2,2,0}};			//"EXTRA"
 	float color[][3]={{0,1,0},{0,1,1},{1,0,1},{1,0,0},{1,0,0}};
 	int dif=CGame::GVar().m_playDifficulty;
-	CTh5ExtFont::DrawExtString(difficultyExtStr[dif],100,0x39*8,0x17*16+40,color[dif][0],color[dif][1],color[dif][2]);
+	if(!practice::InGameInfoOpen())CTh5ExtFont::DrawExtString(difficultyExtStr[dif],100,0x39*8,0x17*16+40,color[dif][0],color[dif][1],color[dif][2]);
 
 	if (m_pMidBoss)
 		m_pMidBoss->DrawStatistics();
