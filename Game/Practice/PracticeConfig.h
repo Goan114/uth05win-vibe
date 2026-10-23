@@ -11,11 +11,21 @@ struct Config {
   mode=Bound(mode,0,1);stage=Bound(stage,0,6);warp=Bound(warp,0,3);frame=Bound(frame,0,60000);
   lives=Bound(lives,0,8);bombs=Bound(bombs,0,8);score=Bound(score,0,99999990)/10*10;
   power=Bound(power,1,128);graze=Bound(graze,0,999);points=Bound(points,0,999);totalPoints=Bound(totalPoints,0,99999);dream=Bound(dream,1,128);
-  lockRank=lockRank?1:0;rank=Bound(rank,lockRank?0:RankMin(difficulty),lockRank?64:RankMax(difficulty));
+  lockRank=lockRank?1:0;rank=Bound(rank,RankMin(difficulty),RankMax(difficulty));
  }
  bool Valid(int difficulty) const {
   Config copy=*this;copy.Clamp(difficulty);
   return mode==copy.mode&&stage==copy.stage&&warp==copy.warp&&frame==copy.frame&&lives==copy.lives&&bombs==copy.bombs&&score==copy.score&&power==copy.power&&graze==copy.graze&&points==copy.points&&totalPoints==copy.totalPoints&&dream==copy.dream&&rank==copy.rank&&lockRank==copy.lockRank;
+ }
+ // Older TPC5 recordings allowed locked Rank outside the native range.
+ // Preserve their simulation values when reading or saving a replay only.
+ bool ValidReplay(int difficulty) const {
+  Config copy=*this;
+  if(lockRank==1){
+   if(rank<0||rank>64)return false;
+   copy.rank=Bound(rank,RankMin(difficulty),RankMax(difficulty));
+  }
+  return copy.Valid(difficulty);
  }
 };
 static_assert(sizeof(Config)==14*4,"Practice replay field size");

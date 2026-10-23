@@ -216,19 +216,31 @@ struct PracticeTests {
   practice::BeginFrame();setup.Draw();practice::EndFrame();Screenshot("thprac-stage6-no-mid.bmp");
   menu.mode=0;menu.stage=0;memset(g.m_practiceUnlocked,0,sizeof(g.m_practiceUnlocked));g.m_playChara=0;g.m_playDifficulty=1;
   Check(!practice::StartSetup(),"normal mode still obeys native stage unlocks");
+  // Locking never expands the native difficulty range, including fixed Extra.
+  for(int difficulty=0;difficulty<5;difficulty++)for(int locked=0;locked<2;locked++){
+   practice::Config p;p.mode=1;p.lockRank=locked;
+   p.rank=0;p.Clamp(difficulty);Check(p.rank==practice::Config::RankMin(difficulty),"rank lower limit stays native with or without locking");
+   p.rank=64;p.Clamp(difficulty);Check(p.rank==practice::Config::RankMax(difficulty),"rank upper limit stays native with or without locking");
+   const int rank=p.rank;p.lockRank=!locked;p.Clamp(difficulty);Check(p.rank==rank,"toggling rank lock preserves the selected legal value");
+  }
+  practice::Config legacy;legacy.mode=1;legacy.lockRank=1;legacy.rank=0;
+  Check(!legacy.Valid(1)&&legacy.ValidReplay(1),"old locked zero-rank replay remains valid only for replay input");
+  legacy.rank=64;Check(!legacy.Valid(4)&&legacy.ValidReplay(4),"old Extra replay retains out-of-range locked rank");
+  legacy.rank=65;Check(!legacy.ValidReplay(1),"legacy replay rank still rejects values above 64");
   // Every supported stage / destination round-trips through the real disk replay.
   for(int stage=0;stage<7;stage++)for(int warp=0;warp<4;warp++){
    menu=practice::Config();menu.mode=1;menu.stage=stage;menu.warp=warp;menu.frame=1000;
    menu.lives=3;menu.bombs=2;menu.score=123450;menu.power=69;menu.graze=321;menu.points=123;menu.totalPoints=4567;menu.dream=70;menu.rank=48;menu.lockRank=1;
+   const int expectedRank=practice::Config::RankMax(stage==6?4:g.m_initDifficulty);
    g.m_bReplayMode=false;g.m_playChara=stage%4;
    Check(practice::StartSetup(),"custom mode starts locked stages and Extra independently of native unlocks");
    Check(g.m_nCurLife==4&&g.m_nCurBomb==2&&g.m_curPower==69&&g.m_curScore==12345&&g.m_curDream==70,"all configured initial resources use native units");
-   Check(g.m_totalNPointItem==4567&&g.m_curNGraze==321&&g.m_playerPerformance==48&&g.m_bCanSaveReplay,"custom counters and rank preserve replay eligibility");
+   Check(g.m_totalNPointItem==4567&&g.m_curNGraze==321&&g.m_playerPerformance==expectedRank&&g.m_bCanSaveReplay,"custom counters and rank preserve replay eligibility");
    CStage* record=new CStage;record->Initialize();game.m_pCurScheme=record;game.m_curSchemeID=4;
    Check(record->m_curNGraze==321&&record->m_curNPointItem==123&&record->m_totalNPointItem==4567,"HUD counters receive custom graze and blue points");
-   Check(record->m_playerPerformanceLowerBound==48&&record->m_playerPerformanceUpperBound==48,"locked rank constrains both rank bounds");
+   Check(record->m_playerPerformanceLowerBound==expectedRank&&record->m_playerPerformanceUpperBound==expectedRank,"locked rank constrains both rank bounds");
    record->ChangePlayerPerformance(-100);record->ChangePlayerPerformance(100);
-   Check(record->m_playerPerformance==48,"locked rank rejects increases and decreases");
+   Check(record->m_playerPerformance==expectedRank,"locked rank rejects increases and decreases");
    if(warp==1&&stage!=5){const int mid[]={2500,2750,5750,3900,4800,0,5800};Check(record->m_curFrame==mid[stage]-1,"midboss seek stops immediately before the native spawn frame");}
    if(warp==1&&stage==5)Check(record->m_curFrame==-1&&record->m_bLogo&&record->m_pMidBoss==NULL,"sixth-stage missing midboss starts from the original beginning");
    if(warp==2)Check(record->m_pBoss!=NULL&&!record->m_pDialogue->IsRunning(),"boss warp executes original dialogue resource loading and enters the real boss");
@@ -258,7 +270,7 @@ struct PracticeTests {
     g.m_replay.CloseStage(false);delete st;
    }
    Check(g.m_replay.LoadFile("custom-roundtrip.rpy"),"custom replay loads the complete parameter extension");
-   Check(g.m_replay.m_practiceConfig.warp==warp&&g.m_replay.m_practiceConfig.rank==48&&g.m_replay.m_practiceConfig.graze==321,"replay metadata restores destination, rank lock and counters");
+   Check(g.m_replay.m_practiceConfig.warp==warp&&g.m_replay.m_practiceConfig.rank==expectedRank&&g.m_replay.m_practiceConfig.graze==321,"replay metadata restores destination, rank lock and counters");
    g.m_bReplayMode=true;g.m_playStage=stage;g.OnBeginGame();
    CStage* playback=new CStage;playback->Initialize();game.m_pCurScheme=playback;Frame(*playback);
    bool equal=true;size_t offset=0;
@@ -274,12 +286,12 @@ struct PracticeTests {
   counters->m_pChara->CaughtItem(0,0,ITEM_POINT);
   Check(counters->m_totalNPointItem==100&&counters->m_curNPointItem==8&&counters->m_nCurLife==5,"point pickup increments both counters and extends from cumulative count only");
   auto& chara=*counters->m_pChara;chara.m_invulnerableTimeLeft=0;chara.m_nextLifeComeTimeLeft=33;chara.m_cannotControlTimeLeft=1;chara.m_bMiss=false;chara.Step();
-  Check(counters->m_playerPerformance==48,"locked rank survives the native Miss rank reset");
+  Check(counters->m_playerPerformance==practice::Config::RankMax(g.m_playDifficulty),"locked rank survives the native Miss rank reset");
   g.m_replay.CloseStage(false);delete counters;game.m_pCurScheme=NULL;
   for(int bound=0;bound<2;bound++){
    menu=practice::Config();menu.mode=1;menu.lockRank=1;menu.lives=bound?8:0;menu.bombs=bound?8:0;menu.power=bound?128:0;menu.dream=bound?128:1;menu.rank=bound?64:0;menu.points=bound?999:0;menu.totalPoints=bound?99999:0;menu.score=bound?99999990:0;
    Check(practice::StartSetup(),"custom native resource boundaries can start");CStage* st=new CStage;st->Initialize();game.m_pCurScheme=st;
-   Check(st->m_nCurLife==(bound?9:1)&&st->m_nCurBomb==(bound?8:0)&&st->m_pChara->m_power==(bound?128:1)&&st->m_curDream==(bound?128:1)&&st->m_playerPerformance==(bound?64:0),"configured lower and upper resource bounds match actual native state");
+   Check(st->m_nCurLife==(bound?9:1)&&st->m_nCurBomb==(bound?8:0)&&st->m_pChara->m_power==(bound?128:1)&&st->m_curDream==(bound?128:1)&&st->m_playerPerformance==(bound?practice::Config::RankMax(g.m_playDifficulty):practice::Config::RankMin(g.m_playDifficulty)),"configured lower and upper resource bounds match actual native state");
    Frame(*st);g.m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;
   }
   // Hidden custom fields must not disable normal mode on Hard/Lunatic.

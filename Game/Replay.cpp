@@ -89,7 +89,7 @@ bool CReplay::GetRepFileInfo(REPLAY_BRIEF_INFO* pOut, const char *fileName)
 
 bool CReplay::SaveFile(const char *fileName)
 {
- if(m_practiceConfig.mode&&(!m_bPracticeMode||!m_practiceConfig.Valid(m_playDifficulty)))return false;
+ if(m_practiceConfig.mode&&(!m_bPracticeMode||!m_practiceConfig.ValidReplay(m_playDifficulty)))return false;
 #define FAIL_CLOSE_RETURN(x) if (x) {fclose(fp);return false;}
 	FILE *fp=fopen(fileName,"wb");
 	if (fp==NULL)
@@ -201,7 +201,7 @@ bool CReplay::LoadFile(const char *fileName)
   FAIL_CLOSE_RETURN(fread(&size,4,1,fp)!=1||size!=sizeof(practice::Config))
   FAIL_CLOSE_RETURN(fread(&m_practiceConfig,1,size,fp)!=size)
   FAIL_CLOSE_RETURN(m_playDifficulty<0||m_playDifficulty>4||m_playChara<0||m_playChara>3)
-  FAIL_CLOSE_RETURN(!m_bPracticeMode||m_practiceConfig.mode!=1||!m_practiceConfig.Valid(m_playDifficulty))
+  FAIL_CLOSE_RETURN(!m_bPracticeMode||m_practiceConfig.mode!=1||!m_practiceConfig.ValidReplay(m_playDifficulty))
   for(int stage=0;stage<7;stage++)FAIL_CLOSE_RETURN((m_stageFlag[stage]!=0)!=(stage==m_practiceConfig.stage))
   FAIL_CLOSE_RETURN((m_practiceConfig.stage==6)!=(m_playDifficulty==4))
   FAIL_CLOSE_RETURN(fgetc(fp)!=EOF)

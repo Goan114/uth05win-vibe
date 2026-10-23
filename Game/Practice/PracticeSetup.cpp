@@ -81,7 +81,7 @@ int DrawSetup(int age){
   SetupDrag(u8"\u5355\u5173\u84dd\u70b9",&p.points,1,0,999);
   SetupSlider(u8"\u68a6\u70b9",&p.dream,1,128);
   const int difficulty=p.stage==6?4:CGame::GVar().m_initDifficulty;
-  SetupSlider("Rank",&p.rank,p.lockRank?0:Config::RankMin(difficulty),p.lockRank?64:Config::RankMax(difficulty));
+  SetupSlider("Rank",&p.rank,Config::RankMin(difficulty),Config::RankMax(difficulty));
   bool locked=p.lockRank!=0;ImGui::Checkbox(u8"\u9501Rank",&locked);
   if(ImGui::IsItemFocused()&&(ImGui::IsKeyPressed(VK_LEFT)||ImGui::IsKeyPressed(VK_RIGHT)))locked=!locked;
   p.lockRank=locked?1:0;
