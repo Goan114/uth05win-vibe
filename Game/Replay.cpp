@@ -123,7 +123,7 @@ bool CReplay::SaveFile(const char *fileName)
 		{
 			int nkey=(int)m_keyState[i].size();
 			FAIL_CLOSE_RETURN(fwrite(&nkey,4,1,fp)!=1)
-			FAIL_CLOSE_RETURN(fwrite(&m_keyState[i][0],2,nkey,fp)!=nkey)
+			FAIL_CLOSE_RETURN(fwrite(m_keyState[i].data(),2,nkey,fp)!=nkey)
 		}
 	fclose(fp);
 	return true;
@@ -174,8 +174,11 @@ bool CReplay::LoadFile(const char *fileName)
 		{
 			int nkey;
 			FAIL_CLOSE_RETURN(fread(&nkey,4,1,fp)!=1)
+			FAIL_CLOSE_RETURN(nkey<0||nkey>10000000)
+            const long dataStart=ftell(fp);fseek(fp,0,SEEK_END);const long bytesLeft=ftell(fp)-dataStart;fseek(fp,dataStart,SEEK_SET);
+            FAIL_CLOSE_RETURN(nkey>bytesLeft/2)
 			m_keyState[i].resize(nkey);
-			FAIL_CLOSE_RETURN(fread(&m_keyState[i][0],2,nkey,fp)!=nkey)
+			FAIL_CLOSE_RETURN(fread(m_keyState[i].data(),2,nkey,fp)!=nkey)
 		}
 	fclose(fp);
 	return true;

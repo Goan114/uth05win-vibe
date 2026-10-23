@@ -37,3 +37,9 @@ python scripts/prepare-music-room.py --source "原版汉化版目录" --game "Wi
 `--source` 目录包含 `thow_cn.hdi` 与 `f-c1.bmp`。缺少音乐室资源时入口禁用，其他游戏功能照常使用。两个分支均提供 Music Room，且不依赖 ImGui。
 
 参考：https://github.com/nmlgc/ReC98/blob/master/th02/op/m_music.cpp 。测试覆盖全部 107 首实际 PMD 加载、定长评论、切换作品、12 行滚动、循环选择、播放高亮、返回标题和钢琴音符范围；截图位于测试 sandbox。
+
+## 通用改动同步
+
+原生 Practice 与 thprac 两分支共用音乐室及其简体字库，五组曲目列表的返回项统一为“返回标题画面”，主菜单移除旧翻译的“Not implemented”提示。同步四面双 Boss 中雪的移动方向初始值（Y_ANY=0）与通用录像输入长度检查、空输入流处理。保留原生暂停和选关界面，不引入 ImGui、作弊热键或 TPC5 自定义练习录像。
+
+本次同步后 Release 构建成功，457 项原生 Practice 检查通过，包括全部 107 首音乐、返回项截图、标题提示、单关录像回放及异常输入长度拒绝。

@@ -19,7 +19,7 @@
 #include <new>
 #include <vector>
 #include <gl/GL.h>
-namespace th5w { struct PracticeTests {
+namespace th5w { extern char mainMenuDesc[][100]; struct PracticeTests {
  static int checks;
  static void Check(bool ok,const char* reason){++checks;if(!ok){fprintf(stderr,"FAIL: %s\n",reason);exit(1);}}
  static void Screenshot(const char* name="pause.bmp") {
@@ -160,6 +160,8 @@ namespace th5w { struct PracticeTests {
     Check(room.Play(track),"actual PMDWin accepts and starts the original song");
     Check(room.m_playing==track&&!room.m_playFailed,"selected song is the playing song");++total;
    }
+   Check(strstr(musicChoices[g][musicTrackCounts[g]],"\x95\xd4\x89\xf1\x95\x57\x91\xe8\x89\xe6\x96\xca")!=NULL,"all Music Room return labels use simplified Chinese glyph codes");
+   room.m_selection=musicTrackCounts[g];room.m_top=musicTrackCounts[g]-11;room.m_fade=100;room.Draw();glFinish();char shot[64];sprintf_s(shot,"music-room-return-%d.bmp",g+1);Screenshot(shot);
   }
   Check(total==107,"all 107 songs use the original order and play successfully");
   room.m_game=4;room.m_selection=0;room.m_top=0;room.Play(0);room.Input(0);room.Input(1);
@@ -172,12 +174,18 @@ namespace th5w { struct PracticeTests {
   room.m_fade=100;room.m_commentAge=30;room.Draw();glFinish();Screenshot("music-room-comment.bmp");
   auto notes=CPMDPlayer::PianoNotes();for(auto note:notes)Check(note==255||(note>=0&&(note&15)<12&&(note>>4)<8),"piano notes come from valid live PMD work data");
   room.Input(0);room.Input(4096);Check(room.m_quit,"Esc exits Music Room");int ended=0;for(int i=0;i<20&&!ended;i++)ended=room.Step();Check(ended==1,"Music Room fades out before returning");
-  CScheme* next=NULL;int id=0;Check(CSchemeSwitcher::SwitchScheme(&next,&id,8,1)&&id==2,"Music Room exit returns to native title");delete next;
+  CScheme* next=NULL;int id=0;Check(CSchemeSwitcher::SwitchScheme(&next,&id,8,1)&&id==2,"Music Room exit returns to native title");CTitleScreen* title=static_cast<CTitleScreen*>(next);Check(strstr(mainMenuDesc[4],"Not implemented")==NULL,"Music Room title hint no longer says not implemented");title->m_bMenuOn=true;title->m_mainMenuCursorPosition=5;title->m_curScrFade=100;title->m_bgFade=100;title->m_flagRollingTama=0;title->Draw();glFinish();Screenshot("music-room-title-hint.bmp");delete next;
+ }
+ static void ReplayValidation(){
+  FILE* fp=fopen("practice-roundtrip.rpy","rb");fseek(fp,0,SEEK_END);long length=ftell(fp);rewind(fp);std::vector<char> bytes(length);fread(bytes.data(),1,length,fp);fclose(fp);
+  CReplay original;Check(original.LoadFile("practice-roundtrip.rpy"),"input validation fixture starts from an actual saved replay");
+  const size_t countAt=bytes.size()-original.m_keyState[5].size()*2-4;
+  for(int count:{-1,10000001,1000000}){memcpy(bytes.data()+countAt,&count,4);fp=fopen("invalid-input-count.rpy","wb");fwrite(bytes.data(),1,bytes.size(),fp);fclose(fp);CReplay replay;Check(!replay.LoadFile("invalid-input-count.rpy"),"invalid or truncated input counts are rejected before allocation");}
  }
  static int Run(){
   CGame game;CGame::s_pCurGame=&game;
   Check(game.Initialize(false),"native game initializes without ImGui");
-  NativePractice(game);MusicRoom(game);game.OnGameEnd();printf("PASS %d native Practice checks\n",checks);return 0;
+  NativePractice(game);ReplayValidation();MusicRoom(game);game.OnGameEnd();printf("PASS %d native Practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;}
 int main(){return th5w::PracticeTests::Run();}

@@ -11,6 +11,9 @@ namespace th5w{
 
 CBossStage4::CBossStage4(void)
 {
+ // PC-98: b4_both[bss].asm globals start as Y_ANY (boss.hpp: 0).
+ // Preserve flystep_random_for boundary updates; only initialize actor storage.
+ m_2forceGoUpOrDown=0;
 }
 
 CBossStage4::~CBossStage4(void)
