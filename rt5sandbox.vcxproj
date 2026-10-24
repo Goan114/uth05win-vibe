@@ -284,6 +284,14 @@
     <ClInclude Include="Game\Practice\BossBar.h" />
     <ClInclude Include="Game\Practice\PhaseTimeout.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Game\Original\OriginalFeatures.cpp" />
+    <ClInclude Include="Game\Original\OriginalFeatures.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Game\Original\OriginalScenes.cpp" />
+    <ClInclude Include="Game\Original\OriginalScenes.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

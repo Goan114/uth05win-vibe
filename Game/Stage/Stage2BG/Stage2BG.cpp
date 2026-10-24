@@ -32,55 +32,65 @@ void CStage2BG::RegenerateSprite(int recordIdx)
 	int idx=m_pStage->m_curFrame%4096;
 	if (idx<1000)
 	{
-		m_bgSprite[recordIdx].angle=(float)(rand()%32+48);
+		m_bgSprite[recordIdx].angle=(float)(original::Random()%32+48);
 		m_bgSprite[recordIdx].curX=(80-m_bgSprite[recordIdx].angle)*128+1024;
 	}
 	else
 		if (idx<1128)
 		{
-			m_bgSprite[recordIdx].angle=(float)((idx-1000)/8+48+rand()%32);
+			m_bgSprite[recordIdx].angle=(float)((idx-1000)/8+48+original::Random()%32);
 			m_bgSprite[recordIdx].curX=(float)((80-m_bgSprite[recordIdx].angle)*128+1024+(idx-1000)*24);
 		}
 		else
 			if (idx<2000)
 			{
-				m_bgSprite[recordIdx].angle=(float)(rand()%32+64);
+				m_bgSprite[recordIdx].angle=(float)(original::Random()%32+64);
 				m_bgSprite[recordIdx].curX=(96-m_bgSprite[recordIdx].angle)*128+2048;
 			}
 			else
 				if (idx<2128)
 				{
-					m_bgSprite[recordIdx].angle=(float)(64-(idx-2000)/8+rand()%32);
+					m_bgSprite[recordIdx].angle=(float)(64-(idx-2000)/8+original::Random()%32);
 					m_bgSprite[recordIdx].curX=(float)((96-m_bgSprite[recordIdx].angle)*128+2048-(idx-2000)*24);
 				}
 				else
 					if (idx<3000)
 					{
-						m_bgSprite[recordIdx].angle=(float)(rand()%32+48);
+						m_bgSprite[recordIdx].angle=(float)(original::Random()%32+48);
 						m_bgSprite[recordIdx].curX=(80-m_bgSprite[recordIdx].angle)*128+1024;
 					}
 					else
 						if (idx<3128)
 						{
-							m_bgSprite[recordIdx].angle=(float)(48-(idx-3000)/8+rand()%32);
+							m_bgSprite[recordIdx].angle=(float)(48-(idx-3000)/8+original::Random()%32);
 							m_bgSprite[recordIdx].curX=(float)((80-m_bgSprite[recordIdx].angle)*128+1024-(idx-3000)*24);
 						}
 						else
 							if (idx<3968)
 							{
-								m_bgSprite[recordIdx].angle=(float)(rand()%32+32);
+								m_bgSprite[recordIdx].angle=(float)(original::Random()%32+32);
 								m_bgSprite[recordIdx].curX=(64-m_bgSprite[recordIdx].angle)*128;
 							}
 							else
 							{
-								m_bgSprite[recordIdx].angle=(float)((idx-3968)/8+32+rand()%32);
+								m_bgSprite[recordIdx].angle=(float)((idx-3968)/8+32+original::Random()%32);
 								m_bgSprite[recordIdx].curX=(float)((64-m_bgSprite[recordIdx].angle)*128+(idx-3968)*24);
 							}
-	m_bgSprite[recordIdx].curX+=rand()%8*16;
+	if(original::DemoActive()){
+  // ReC98 sub_111B7 uses the changing angle baseline and an 8-subpixel
+  // translation, rather than the port's fixed baseline / 24 translation.
+  const int angle=int(m_bgSprite[recordIdx].angle);
+  if(idx>=1000&&idx<1128){const int t=idx-1000;const int base=48+t/8;m_bgSprite[recordIdx].curX=float((base+32-angle)*128+t*8+1024);}
+  else if(idx>=2000&&idx<2128){const int t=idx-2000;const int base=64-t/8;m_bgSprite[recordIdx].curX=float((base+32-angle)*128+2048-t*8);}
+  else if(idx>=3000&&idx<3128){const int t=idx-3000;const int base=48-t/8;m_bgSprite[recordIdx].curX=float((base+32-angle)*128+1024-t*8);}
+  else if(idx>=3968){const int t=idx-3968;const int base=32+t/8;m_bgSprite[recordIdx].curX=float((base+32-angle)*128+t*8);}
+ }
+ m_bgSprite[recordIdx].curX+=(original::DemoActive()?original::IRandom():original::Random())%8*16;
 	m_bgSprite[recordIdx].age=8;
 	m_bgSprite[recordIdx].curY=0;
 	m_bgSprite[recordIdx].velX=(float)cos(m_bgSprite[recordIdx].angle/256.0f*2*PI)*128.0f;
 	m_bgSprite[recordIdx].velY=(float)sin(m_bgSprite[recordIdx].angle/256.0f*2*PI)*128.0f;
+ if(original::DemoActive()){m_bgSprite[recordIdx].velX=float(original::math::X(int(m_bgSprite[recordIdx].angle),128));m_bgSprite[recordIdx].velY=float(original::math::Y(int(m_bgSprite[recordIdx].angle),128));}
 }
 
 void CStage2BG::StepSprites()
@@ -88,12 +98,13 @@ void CStage2BG::StepSprites()
 	if (m_nSprite<64&&m_pStage->m_curFrame%2==0)
 	{
 		m_bgSprite[m_nSprite].flag=1;
-		m_bgSprite[m_nSprite].angle=(float)(rand()%32+48);
+		m_bgSprite[m_nSprite].angle=(float)(original::Random()%32+48);
 		m_bgSprite[m_nSprite].curX=(80-m_bgSprite[m_nSprite].angle)*128+1024;
 		m_bgSprite[m_nSprite].curY=0;
 		m_bgSprite[m_nSprite].velX=(float)cos(m_bgSprite[m_nSprite].angle/256.0f*2*PI)*128.0f;
 		m_bgSprite[m_nSprite].velY=(float)sin(m_bgSprite[m_nSprite].angle/256.0f*2*PI)*128.0f;
-		m_bgSprite[m_nSprite].age=8;			//PC98 ver does not initialize age here, seems bug
+ if(original::DemoActive()){m_bgSprite[m_nSprite].velX=float(original::math::X(int(m_bgSprite[m_nSprite].angle),128));m_bgSprite[m_nSprite].velY=float(original::math::Y(int(m_bgSprite[m_nSprite].angle),128));}
+		m_bgSprite[m_nSprite].age=original::DemoActive()?0:8;			//PC98 ver does not initialize age here, seems bug
 		m_nSprite++;
 	}
 	for (int i=0;i<64;i++)

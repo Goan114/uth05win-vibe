@@ -155,7 +155,7 @@ void CTitleScreen::Initialize(bool bRollTama,int cursorInitialPos, bool bSwitchM
 	CCommonFunctionGraphic::LoadBinaryImageFile(&m_pMenuImgReplay,pc,"replay.bmp");
 
 	CreatePracticeDescription();
-	m_lastKeyState=0;
+	m_lastKeyState=0;m_idleFrames=0;
 }
 
 void CTitleScreen::OnRollTamaEnd()
@@ -226,10 +226,16 @@ int CTitleScreen::Step()
 		m_bMenuOn=true;
 
 	ParseKeyEvent();
-
+ UpdateDemoIdle(CCommonFunctionInput::GetAllKeyState());
 	return 0;
 }
 
+void CTitleScreen::UpdateDemoIdle(unsigned short key)
+{
+ if(!m_bMenuOn||m_bQuit)return;
+ if(!key||key==12)++m_idleFrames;else m_idleFrames=0;
+ if(m_curMenu==0&&m_idleFrames>=640){m_bQuit=true;m_quitCode=key==12?TITLESCREEN_END_EXTRA_DEMO:TITLESCREEN_END_DEMO;}
+}
 void CTitleScreen::Draw()
 {
 	glClearColor(0,0,0,1);

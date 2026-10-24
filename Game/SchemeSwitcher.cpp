@@ -5,6 +5,7 @@
 #include "Stage/Stage.h"
 #include "Game.h"
 #include "MusicRoom/MusicRoom.h"
+#include "Original/OriginalScenes.h"
 #include "ed/Ending.h"
 #include "SelectReplayScreen/SelectReplayScreen.h"
 #include "HighScoreScreen/HighScoreScreen.h"
@@ -49,6 +50,18 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
    CTitleScreen* next=new CTitleScreen;next->Initialize(false,5,true);*ppOutNextScheme=next;*pOutNextSchemeID=SCHEME_TITLESCREEN;return true;
   }
   *ppOutNextScheme=room;*pOutNextSchemeID=8;return true;
+ }
+ if(curSchemeID==SCHEME_TITLESCREEN&&(curSchemeExitValue==TITLESCREEN_END_DEMO||curSchemeExitValue==TITLESCREEN_END_EXTRA_DEMO)){
+  if(original::StartDemo(curSchemeExitValue==TITLESCREEN_END_EXTRA_DEMO)){
+   CStage* next=new CStage;next->Initialize();*ppOutNextScheme=next;*pOutNextSchemeID=SCHEME_STAGE;
+  }else{CTitleScreen* next=new CTitleScreen;next->Initialize(false,0,true);*ppOutNextScheme=next;*pOutNextSchemeID=SCHEME_TITLESCREEN;}
+  return true;
+ }
+ if(curSchemeID==9||curSchemeID==10||curSchemeID==11){
+  if(curSchemeID==10){COriginalEnd* next=new COriginalEnd(COriginalEnd::VerdictOnly);next->Initialize();*ppOutNextScheme=next;*pOutNextSchemeID=11;}
+  else if(curSchemeID==11&&!original::Stats().complete){CSelectReplayScreen* next=new CSelectReplayScreen;next->Initialize(false,true);*ppOutNextScheme=next;*pOutNextSchemeID=SCHEME_SELECTREPLAYSCREEN;}
+  else{CHighScoreScreen* next=new CHighScoreScreen;next->Initialize(false,true);*ppOutNextScheme=next;*pOutNextSchemeID=SCHEME_HIGHSCORESCREEN;}
+  return true;
  }
 	if (curSchemeID==SCHEME_TITLESCREEN)
 	{
@@ -132,6 +145,10 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
 
 	if (curSchemeID==SCHEME_STAGE)
 	{
+  if(original::DemoActive()){
+   original::StopDemo();CTitleScreen* next=new CTitleScreen;next->Initialize(true,0,true);
+   *ppOutNextScheme=next;*pOutNextSchemeID=SCHEME_TITLESCREEN;return true;
+  }
 		if (curSchemeExitValue==STAGE_END_RESTART)
 		{
 			if (!CGame::GVar().m_bReplayMode && !CGame::GVar().m_bPracticeMode)
@@ -213,16 +230,17 @@ bool CSchemeSwitcher::SwitchScheme(CScheme** ppOutNextScheme,int *pOutNextScheme
 
 	if (curSchemeID==SCHEME_ENDING)
 	{
-		CHighScoreScreen *pScheme=new CHighScoreScreen;
-		pScheme->Initialize(false,true);
-		*ppOutNextScheme=(CScheme*)pScheme;
-		*pOutNextSchemeID=SCHEME_HIGHSCORESCREEN;
-		return true;
+  const bool extra=CGame::GVar().m_playStage==6;
+  COriginalEnd* next=new COriginalEnd(extra?COriginalEnd::AllCast:COriginalEnd::Staff);next->Initialize();
+  *ppOutNextScheme=next;*pOutNextSchemeID=extra?10:9;return true;
 	}
 	if (curSchemeID==SCHEME_HIGHSCORESCREEN)
 	{
 		if (curSchemeExitValue==HIGHSCORESCREEN_END_ENTER_END||curSchemeExitValue==HIGHSCORESCREEN_END_ENTER_SKIPPED)
 		{
+   if(!CGame::GVar().m_bPracticeMode&&!original::Stats().complete){
+    COriginalEnd* next=new COriginalEnd(COriginalEnd::VerdictOnly);next->Initialize();*ppOutNextScheme=next;*pOutNextSchemeID=11;return true;
+   }
 			CSelectReplayScreen *pScheme=new CSelectReplayScreen;
 			if (curSchemeExitValue==HIGHSCORESCREEN_END_ENTER_END)
 				pScheme->Initialize(false,false);

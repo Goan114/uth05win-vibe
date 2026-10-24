@@ -83,7 +83,7 @@ int CBossStage2::BounceWalk(int nFrame,float speed)
 {
 	if (m_curPhaseFrame==1)
 	{
-		float angle=(float)(rand()%256);
+		float angle=(float)(original::Random()%256);
 		m_velX=(float)cos(angle/256.0f*2*PI)*speed;
 		m_velY=(float)sin(angle/256.0f*2*PI)*speed;
 	}
@@ -286,7 +286,7 @@ void CBossStage2::Phase5ShootType1()
 		return;
 	}
 	if (res==1)
-		m_bPhase5LaserRotationClockwise=(rand()%2==0);
+		m_bPhase5LaserRotationClockwise=(original::Random()%2==0);
 	if (m_curPhaseFrame%4==0)
 	{
 		float angle=(float)(240+(m_curPhaseFrame-32)/4*10);
@@ -334,7 +334,7 @@ void CBossStage2::Phase5ShootType2()
 		shootInfo.shootAngle=0;
 		shootInfo.bulletMoveType=EBMT02_SLOW_DOWN_THEN_TURN;
 		shootInfo.specialMoveVar=1;
-		shootInfo.specialBulletDelta=(rand()%2==0?32.0f:-32.0f);
+		shootInfo.specialBulletDelta=(original::Random()%2==0?32.0f:-32.0f);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo,true);
 		m_pStage->m_bPlaySound[15]=true;

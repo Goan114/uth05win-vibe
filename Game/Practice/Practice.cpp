@@ -18,7 +18,7 @@ const char* labels[ToolCount] = {
  u8"\u65e0\u654c", u8"\u9501\u6b8b/\u4e0d\u75ae", u8"\u9501\u68a6\u70b9", u8"\u9501Bomb", u8"\u9501\u706b\u529b", u8"\u9501\u65f6", u8"\u81ea\u52a8B", u8"\u654c\u4eba\u65e0\u654c"
 };
 const char* pauseLabels[] = {u8"\u7ee7\u7eed\u6e38\u620f", u8"\u9000\u51fa\u6e38\u620f", u8"\u4e0d\u5b58rep\u9000\u51fa\u6e38\u620f", u8"\u91cd\u65b0\u5f00\u59cb"};
-bool Replay() { return CGame::s_pCurGame && CGame::GVar().m_bReplayMode; }
+bool Replay() { return CGame::s_pCurGame && (CGame::GVar().m_bReplayMode||original::DemoActive()); }
 }
 void PreparingSection(bool value){preparingSection=value;}
 bool Enabled(Tool tool) { return tools[tool] && !Replay() && !preparingSection; }
@@ -122,7 +122,7 @@ void DrawPause(CStage& stage) {
  ImGui::PopStyleVar(2);
 }
 void DrawStatus() {
- if (!initialized || !CGame::s_pCurGame) return;
+ if (!initialized || !CGame::s_pCurGame || original::DemoActive()) return;
  if (CGame::s_pCurGame->m_curSchemeID==4 && !Replay())
   for (int i=0;i<ToolCount;i++) if (tools[i]) { MarkAssisted(); break; }
  if(CGame::s_pCurGame->m_curSchemeID==4 && !Replay() && (Options().showHitbox||Options().alwaysHitbox)) MarkAssisted();

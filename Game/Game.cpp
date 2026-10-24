@@ -351,6 +351,7 @@ void CGame::Run()
 			{
 				LARGE_INTEGER thisFrameTime;
 				QueryPerformanceCounter(&thisFrameTime);
+    original::RenderTiming(double(thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)/m_performanceFreq.QuadPart>1.0/56.423);
 				double frameQuota=1000/m_fpsLimit;
 				//printf("%lf ",frameQuota-(thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)
 				//			   /(double)m_performanceFreq.QuadPart*1000);

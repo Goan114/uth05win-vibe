@@ -10,12 +10,15 @@
 #define TITLESCREEN_END_VIEW_HIGHSCORE 5
 #define TITLESCREEN_END_START_PRACTICE 6
 #define TITLESCREEN_END_MUSIC_ROOM 7
+#define TITLESCREEN_END_DEMO 8
+#define TITLESCREEN_END_EXTRA_DEMO 9
 
 namespace th5w{
 
 class CTitleScreen : public CScheme
 {
 friend struct PracticeTests;
+ int m_idleFrames;
 protected:
 	int m_curFrame;
 
@@ -69,6 +72,7 @@ protected:
 	void DrawOptionMenuCursor();
 	void OnRollTamaEnd();
 	void ParseKeyEvent();
+ void UpdateDemoIdle(unsigned short key);
 	void DrawDescString(char *descStr);
 
 protected:

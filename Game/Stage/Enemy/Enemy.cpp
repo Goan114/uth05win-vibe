@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include ".\enemy.h"
 #include "../Stage.h"
 #include "../../Game.h"
@@ -37,7 +38,7 @@ void CEnemy::Initialize()
 {
 	memset(m_enemy,0,sizeof(m_enemy));
 	m_pEnemyTableReadPtr=m_pStage->m_pStageRes->m_pStageStd->m_pEnemyTable;
-	m_enemyDropTableIdx=rand()%16;
+	m_enemyDropTableIdx=original::DemoActive()?original::Demo().itemDropIndex:original::Random()%16;
 	m_noAddEnemy=false;
 }
 
@@ -71,7 +72,7 @@ void CEnemy::AddEnemy(unsigned char enemyType,unsigned char subType,float enemyX
 			//m_enemy[i].idx30=0;
 			m_enemy[i].bTakeDamage=false;
 			m_enemy[i].bCrashChara=false;
-			m_enemy[i].autoShootTimer=rand()%256;
+			m_enemy[i].autoShootTimer=original::Random()%256;
 			m_enemy[i].autoShootInterval=128;
 			m_enemy[i].shootInfo.shootType=EST15_DEFAULT_SINGLE_TO_CHARA;
 			m_enemy[i].shootInfo.bulletBornType=0;
@@ -85,6 +86,7 @@ void CEnemy::AddEnemy(unsigned char enemyType,unsigned char subType,float enemyX
 
 void CEnemy::EnemyDie(ENEMY *pEnemy)
 {
+	if(pEnemy->flag==2)++original::Stats().enemiesKilled;else original::EnemyGone(true);
 	pEnemy->flag=128;
 	pEnemy->nImage=1;
 	pEnemy->bTakeDamage=false;
@@ -94,7 +96,7 @@ void CEnemy::EnemyDie(ENEMY *pEnemy)
 	if (pEnemy->dropItemType!=0xfe)				//0xfe for no drop
 	{
 		unsigned char dropItemType=pEnemy->dropItemType;
-		m_enemyDropTableIdx++;
+		if(!original::DemoActive()||pEnemy->dropItemType==0xff)m_enemyDropTableIdx++;
 		if (pEnemy->dropItemType==0xff)
 		{
 			if (m_enemyDropTableIdx%2==0)
@@ -129,8 +131,8 @@ void CEnemy::StepEnemyTable()
 //			printf("%d %d %d\n",enemyType,xInt,yInt);
 			float x=(float)xInt;
 			float y=(float)yInt;
-			if (xInt==999*16) x=(float)(rand()%(384*16));
-			if (yInt==999*16) y=(float)(rand()%(368*16));
+			if (xInt==999*16) x=(float)(original::Random()%(384*16));
+			if (yInt==999*16) y=(float)(original::Random()%(368*16));
 			unsigned char dropItemType=m_pEnemyTableReadPtr[5];
 			unsigned char enemySubType=m_pEnemyTableReadPtr[6];
 			if (!m_noAddEnemy)
@@ -263,13 +265,13 @@ void CEnemy::StepEnemyScript(ENEMY *pEnemy)
 			}
 			if (ptr[0]==11)
 			{
-				pEnemy->velX=(float)cos(pEnemy->curAngle/256.0f*2*PI)*ptr[1];
+				pEnemy->velX=(original::DemoActive()?float(original::math::X(int(pEnemy->curAngle),ptr[1])):(float)cos(pEnemy->curAngle/256.0f*2*PI)*ptr[1]);
 				pEnemy->velY=*(char *)(ptr+3);
 			}
 			else
 			{
 				pEnemy->velX=*(char *)(ptr+3);
-				pEnemy->velY=(float)cos(pEnemy->curAngle/256.0f*2*PI)*ptr[1];
+				pEnemy->velY=(original::DemoActive()?float(original::math::X(int(pEnemy->curAngle),ptr[1])):(float)cos(pEnemy->curAngle/256.0f*2*PI)*ptr[1]);
 			}
 			if (MoveAndTestLeave(pEnemy))
 				VANISH_AND_RETURN;
@@ -293,8 +295,8 @@ void CEnemy::StepEnemyScript(ENEMY *pEnemy)
 			ptr+=2;
 			break;
 		case 16:
-			pEnemy->curAngle=(float)(rand()%256);
-			UpdateVelXYFromSpeedAngle(pEnemy);
+			pEnemy->curAngle=(float)(original::Random()%256);
+			if(!original::DemoActive())UpdateVelXYFromSpeedAngle(pEnemy);
 			ptr+=1;
 			break;
 		case 17:
@@ -345,7 +347,7 @@ void CEnemy::StepEnemyScript(ENEMY *pEnemy)
 			ptr+=2;
 			break;
 		case 23:
-			pEnemy->shootInfo.shootAngle=(float)(rand()%256);
+			pEnemy->shootInfo.shootAngle=(float)(original::Random()%256);
 			ptr++;
 			break;
 		case 24:
@@ -461,7 +463,7 @@ void CEnemy::StepEnemyScript(ENEMY *pEnemy)
 		case 48:
 			pEnemy->curAngle=ptr[1];
 			pEnemy->curSpeed=ptr[2];
-			if (pEnemy->atLeftHalfOfScreen)
+			if (original::DemoActive()?!pEnemy->atLeftHalfOfScreen:pEnemy->atLeftHalfOfScreen)
 				pEnemy->curAngle=128.0f-pEnemy->curAngle;
 			UpdateVelXYFromSpeedAngle(pEnemy);
 			ptr+=3;
@@ -540,9 +542,10 @@ void CEnemy::Step()
 			continue;
 		}
 		StepEnemyScript(&m_enemy[i]);
+  if(m_enemy[i].flag==2)original::EnemyGone(false);
 		//printf("\t%d %f %f %f %f\n",i,m_enemy[i].curX,m_enemy[i].curY,m_enemy[i].velX,m_enemy[i].velY);
 		if (m_enemy[i].bCrashChara)
-			if (m_pStage->m_pChara->TestCrash(m_enemy[i].curX,m_enemy[i].curY,12.0f*16.0f,12.0f*16.0f))
+			if (m_pStage->m_pChara->TestCrash(m_enemy[i].curX,m_enemy[i].curY,12.0f*16.0f,12.0f*16.0f) && (!original::DemoActive()||(m_enemy[i].curX<m_pStage->m_pChara->GetCurX()+192&&m_enemy[i].curY<m_pStage->m_pChara->GetCurY()+192)))
 			{
 				m_pStage->m_pChara->m_bMiss=true;
 				EnemyDie(&m_enemy[i]);
@@ -552,6 +555,7 @@ void CEnemy::Step()
 			if (m_enemy[i].life!=0xffff)			//life of 0xffff for not targetable and invulnerable
 				if (m_enemy[i].curX>=-16.0f*16.0f&&m_enemy[i].curX<=400.0f*16.0f)
 					if (m_enemy[i].curY>=-16.0f*16.0f&&m_enemy[i].curY<=384.0f*16.0f)
+      if(!original::DemoActive()||(m_enemy[i].curX<400*16&&m_enemy[i].curY<368*16))
 					{
 						nAliveEnemy++;
 						if (m_pStage->m_bHomingEnemyExist==false||m_pStage->m_homingEnemyY<m_enemy[i].curY)
@@ -561,6 +565,7 @@ void CEnemy::Step()
 							m_pStage->m_homingEnemyY=m_enemy[i].curY;
 						}
 						int dmg=m_pStage->GetDamageFromChara(m_enemy[i].curX,m_enemy[i].curY,16.0f*16.0f,12.0f*16.0f,false);
+       if(original::DemoActive())dmg&=255;
 						if (dmg>0)
 						{
 							if (m_enemy[i].life==0xfffe)

@@ -30,8 +30,8 @@ int CMidBossStageEx::ShootType1()
 {
 	if (m_curPhaseFrame==94)
 	{
-		m_shootType1DeltaAngle=(float)(rand()%2*2-1);
-		m_shootType1Angle=(float)(rand()%256);
+		m_shootType1DeltaAngle=(float)(original::Random()%2*2-1);
+		m_shootType1Angle=(float)(original::Random()%256);
 	}
 	if (m_curPhaseFrame<=114)
 	{

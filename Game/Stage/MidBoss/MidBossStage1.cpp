@@ -22,7 +22,7 @@ void CMidBossStage1::Initialize()
 	m_curHP=1000;
 	m_curImage=200;
 
-	m_phase3CircularMoveAngle=(float)(rand()%256);	//PC98 does does not initialize this var, but it doens't matter much
+	m_phase3CircularMoveAngle=(float)(original::Random()%256);	//PC98 does does not initialize this var, but it doens't matter much
 }
 
 
@@ -101,7 +101,7 @@ void CMidBossStage1::Phase3Shoot()
 		shootInfo.bulletSpeed=24;
 		shootInfo.bulletImg=44;
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
-		shootInfo.shootAngle=(float)(rand()%256);
+		shootInfo.shootAngle=(float)(original::Random()%256);
 		shootInfo.shootOrigX=m_curX+(float)cos(shootInfo.shootAngle/256.0f*2*PI)*32.0f*16.0f;
 		shootInfo.shootOrigY=m_curY+(float)sin(shootInfo.shootAngle/256.0f*2*PI)*32.0f*16.0f;
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo);

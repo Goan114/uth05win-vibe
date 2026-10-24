@@ -123,7 +123,7 @@ void CCharaYuka::ShootBullet()
 			GetCharaBullet()->AddBullet(m_curX-24.0f*16.0f,m_curY,22,CHARA_BULLET_TYPE_NORMAL,0,0,184,6);
 		}
 		if (m_charaShootTimer%6==0)
-			GetCharaBullet()->AddBullet(m_curX,m_curY,20,CHARA_BULLET_TYPE_NORMAL,0,0,184+(float)(rand()%16),9);
+			GetCharaBullet()->AddBullet(m_curX,m_curY,20,CHARA_BULLET_TYPE_NORMAL,0,0,184+(float)(original::Random()%16),9);
 	    break;
 	case 3:
 		if (m_charaShootTimer%18==0)
@@ -140,8 +140,8 @@ void CCharaYuka::ShootBullet()
 	case 4:
 		if (m_charaShootTimer%18==0)
 		{
-			GetCharaBullet()->AddBullet(m_curX+24.0f*16.0f,m_curY,22,CHARA_BULLET_TYPE_NORMAL,0,0,196+(float)(rand()%8),6);
-			GetCharaBullet()->AddBullet(m_curX-24.0f*16.0f,m_curY,22,CHARA_BULLET_TYPE_NORMAL,0,0,180+(float)(rand()%8),6);
+			GetCharaBullet()->AddBullet(m_curX+24.0f*16.0f,m_curY,22,CHARA_BULLET_TYPE_NORMAL,0,0,196+(float)(original::Random()%8),6);
+			GetCharaBullet()->AddBullet(m_curX-24.0f*16.0f,m_curY,22,CHARA_BULLET_TYPE_NORMAL,0,0,180+(float)(original::Random()%8),6);
 		}
 		if (m_charaShootTimer%6==0)
 		{

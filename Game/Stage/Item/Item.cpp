@@ -63,7 +63,7 @@ void CItem::AddItem(float itemX,float itemY,unsigned char itemType,float velX,fl
 	for (int i=0;i<ITEM_N_RECORD;i++)
 		if (m_item[i].flag==0)
 		{
-			m_item[i].flag=1;
+			m_item[i].flag=1;original::ItemSpawned();
 			m_item[i].curX=itemX;
 			m_item[i].curY=itemY;
 			m_item[i].velX=velX;
@@ -92,6 +92,7 @@ void CItem::Step()
 			float angle=m_pStage->m_pChara->AngleToChara(m_item[i].curX,m_item[i].curY);
 			m_item[i].velX=(float)cos(angle/256.0f*2*PI)*160;
 			m_item[i].velY=(float)sin(angle/256.0f*2*PI)*160;
+   if(original::DemoActive()){m_item[i].velX=float(original::math::X(int(angle),160));m_item[i].velY=float(original::math::Y(int(angle),160));}
 		}
 		else
 		{

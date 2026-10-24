@@ -192,9 +192,9 @@ void CBossStage1::Phase2()
 				m_phase3ShootNFrame=80;
 				return;
 			}
-			m_curMode=rand()%4+1;
+			m_curMode=original::Random()%4+1;
 			while(m_curMode==m_lastMode)
-				m_curMode=rand()%4+1;
+				m_curMode=original::Random()%4+1;
 			m_lastMode=m_curMode;
 		}
 	}
@@ -224,19 +224,19 @@ void CBossStage1::Phase3ShootType1()
 		shootInfo.bulletBornType=16;
 		shootInfo.bulletImg=0;
 		shootInfo.shootType=EST02_NWAY;
-		shootInfo.shootAngle=(float)(64+rand()%(m_curPhaseFrame*2)-m_curPhaseFrame);
+		shootInfo.shootAngle=(float)(64+original::Random()%(m_curPhaseFrame*2)-m_curPhaseFrame);
 		shootInfo.nWay=3;
 		shootInfo.nWayUnitAngle=3;
 		shootInfo.bulletMoveType=EBMT10_STRAIGHT;
-		shootInfo.bulletSpeed=(float)(16+rand()%32);
+		shootInfo.bulletSpeed=(float)(16+original::Random()%32);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo,true,true);
 
 		shootInfo.bulletBornType=3;
 		shootInfo.bulletImg=44;
 		shootInfo.shootType=EST00_SINGLE;
-		shootInfo.shootAngle=(float)(64+rand()%(m_curPhaseFrame*2)-m_curPhaseFrame);
-		shootInfo.bulletSpeed=(float)(24+rand()%32);
+		shootInfo.shootAngle=(float)(64+original::Random()%(m_curPhaseFrame*2)-m_curPhaseFrame);
+		shootInfo.bulletSpeed=(float)(24+original::Random()%32);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo);
 		m_pStage->m_bPlaySound[3]=true;
@@ -253,7 +253,7 @@ void CBossStage1::Phase3ShootType2()
 		shootInfo.bulletBornType=2;
 		shootInfo.bulletImg=48;
 		shootInfo.shootType=EST04_NWAY_ALLAROUND;
-		shootInfo.shootAngle=(float)(rand()%256);
+		shootInfo.shootAngle=(float)(original::Random()%256);
 		shootInfo.bulletSpeed=32;
 		shootInfo.nWay=12;
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
@@ -366,9 +366,9 @@ void CBossStage1::Phase3()
 				EndPhase(0,2);
 				return;
 			}
-			m_curMode=rand()%4+1;
+			m_curMode=original::Random()%4+1;
 			while(m_curMode==m_lastMode)
-				m_curMode=rand()%4+1;
+				m_curMode=original::Random()%4+1;
 			m_lastMode=m_curMode;
 		}
 	}

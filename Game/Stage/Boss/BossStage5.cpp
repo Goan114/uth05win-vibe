@@ -83,7 +83,7 @@ int CBossStage5::RandomWalkVerStage5(int nFrame,float speed)
 {
 	if (m_curPhaseFrame==1)
 	{
-		float angle=(float)(rand()%256);
+		float angle=(float)(original::Random()%256);
 		m_velX=(float)cos(angle/256.0f*2*PI)*speed;
 		m_velY=(float)sin(angle/256.0f*2*PI)*speed;
 		m_curImage=188;
@@ -110,7 +110,7 @@ void CBossStage5::Phase2ShootType1()
 	if (m_curPhaseFrame==16)
 	{
 		m_curImage=184;
-		m_bPhase2KnifeClockwise=(rand()%2==0);
+		m_bPhase2KnifeClockwise=(original::Random()%2==0);
 		return;
 	}
 	if (m_curPhaseFrame<=32)
@@ -154,8 +154,8 @@ void CBossStage5::Phase2ShootType2()
 		si.bulletSpeed=60;
 		si.nWay=16;
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&si);
-		si.shootAngle=(float)(rand()%256);
-		float len=(float)(rand()%(32*16));
+		si.shootAngle=(float)(original::Random()%256);
+		float len=(float)(original::Random()%(32*16));
 		si.shootOrigX=m_curX+(float)cos(si.shootAngle/256.0f*2*PI)*len;
 		si.shootOrigY=m_curY+(float)sin(si.shootAngle/256.0f*2*PI)*len;
 		m_pStage->m_pEnemyBullet->Shoot(&si);
@@ -375,9 +375,9 @@ void CBossStage5::Phase4Shoot()
 	}
 	if (m_curPhaseFrame%m_phase4ShootKnifeInterval==0)
 	{
-		float origX=(float)(16*16+rand()%(352*16));
-		float origY=(float)(rand()%(96*16));
-		float angle=m_pStage->m_pChara->AngleToChara(origX,origY)+(float)(rand()%32-15);
+		float origX=(float)(16*16+original::Random()%(352*16));
+		float origY=(float)(original::Random()%(96*16));
+		float angle=m_pStage->m_pChara->AngleToChara(origX,origY)+(float)(original::Random()%32-15);
 		m_knifeBullet.AddBullet(origX,origY,angle,76,32);
 	}
 	if (m_curHP<m_curPhaseEndHP+600&&m_phase4CrazyMode==false)
@@ -435,7 +435,7 @@ void CBossStage5::Phase7Shoot()
 	}
 	if (m_curPhaseFrame%m_phase7ShootKnifeInterval==0)
 	{
-		float laserX=(float)(64*16+rand()%256*16);
+		float laserX=(float)(64*16+original::Random()%256*16);
 		float laserY=32.0f*16.0f;
 		float laserAngle=m_pStage->m_pChara->AngleToChara(laserX,laserY);
 		float color[]={m_pStage->m_pStageRes->m_palette[8*3]/255.0f,m_pStage->m_pStageRes->m_palette[8*3+1]/255.0f,
@@ -443,9 +443,9 @@ void CBossStage5::Phase7Shoot()
 		m_pStage->m_pLaser->AddLaserShootOut(laserX,laserY,color,laserAngle,28,100);
 		for (int i=0;i<2;i++)
 		{
-			float origX=(float)(16*16+rand()%(352*16));
-			float origY=(float)(rand()%(96*16));
-			float angle=m_pStage->m_pChara->AngleToChara(origX,origY)+(float)(rand()%32-15);
+			float origX=(float)(16*16+original::Random()%(352*16));
+			float origY=(float)(original::Random()%(96*16));
+			float angle=m_pStage->m_pChara->AngleToChara(origX,origY)+(float)(original::Random()%32-15);
 			m_knifeBullet.AddBullet(origX,origY,angle,76,32);
 		}
 	}
@@ -489,7 +489,7 @@ void CBossStage5::Phase8Shoot()
 		{
 			m_curImage=184;
 			m_pStage->m_bPlaySound[8]=true;
-			m_phase8KnifeY=(float)(rand()%(32*16));
+			m_phase8KnifeY=(float)(original::Random()%(32*16));
 			m_phase8KnifeLeft=true;
 			m_phase8KnifePart=true;
 			m_phase8ShootPartSpeed=128.0f;
@@ -518,7 +518,7 @@ void CBossStage5::Phase8Shoot()
 			m_phase8KnifeLeft=!m_phase8KnifeLeft;
 			if (m_phase8KnifeY>=376.0f*16.0f)
 			{
-				m_phase8KnifeY=(float)(rand()%(32*16));
+				m_phase8KnifeY=(float)(original::Random()%(32*16));
 				m_phase8KnifePart=false;
 				m_phase8ShootPartNReset=1;
 			}

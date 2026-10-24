@@ -42,6 +42,7 @@ public:
 	static bool LoadPMDData(unsigned char *musicData,int size);
 	static bool UnloadPMDData();
 	static std::array<int,8> PianoNotes();
+	static int Measure();
 	static void Play();
 	static void Pause();
 	static void Resume();

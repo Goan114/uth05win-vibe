@@ -18,10 +18,10 @@ double WaitMs(){static std::mt19937 random(GetTickCount());return std::uniform_i
 bool Shift(){const auto& io=ImGui::GetIO();return io.KeysDown[VK_SHIFT]||io.KeysDown[VK_LSHIFT]||io.KeysDown[VK_RSHIFT];}
 void Help(const char* text){ImGui::SameLine();ImGui::TextDisabled("(?)");if(ImGui::IsItemHovered()){ImGui::BeginTooltip();ImGui::PushTextWrapPos(420);ImGui::TextUnformatted(text);ImGui::PopTextWrapPos();ImGui::EndTooltip();}}
 }
-AdvancedOptions& Options(){return options;}
-bool AdvancedOpen(){return open;}
+AdvancedOptions& Options(){static AdvancedOptions native;return original::DemoActive()?native:options;}
+bool AdvancedOpen(){return open&&!original::DemoActive();}
 void SetAdvancedOpen(bool value){open=value;if(value)fpsDraft=options.fps;if(!value){Reaction().Reset();SaveAdvancedOptions();}}
-float GameFPS(){return float(Config::Bound(options.fps,1,6000));}
+float GameFPS(){return original::DemoActive()?56.f:float(Config::Bound(options.fps,1,6000));}
 unsigned short FilterGameplayInput(unsigned short raw,bool replay){
  if(replay)return raw;
  if(options.disableX)raw&=~16;if(options.disableZ)raw&=~32;if(options.disableShift)raw&=~64;if(options.forceShift)raw|=64;
@@ -80,6 +80,7 @@ void SaveAdvancedOptions(){
  WritePrivateProfileStringA("Advanced","alwaysHitbox",options.alwaysHitbox?"1":"0",settingsFile);
 }
 void AdvancedKeyEvent(UINT message,WPARAM key,LPARAM data){
+ if(original::DemoActive())return;
  if(message==WM_KILLFOCUS){retryRequest=false;return;}
  if(message!=WM_KEYDOWN||(data&(1L<<30)))return;
  if(key==VK_F12){SetAdvancedOpen(!open);return;}

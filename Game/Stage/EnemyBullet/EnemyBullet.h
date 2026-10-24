@@ -1,4 +1,6 @@
 #pragma once
+#include "../../Original/OriginalMath.h"
+#include "../../Original/OriginalFeatures.h"
 #include <math.h>
 #ifndef PI
 #define PI 3.1415926535897932384626433832795
@@ -85,6 +87,7 @@ class CStage;
 
 class CEnemyBullet
 {
+friend struct PracticeTests;
 friend class CStage;
 
 public:
@@ -127,6 +130,7 @@ public:
 
 	__forceinline void UpdateVelXYFromSpeedAngle(int recordIdx)
 	{
+		if(original::DemoActive()){auto& b=m_bullets[recordIdx];b.curAngle=float(int(b.curAngle)&255);b.curSpeed=float(int(b.curSpeed)&255);b.velX=float(original::math::X(int(b.curAngle),int(b.curSpeed)));b.velY=float(original::math::Y(int(b.curAngle),int(b.curSpeed)));return;}
 		m_bullets[recordIdx].velX=(float)cos(m_bullets[recordIdx].curAngle/256.0*2*PI)*m_bullets[recordIdx].curSpeed;
 		m_bullets[recordIdx].velY=(float)sin(m_bullets[recordIdx].curAngle/256.0*2*PI)*m_bullets[recordIdx].curSpeed;
 

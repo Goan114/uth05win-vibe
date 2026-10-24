@@ -44,6 +44,7 @@ class CStage;
 
 class CCharaBullet
 {
+friend struct PracticeTests;
 friend class CStage;
 friend class CChara;
 friend class CCharaReimu;
@@ -53,6 +54,7 @@ friend class CCharaYuka;
 
 protected:
 	CStage *m_pStage;
+	unsigned char m_originalHitCounter;
 	float m_clipXLow,m_clipXHigh,m_clipYLow,m_clipYHigh;
 
 protected:
@@ -63,6 +65,7 @@ public:
 public:
 	void AddBullet(float bulletX, float bulletY, unsigned char imgIdx,unsigned char bulletType,
 				   float velX, float velY, float moveAngle,unsigned char damage);
+	void ShootOriginal(int character,int level,int timer,float x,float y);
 	void Step();
 	void Draw();
 

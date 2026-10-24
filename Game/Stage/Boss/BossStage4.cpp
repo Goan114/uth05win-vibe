@@ -85,12 +85,12 @@ int CBossStage4::RandomWalkVerStage4(int frameIdx,float &angle,int &forceMove,
 	if (frameIdx==0)
 	{
 		if (x<144.0f*16.0f)
-			angle=(float)(rand()%96-48);
+			angle=(float)(original::Random()%96-48);
 		else
 			if (x>240.0f*16.0f)
-				angle=(float)(rand()%96+80);	//PC98 ver chooses randomly from 48/80/112/144, seems bug
+				angle=(float)(original::Random()%96+80);	//PC98 ver chooses randomly from 48/80/112/144, seems bug
 			else
-				angle=(float)(rand()%256);
+				angle=(float)(original::Random()%256);
 		while (angle>=256.0f)
 			angle-=256.0f;
 		while (angle<0.0f)
@@ -270,13 +270,13 @@ int CBossStage4::MaiShootType0_1()
 		ENEMY_SHOOT_INFO shootInfo;
 		shootInfo.bulletBornType=18;
 		shootInfo.shootType=EST07_MULTI_TO_CHARA;
-		shootInfo.shootAngle=(float)(rand()%64-32);
+		shootInfo.shootAngle=(float)(original::Random()%64-32);
 		shootInfo.bulletImg=47;
 		shootInfo.shootOrigX=m_curX;
 		shootInfo.shootOrigY=m_curY-8.0f*16.0f;
 		shootInfo.nMulti=2;
 		shootInfo.deltaSpeed=6;
-		shootInfo.bulletSpeed=(float)(16+rand()%32);
+		shootInfo.bulletSpeed=(float)(16+original::Random()%32);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo);
 		m_pStage->m_bPlaySound[3]=true;
@@ -430,7 +430,7 @@ int CBossStage4::MaiShootType2_3__2_4()
 		m_pStage->m_bPlaySound[3]=true;
 		if (m_curPhaseFrame%16==0)
 		{
-			m_phase2MaiShootType2_3__2_4_baseAngle-=(float)(16+rand()%8);
+			m_phase2MaiShootType2_3__2_4_baseAngle-=(float)(16+original::Random()%8);
 			m_phase2MaiShootType2_3__2_4_deltaAngle=-m_phase2MaiShootType2_3__2_4_deltaAngle;
 		}
 	}
@@ -507,14 +507,14 @@ int CBossStage4::YukiShootType0_1__1_4()
 		ENEMY_SHOOT_INFO shootInfo;
 		shootInfo.bulletBornType=16;
 		shootInfo.shootType=EST03_NWAY_TO_CHARA;
-		shootInfo.shootAngle=(float)(rand()%64-32);
+		shootInfo.shootAngle=(float)(original::Random()%64-32);
 		shootInfo.bulletImg=50;
 		shootInfo.shootOrigX=m_2curX;
 		shootInfo.shootOrigY=m_2curY-8.0f*16.0f;
 		shootInfo.nWay=7;
 		shootInfo.nWayUnitAngle=5;
 		shootInfo.bulletMoveType=EBMT10_STRAIGHT;
-		shootInfo.bulletSpeed=(float)(16+rand()%32);
+		shootInfo.bulletSpeed=(float)(16+original::Random()%32);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo,true);
 	}
@@ -548,7 +548,7 @@ int CBossStage4::YukiShootType0_3__1_1()
 		ENEMY_SHOOT_INFO shootInfo;
 		shootInfo.bulletBornType=16;
 		shootInfo.shootType=EST04_NWAY_ALLAROUND;
-		shootInfo.shootAngle=(float)(rand()%256);
+		shootInfo.shootAngle=(float)(original::Random()%256);
 		shootInfo.bulletImg=50;
 		shootInfo.shootOrigX=m_2curX;
 		shootInfo.shootOrigY=m_2curY-8.0f*16.0f;
@@ -588,13 +588,13 @@ int CBossStage4::YukiShootType1_2()
 		ENEMY_SHOOT_INFO shootInfo;
 		shootInfo.bulletBornType=16;
 		shootInfo.shootType=EST02_NWAY;
-		shootInfo.shootAngle=(float)(rand()%256);
+		shootInfo.shootAngle=(float)(original::Random()%256);
 		shootInfo.bulletImg=0;
 		shootInfo.shootOrigX=m_2curX;
 		shootInfo.shootOrigY=m_2curY-8.0f*16.0f;
 		shootInfo.nWay=2;
 		shootInfo.nWayUnitAngle=2;
-		shootInfo.bulletSpeed=(float)(24+rand()%32);
+		shootInfo.bulletSpeed=(float)(24+original::Random()%32);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo);
 	}
@@ -657,7 +657,7 @@ int CBossStage4::YukiShootType2_2__2_3()
 		m_pStage->m_bPlaySound[3]=true;
 		if (m_curPhaseFrame%16==0)
 		{
-			m_phase2YukiShootType2_2__2_3_baseAngle+=(float)(16+rand()%8);
+			m_phase2YukiShootType2_2__2_3_baseAngle+=(float)(16+original::Random()%8);
 			m_phase2YukiShootType2_2__2_3_deltaAngle=-m_phase2YukiShootType2_2__2_3_deltaAngle;
 		}
 	}

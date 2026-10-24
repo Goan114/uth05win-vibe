@@ -1,4 +1,5 @@
 #include ".\globalvariableandstatistics.h"
+#include "Original/OriginalFeatures.h"
 #include "Practice/Practice.h"
 #include <string.h>
 #include <time.h>
@@ -167,7 +168,7 @@ void CGlobalVariableAndStatistics::SavePracticeProgress()
 }
 void CGlobalVariableAndStatistics::OnStageEnter()
 {
- if(m_bReplayMode || m_bPracticeMode || practice::Assisted() || m_playDifficulty<0 || m_playDifficulty>=4 ||
+ if(original::DemoActive() || m_bReplayMode || m_bPracticeMode || practice::Assisted() || m_playDifficulty<0 || m_playDifficulty>=4 ||
   m_playChara<0 || m_playChara>=4 || m_playStage<0 || m_playStage>=6) return;
  for(int i=0;i<practice::ToolCount;i++) if(practice::Enabled(practice::Tool(i))) return;
  m_practiceUnlocked[m_playChara][m_playDifficulty]|=1<<m_playStage;
@@ -176,7 +177,7 @@ void CGlobalVariableAndStatistics::OnStageEnter()
 
 void CGlobalVariableAndStatistics::OnClear()
 {
-	if (practice::Assisted() || m_bPracticeMode) return;
+	if (original::DemoActive() || practice::Assisted() || m_bPracticeMode) return;
 	m_bClear[m_playChara][m_playDifficulty]=true;
 	for (int i=0;i<4;i++)
 		for (int j=1;j<4;j++)
@@ -279,7 +280,7 @@ void CGlobalVariableAndStatistics::OnBeginGame()
 		m_replay.Reset();
 		srand((unsigned int)time(NULL));
 		for (int i=0;i<7;i++)
-			m_randomSeed[i]=rand()*32768+rand();
+			m_randomSeed[i]=original::Random()*32768+original::Random();
 		m_replay.m_nInitLife=m_nInitLife;
 		m_replay.m_nInitBomb=m_nInitBomb;
 		m_replay.m_playDifficulty=m_playDifficulty;
@@ -338,6 +339,7 @@ void CGlobalVariableAndStatistics::OnBeginGame()
  }
 	m_curHighScore=m_highScore[m_playChara][m_playDifficulty][0];
 	m_nContinueUsed=0;
+ original::BeginRun();
 
 	int pScore[]={6000,10000,15000,20000,40000};
 	m_pointItemMaxScore=pScore[m_playDifficulty];

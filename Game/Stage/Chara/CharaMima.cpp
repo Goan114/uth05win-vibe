@@ -16,6 +16,8 @@ CCharaMima::CCharaMima(void)
 	m_moveSpeedDiagonal=52.0f;
 	m_bombInvulnerableTime=144;
 	m_bombClearEnemyBulletTime=96;
+ // The native animation union is zeroed BSS, including the first bomb frame.
+ if(original::DemoActive())memset(m_bombAni,0,sizeof(m_bombAni));
 }
 
 CCharaMima::~CCharaMima(void)
@@ -33,11 +35,13 @@ void CCharaMima::StepBomb()
 			for (int i=0;i<MIMA_BOMB_ANI_N_RECORD;i++)
 				m_bombAni[i].radius=MIMA_BOMB_ANI_RECORD_RADIUS_UNUSED;
 		}
-		//PC98 ver does not have m_bombTimer>=16 condition, which may cause array index out range. fixed here
-		if (m_bombTimer%4==0&&m_bombTimer>=16)
+		// Native circles use AND 7, so frames 0/4/8/12 are valid slots
+  // 4/5/6/7. Retain their random draws for the original recorded input.
+		if (m_bombTimer%4==0&&(original::DemoActive()||m_bombTimer>=16))
 		{
-			m_bombAni[(m_bombTimer-16)/4%8].radius=256.0f*16.0f;
-			m_bombAni[(m_bombTimer-16)/4%8].angle=(float)(rand()%256);
+   const int slot=original::DemoActive()?((m_bombTimer-16)/4&7):(m_bombTimer-16)/4%8;
+			m_bombAni[slot].radius=256.0f*16.0f;
+			m_bombAni[slot].angle=(float)(original::Random()%256);
 		}
 		for (int i=0;i<MIMA_BOMB_ANI_N_RECORD;i++)
 			if (m_bombAni[i].radius!=MIMA_BOMB_ANI_RECORD_RADIUS_UNUSED)
@@ -135,7 +139,7 @@ void CCharaMima::ShootBullet()
 		break;
 	case 2:
 		if (m_charaShootTimer%6==0)
-			GetCharaBullet()->AddBullet(m_curX,m_curY,20,CHARA_BULLET_TYPE_NORMAL,0,0,184+(float)(rand()%16),8);
+			GetCharaBullet()->AddBullet(m_curX,m_curY,20,CHARA_BULLET_TYPE_NORMAL,0,0,184+(float)(original::Random()%16),8);
 		if (m_charaShootTimer%3==0)
 		{
 			GetCharaBullet()->AddBullet(m_curX+24.0f*16.0f,m_curY,22,CHARA_BULLET_TYPE_NORMAL,0,-320,
