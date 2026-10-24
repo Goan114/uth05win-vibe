@@ -10,11 +10,16 @@ namespace th5w{
 
 class CHighScoreScreen : public CScheme
 {
+ friend struct PracticeTests;
 protected:
 	unsigned char m_charTable[3][17];
 
 protected:
 	bool m_bViewMode;
+ // Keep assisted full-clear results local until this screen is dismissed.
+ bool m_storeHighScore;
+ int m_scores[4][5][5];
+ unsigned char m_names[4][5][5][10],m_flags[4][5][5];
 	int m_curFrame;
 	unsigned short m_lastKeyState,m_curKeyState;
 
@@ -37,6 +42,7 @@ protected:
 	int m_quitCode;
 
 protected:
+ int Tick(unsigned short keys);
 	void DrawItem(int x,int y,unsigned char name[10],int score,unsigned char flag,bool bHighLight);
 
 public:
