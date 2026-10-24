@@ -14,6 +14,8 @@ struct Verdict {
  Verdict():skill(0),maximum(0),row(25),comment(0),valid(true),fractions{}{}
 };
 RunStats& Stats();Verdict Evaluate(const RunStats&);
+// One simulation tick may consume two native VSync intervals in Slow mode.
+void BeginTimingFrame();void BulletSlowdown(int bullets,int frame,int difficulty);int FrameDelay();
 void BeginRun();void Frame(bool stageScrolling,int score);void PausedFrame();void RenderTiming(bool slow);void EndStage(int stage,int score,bool clear);
 void ItemSpawned();void ItemCollected(bool point,bool maxPoint);void EnemyGone(bool killed);void Miss();void Bomb();
 struct DemoState {

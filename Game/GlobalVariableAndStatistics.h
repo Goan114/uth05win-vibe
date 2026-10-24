@@ -32,6 +32,8 @@ public:
 	int m_nInitLife;
 	int m_nInitBomb;
 	int m_initDifficulty;
+ bool m_turboMode; // Saved option: true = Turbo, false = native bullet-dependent Slow.
+ bool m_runTurboMode; // Fixed for this run, restored from replay when playing back.
 
 	void LoadConfig();
 	void LoadProgramConfig();

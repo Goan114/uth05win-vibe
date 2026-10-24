@@ -106,7 +106,7 @@ struct PracticeTests {
   memset(g.m_practiceUnlocked,0,sizeof(g.m_practiceUnlocked));g.LoadPracticeProgress();
   Check(g.PracticeStageUnlocked(0)&&!g.PracticeStageUnlocked(1),"unlock progress persists across reload");
   { FILE* cfg=fopen("game.cfg","rb");Check(cfg!=NULL,"unlock uses native game.cfg");
-    fseek(cfg,0,SEEK_END);Check(ftell(cfg)==92,"native config has its 52-byte prefix and versioned progress extension");fclose(cfg); }
+    fseek(cfg,0,SEEK_END);Check(ftell(cfg)==101,"native config retains its legacy prefix, progress extension and speed option");fclose(cfg); }
   g.LoadConfig();g.LoadPracticeProgress();Check(g.PracticeStageUnlocked(0),"native configuration reload preserves entry unlock");
   g.m_bClear[2][3]=true;g.LoadPracticeProgress();g.m_playChara=2;g.m_playDifficulty=3;
   Check(g.PracticeStageUnlocked(5),"existing full-game clear migrates completed stages");g.m_bClear[2][3]=false;
@@ -268,6 +268,9 @@ struct PracticeTests {
    Check(end==STAGE_END_SAVE_EXIT,"custom run closes the recording through the save action");
    Check(g.m_replay.SaveFile("custom-roundtrip.rpy"),"custom replay saves its versioned initial parameters");
    REPLAY_BRIEF_INFO info={};Check(CReplay::GetRepFileInfo(&info,"custom-roundtrip.rpy"),"custom replay is accepted by the native replay browser");
+   g.m_replay.m_turboMode=false;Check(g.m_replay.SaveFile("custom-speed.rpy"),"Slow custom practice stores both TPC5 and timing extensions");
+   CReplay slow;Check(slow.LoadFile("custom-speed.rpy")&&!slow.m_turboMode&&slow.m_practiceConfig.warp==warp&&slow.m_keyState[stage]==g.m_replay.m_keyState[stage],"Slow custom practice restores native parameters and complete input stream");
+   Check(CReplay::GetRepFileInfo(&info,"custom-speed.rpy"),"Slow custom practice remains visible in replay browser");g.m_replay.m_turboMode=true;
    delete record;game.m_pCurScheme=NULL;
    if((stage==0&&warp==3)||(stage==3&&warp==2)){
     CScheme* restarted=NULL;int id=0;

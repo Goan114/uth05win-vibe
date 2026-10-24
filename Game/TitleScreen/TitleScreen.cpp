@@ -40,7 +40,7 @@ char optionMenuDesc[][100]={"",
 							"ボムの使用回数を変更出来ます（除くエキストラ）",
 							"ＢＧＭに８６音源互換を使用します(Via PMDWin and DirectSound, not changeable)",
 							"効果音にＦＭ音源を使用します(Via DirectSound, not changeable)",
-							"処理落ちをマシンのスピードに任せます（標準）(SlowMode not implemented)",
+							"処理落ちをマシンのスピードに任せます（標準）",
 							"このオプションを全て標準に戻します(Not implemented)",
 							"オプションを終了します"};
 char difficultyDesc[][100]={"難易度をやさしくします　     （初心者向け）　 ",
@@ -417,7 +417,7 @@ void CTitleScreen::DrawOptionMenuItems()
 			m_spriteArray.GetImagePtr(30)->DrawColorScaled((float)320,(float)314+40,menuItemColor[0],menuItemColor[1],menuItemColor[2]);
 			break;
 		case 5:
-			m_spriteArray.GetImagePtr(32)->DrawColorScaled((float)272,(float)330+40,menuItemColor[0],menuItemColor[1],menuItemColor[2]);
+			m_spriteArray.GetImagePtr(CGame::GVar().m_turboMode?32:33)->DrawColorScaled((float)272,(float)330+40,menuItemColor[0],menuItemColor[1],menuItemColor[2]);
 			break;
 		case 6:
 			m_spriteArray.GetImagePtr(31)->DrawColorScaled((float)272,(float)346+40,menuItemColor[0],menuItemColor[1],menuItemColor[2]);
@@ -431,7 +431,7 @@ void CTitleScreen::DrawOptionMenuItems()
 	}
 
 	if (m_optionMenuCursorPosition!=0)
-		DrawDescString(optionMenuDesc[m_optionMenuCursorPosition]);
+		DrawDescString(m_optionMenuCursorPosition==5&&!CGame::GVar().m_turboMode?"敵弾の多い場所で、わざと処理落ち（スロー）させます（初心者用）":optionMenuDesc[m_optionMenuCursorPosition]);
 	else
 		DrawDescString(difficultyDesc[CGame::GVar().m_initDifficulty]);
 }
@@ -478,13 +478,14 @@ void CTitleScreen::MoveCursorInMenu(int *cursorPos,int deltaPos,int nItem,bool *
 	}
 }
 
-void CTitleScreen::ParseKeyEvent()
+void CTitleScreen::ParseKeyEvent(){ParseMenuKey(CCommonFunctionInput::GetAllKeyState());}
+
+void CTitleScreen::ParseMenuKey(unsigned short curKeyState)
 {
 	if (m_bMenuOn)
 	{
 		if (m_curMenu==0)
 		{
-			unsigned short curKeyState=CCommonFunctionInput::GetAllKeyState();
 			if (CCommonFunctionInput::UpPressed(curKeyState,m_lastKeyState))
 			{
 				MoveCursorInMenu(&m_mainMenuCursorPosition,-1,m_mainMenuNItem,m_bMainMenuItemEnabled);
@@ -562,7 +563,6 @@ void CTitleScreen::ParseKeyEvent()
 		}
 		if (m_curMenu==1)
 		{
-			unsigned short curKeyState=CCommonFunctionInput::GetAllKeyState();
 			if (CCommonFunctionInput::UpPressed(curKeyState,m_lastKeyState))
 			{
 				MoveCursorInMenu(&m_optionMenuCursorPosition,-1,m_optionMenuNItem,m_bOptionMenuItemEnabled);
@@ -592,6 +592,9 @@ void CTitleScreen::ParseKeyEvent()
 					case 2:
 						ChangeValue(&CGame::GVar().m_nInitBomb,1,0,3);
 						break;
+     case 5:
+      CGame::GVar().m_turboMode=!CGame::GVar().m_turboMode;CGame::GVar().SaveConfig();
+      break;
 					}
 				}
 				else
@@ -621,6 +624,9 @@ void CTitleScreen::ParseKeyEvent()
 				case 2:
 					ChangeValue(&CGame::GVar().m_nInitBomb,-1,0,3);
 					break;
+    case 5:
+     CGame::GVar().m_turboMode=!CGame::GVar().m_turboMode;CGame::GVar().SaveConfig();
+     break;
 				}
 				m_lastKeyState=curKeyState;
 				return;
@@ -638,6 +644,9 @@ void CTitleScreen::ParseKeyEvent()
 				case 2:
 					ChangeValue(&CGame::GVar().m_nInitBomb,1,0,3);
 					break;
+    case 5:
+     CGame::GVar().m_turboMode=!CGame::GVar().m_turboMode;CGame::GVar().SaveConfig();
+     break;
 				}
 				m_lastKeyState=curKeyState;
 				return;
@@ -646,7 +655,6 @@ void CTitleScreen::ParseKeyEvent()
 			return;
 		}
 	}
-	unsigned short curKeyState=CCommonFunctionInput::GetAllKeyState();
 	m_lastKeyState=curKeyState;
 }
 

@@ -504,9 +504,10 @@ int CStage::Step()
 
 int CStage::StepFrame(unsigned short liveInput)
 {
+ original::BeginTimingFrame();
  if(practice::AdvancedOpen())return 0;
 	CGame::s_pCurGame->m_fpsLimit=practice::GameFPS();
-	CGame::s_pCurGame->SetVSYNC(practice::GameFPS()==56);
+	CGame::s_pCurGame->SetVSYNC(practice::GameFPS()==56&&CGame::GVar().m_runTurboMode);
  if(practice::TakeFastRetryRequest())RequestFastRetry();
  if(m_fastRetryCountdown>0){
   if(--m_fastRetryCountdown==0){m_bPaused=false;SetQuit(STAGE_END_RESTART);m_nQuitFrameLeft=0;practice::SetQuickIntro();}

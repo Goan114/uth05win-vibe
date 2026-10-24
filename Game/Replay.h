@@ -35,6 +35,7 @@ public:
 	int m_playDifficulty;
 	int m_playChara;
 	bool m_bPracticeMode;
+ bool m_turboMode;
  practice::Config m_practiceConfig;
 
 public:

@@ -700,6 +700,7 @@ void CEnemyBullet::Step()
 				}
 			}
 		}
+  original::BulletSlowdown(nAvailBullet,m_pStage->m_curFrame,CGame::GVar().m_playDifficulty);
 	}
 	else
 	{
