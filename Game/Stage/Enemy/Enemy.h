@@ -45,6 +45,7 @@ class CStage;
 
 class CEnemy
 {
+friend struct PracticeTests;
 friend class CStage;
 protected:
 	CStage *m_pStage;

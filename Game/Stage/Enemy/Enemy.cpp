@@ -53,6 +53,12 @@ void CEnemy::AddEnemy(unsigned char enemyType,unsigned char subType,float enemyX
 			m_enemy[i].accumulator=0;
 			m_enemy[i].loopCounter=0;
 			m_enemy[i].pScript=m_pStage->m_pStageRes->m_pStageStd->m_enemyScript[enemyType];
+			// Native enemies_add resolves random coordinates only after finding a free slot.
+			if (original::DemoActive())
+			{
+				if (enemyX==999*16) enemyX=float(original::Random()%(384*16));
+				if (enemyY==999*16) enemyY=float(original::Random()%(368*16));
+			}
 			m_enemy[i].curX=enemyX;
 			m_enemy[i].curY=enemyY;
 			if (m_enemy[i].curX>=192.0f*16.0f)
@@ -131,8 +137,11 @@ void CEnemy::StepEnemyTable()
 //			printf("%d %d %d\n",enemyType,xInt,yInt);
 			float x=(float)xInt;
 			float y=(float)yInt;
-			if (xInt==999*16) x=(float)(original::Random()%(384*16));
-			if (yInt==999*16) y=(float)(original::Random()%(368*16));
+			if (!original::DemoActive())
+			{
+				if (xInt==999*16) x=(float)(original::Random()%(384*16));
+				if (yInt==999*16) y=(float)(original::Random()%(368*16));
+			}
 			unsigned char dropItemType=m_pEnemyTableReadPtr[5];
 			unsigned char enemySubType=m_pEnemyTableReadPtr[6];
 			if (!m_noAddEnemy)
@@ -590,7 +599,11 @@ void CEnemy::Step()
 			m_enemy[i].autoShootTimer++;
 			if (m_enemy[i].autoShootTimer>=m_enemy[i].autoShootInterval)
 				if (m_enemy[i].curY<304.f*16.0f)
-					if (m_pStage->m_pChara->TestCrash(m_enemy[i].curX,m_enemy[i].curY,48.0f*16.0f,48.0f*16.0f)==false)
+					// Native unsigned safe-box checks exclude the right and bottom edges.
+					if (original::DemoActive() ?
+						(static_cast<unsigned short>(int(m_enemy[i].curX-m_pStage->m_pChara->GetCurX())+48*16)>=96*16 ||
+						 static_cast<unsigned short>(int(m_enemy[i].curY-m_pStage->m_pChara->GetCurY())+48*16)>=96*16) :
+						!m_pStage->m_pChara->TestCrash(m_enemy[i].curX,m_enemy[i].curY,48.0f*16.0f,48.0f*16.0f))
 					{
 						m_enemy[i].autoShootTimer=0;
 						ENEMY_SHOOT_INFO shootInfo;
