@@ -18,8 +18,11 @@ The following text was taken from the original author Pegasy
 ============
 
 这是“东方怪绮谈：Mystic Square”的非官方Windows移植版本。（Touhou 05,下称th05）
+
 此移植版几乎已经完全移植了原版的功能和特性，但是仍然有许多区别。
+
 请看“对比”以了解详细信息。
+
 This is an unofficial port of the game Touhou Kaikidan: Mystic Square (the fifth game of the touhou series, referred to as th05 below) to windows. It faithfully reproduces almost all features of the original PC98 version. Check "Comparison" section for the details
 
 ### 使用方法 Usage
@@ -27,12 +30,19 @@ This is an unofficial port of the game Touhou Kaikidan: Mystic Square (the fifth
 =====
 
 1.克隆/下载源代码/thprac Branch的源代码。
+
 2.使用msvc等编译器编译二进制文件。
+
 3.去SourceForge下载[glew](https://glew.sourceforge.net/)注意版本必须早于2014年。
+
 4.将glew32.dll放入存有二进制文件的文件夹中。
+
 5.去下载[PMDWin](http://c60.fmp.jp/)，注意版本必须早于2014年。并将PMDWin.dll放入同一个文件夹中。
+
 6.将您拥有的合法的游戏资产文件拷贝到该文件夹中，并将“怪綺談1.dat”重命名为"kaiki1.dat"，“怪綺談2.dat”重命名为"kaiki2.dat"
+
 7.运行编译后的二进制文件。
+
 1. Extract all files into a folder.
 2. Download glew from http://glew.sourceforge.net/ (download the binaries) and extract glew32.dll into the same folder.
 3. Download PMDWin from http://c60.fmp.jp/ and extract PMDWin.dll into the same folder.
@@ -71,7 +81,7 @@ New features in this ported version:
  * uses float instead of int where necessary, increasing accuracy
 
 目前仍需验证／实现的功能：
- * 原始 Demo 已接入输入和专用原版运算路径，仍需 PC-98 原版逐帧轨迹对照；原版允许掉残与放 Bomb，不能以无伤或播放到末尾作为还原判据。
+ * 原始 Demo
  * 部分选项
 
 The current fork restores Staff Roll, All Cast and player performance evaluation using the original game data.
@@ -123,9 +133,12 @@ When you switch to/from full screen mode, the font texture may become corrupted.
 
 =========
 
-1999 上海爱丽丝幻乐团/ZunTeam
+1999 上海爱丽丝幻乐团/Zun Team
+
 2011 Pegasy
-1999 Team Shanghai Alice
+
+1999 Team Shanghai Alice/Zun Team
+
 2011 Pegasy
 
 所有所使用的资产和库版权均属对应作者所有。
@@ -136,11 +149,11 @@ The assets and libraries it uses belongs to their authors. Check their webpage f
 * “东方怪绮谈”游戏内容（未随仓库分发）：(http://www.kt.rim.or.jp/~aotaka/am/index.htm)
 * OpenGL 扩展渲染器库（glew）：(https://glew.sourceforge.net/)
 * PMDWin (http://c60.fmp.jp/)
-* Rec98 (rec98.nmlgc.net)
+* Rec98 (https://rec98.nmlgc.net/)
 
 This program uses:
 * assets from th05 (http://www.kt.rim.or.jp/~aotaka/am/index.htm)
 * now need to prepare your own assets
 * The OpenGL Extension Wrangler Library (http://glew.sourceforge.net/)
 * PMDWin (http://c60.fmp.jp/)
-* Rec98 (rec98.nmlgc.net)
+* Rec98 (https://rec98.nmlgc.net/)
