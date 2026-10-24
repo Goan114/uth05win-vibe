@@ -23,6 +23,7 @@ protected:
 	LINE_SEQ m_lineSeq;
 
 protected:
+	unsigned char m_demoPatternState; // Original boss_statebyte[15], shared by attack patterns.
 	float m_phase2Type2Angle;
 	float m_phase4Angle;
 	bool m_bPhase4AngleInc;

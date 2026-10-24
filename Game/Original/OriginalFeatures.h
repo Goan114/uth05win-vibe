@@ -17,8 +17,8 @@ RunStats& Stats();Verdict Evaluate(const RunStats&);
 void BeginRun();void Frame(bool stageScrolling,int score);void PausedFrame();void RenderTiming(bool slow);void EndStage(int stage,int score,bool clear);
 void ItemSpawned();void ItemCollected(bool point,bool maxPoint);void EnemyGone(bool killed);void Miss();void Bomb();
 struct DemoState {
- bool active,extraPart2;int number,index,frames;uint32_t seed;unsigned char ring[256],ringIndex,itemDropIndex;std::vector<unsigned char> data;
- DemoState():active(false),extraPart2(false),number(0),index(0),frames(5000),seed(318),ring{},ringIndex(0),itemDropIndex(0){}
+ bool active,extraPart2;int number,index,frames;uint32_t seed;unsigned char ring[256],ringIndex,itemDropIndex,bulletTemplateAngle;std::vector<unsigned char> data;
+ DemoState():active(false),extraPart2(false),number(0),index(0),frames(5000),seed(318),ring{},ringIndex(0),itemDropIndex(0),bulletTemplateAngle(0){}
 };
 DemoState& Demo();bool DemoActive();bool StartDemo(bool extra=false);void StopDemo(bool resetSequence=false);bool DemoInput(unsigned short live,unsigned short& input);void DemoDialogueEnded();void ResetDemoSeed();int Random();int IRandom();
 } }

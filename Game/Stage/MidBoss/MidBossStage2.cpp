@@ -65,6 +65,7 @@ void CMidBossStage2::Phase1()
 		m_curPhaseFrame=0;
 		m_pStage->m_pSparkEffect->AddEffect(m_curX,m_curY,64,32,true);
 		m_pStage->m_bPlaySound[15]=true;
+		if(original::DemoActive()){const int angle=original::math::Angle(64*16-int(m_curY),192*16-int(m_curX));m_velX=float(original::math::X(angle,1));m_velY=float(original::math::Y(angle,1));}
 		//PC98 ver tries to calculate velocity to move boss from current position to (192*64,64*64) in next phase
 		//with speed 1, but due to the fact that it used integer velX and velY, they are set as 0.
 		//(cos(any_angle0)*1<=1, sin(any_angle)<=1)
@@ -109,6 +110,19 @@ void CMidBossStage2::Phase1Shoot()
 
 void CMidBossStage2::Phase1Move()
 {
+	if(original::DemoActive())
+	{
+		m_curX=float(original::math::X(int(m_phase1Angle),int(m_phase1Radius)))+m_phase1CtrX;
+		m_curY=float(original::math::Y(int(m_phase1Angle),int(m_phase1Radius)))+m_phase1CtrY;
+		m_phase1CtrX+=m_phase1VelX;
+		if(m_phase1CtrX<128*16)m_phase1VelX+=2;
+		else if(m_phase1CtrX>256*16)m_phase1VelX-=2;
+		m_phase1Radius+=m_phase1DeltaRadius;
+		if(m_phase1Radius>64*16)m_phase1DeltaRadius=-16;
+		else if(m_phase1Radius<=16)m_phase1DeltaRadius=16;
+		m_phase1Angle=float((int(m_phase1Angle)-2)&255);
+		return;
+	}
 	m_curX=(float)cos(m_phase1Angle/256.0f*2*PI)*m_phase1Radius+m_phase1CtrX;
 	m_curY=(float)sin(m_phase1Angle/256.0f*2*PI)*m_phase1Radius+m_phase1CtrY;
 	m_phase1CtrX+=m_phase1VelX;
@@ -129,6 +143,7 @@ void CMidBossStage2::Phase1Move()
 void CMidBossStage2::Phase2()
 {
 	Phase2Shoot();
+	if(original::DemoActive()){m_lastX=m_curX;m_lastY=m_curY;m_curX+=m_velX;m_curY+=m_velY;}
 	int dmg=GetDamageAndPlaySoundWhenHit(24.0f*16.0f,24.0f*16.0f,4);
 	if (dmg!=0)
 		m_bHitThisFrame=true;

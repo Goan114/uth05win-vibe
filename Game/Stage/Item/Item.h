@@ -38,6 +38,7 @@ class CStage;
 
 class CItem
 {
+friend struct PracticeTests;
 friend class CStage;
 protected:
 	CStage *m_pStage;

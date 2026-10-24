@@ -62,6 +62,11 @@ void CLaser::AddLaserShootOut(float srcX,float srcY,float color[3],float angle,i
 			m_laser[i].angle=angle;
 			m_laser[i].srcX=(float)(srcX+cos(angle/256.0f*2*PI)*16.0f*8.0f);
 			m_laser[i].srcY=(float)(srcY+sin(angle/256.0f*2*PI)*16.0f*8.0f);
+   if(original::DemoActive()){
+    m_laser[i].angle=float(int(angle)&255);
+    m_laser[i].srcX=srcX+float(original::math::X(int(angle),128));
+    m_laser[i].srcY=srcY+float(original::math::Y(int(angle),128));
+   }
 			m_pStage->m_bPlaySound[5]=true;
 			break;
 		}
@@ -100,6 +105,17 @@ void CLaser::RemoveLaser(int laserIdx)
 
 void CLaser::TestCrash(int laserIdx)
 {
+ if(original::DemoActive()){
+  const auto& laser=m_laser[laserIdx];const int x=int(m_pStage->m_pChara->GetCurX()),y=int(m_pStage->m_pChara->GetCurY());
+  int length=int(laser.lenUpper);
+  do{
+   const int testX=int(laser.srcX)+original::math::X(int(laser.angle),length);
+   const int testY=int(laser.srcY)+original::math::Y(int(laser.angle),length);
+   if(testX>=x-96&&testX<x+96&&testY>=y-96&&testY<y+96){m_pStage->m_pChara->m_bMiss=true;return;}
+   length-=256;
+  }while(length>=int(laser.lenLower));
+  return;
+ }
 	for (float len=m_laser[laserIdx].lenUpper;len>=m_laser[laserIdx].lenLower;len-=16.0f*16.0f)
 	{
 		float testX=m_laser[laserIdx].srcX+(float)cos(m_laser[laserIdx].angle/256.0f*2*PI)*len;
@@ -123,7 +139,7 @@ void CLaser::Step()
 				if (m_laser[i].mode==LASER_MODE_SHOOT_OUT)
 				{
 					m_laser[i].mode=LASER_MODE_SHOOT_OUT_END;
-					m_laser[i].speed/=2.0f;
+					m_laser[i].speed=original::DemoActive()?float(int(m_laser[i].speed)/2):m_laser[i].speed/2.0f;
 				}
 			}
 			switch(m_laser[i].mode)
@@ -179,9 +195,47 @@ void CLaser::Step()
 			    break;
 			}
 			m_laser[i].age++;
-			if (m_laser[i].lenLower>=550.0f*16.0f)
+			if (!original::DemoActive()&&m_laser[i].lenLower>=550.0f*16.0f)
 				m_laser[i].mode=LASER_MODE_NONE;
 		}
+}
+
+// Native rendering frees a ray after clipping its inner polygon. Keep this
+// state change in the simulation so skipped rendering cannot change Demo slots.
+void CLaser::FinishDemoFrame()
+{
+ if(!original::DemoActive())return;
+ struct Point{int x,y;};
+ for(auto& laser:m_laser){
+  if(!laser.mode||laser.mode==LASER_MODE_SHOOT_OUT_END)continue;
+  int width=int(laser.width);if(width>=3)width-=width>=5?4:2;if(width<=1)continue;
+  const int angle=int(laser.angle),half=width*8;
+  const int ox=int(laser.srcX)+32*16,oy=int(laser.srcY)+16*16;
+  const int leftX=ox+original::math::X(angle-64,half),leftY=oy+original::math::Y(angle-64,half);
+  const int dx=ox+original::math::X(angle+64,half)-leftX,dy=oy+original::math::Y(angle+64,half)-leftY;
+  const int sx=leftX+original::math::X(angle,int(laser.lenLower)),sy=leftY+original::math::Y(angle,int(laser.lenLower));
+  const int ex=leftX+original::math::X(angle,int(laser.lenUpper)),ey=leftY+original::math::Y(angle,int(laser.lenUpper));
+  Point p[8]={{sx>>4,sy>>4},{(sx+dx)>>4,(sy+dy)>>4},{(ex+dx)>>4,(ey+dy)>>4},{ex>>4,ey>>4}};
+  int count=4;
+  // master.lib clips the Y band in reverse order, then the X band forward.
+  for(int axis=1;axis>=0&&count;--axis){
+   Point out[8];int used=0;Point prev=axis?p[0]:p[count-1];
+   const int lo=axis?16:32,hi=axis?383:415;
+   for(int k=0;k<count;k++){
+    const Point cur=p[axis?count-1-k:k];
+    if(axis&&cur.x==prev.x&&cur.y==prev.y){prev=cur;continue;}
+    const int a=axis?cur.y:cur.x,b=axis?prev.y:prev.x;
+    const int ca=a<lo?-1:a>hi?1:0,cb=b<lo?-1:b>hi?1:0;
+    if(ca!=cb){
+     if(cb){const int bound=cb<0?lo:hi;if(bound!=a){Point q=cur;if(axis){q.y=bound;q.x+=(bound-a)*(prev.x-cur.x)/(b-a);}else{q.x=bound;q.y+=(bound-a)*(prev.y-cur.y)/(b-a);}out[used++]=q;}}
+     if(ca){const int bound=ca<0?lo:hi;if(bound!=b){Point q=cur;if(axis){q.y=bound;q.x+=(bound-a)*(prev.x-cur.x)/(b-a);}else{q.x=bound;q.y+=(bound-a)*(prev.y-cur.y)/(b-a);}out[used++]=q;}}
+    }
+    if(!ca)out[used++]=cur;prev=cur;
+   }
+   count=used;for(int k=0;k<count;k++)p[k]=out[axis?count-1-k:k];
+  }
+  if(!count)laser.mode=LASER_MODE_NONE;
+ }
 }
 
 void CLaser::Draw()

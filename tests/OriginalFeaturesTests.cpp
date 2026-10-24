@@ -2,6 +2,8 @@
 #include "../Game/Original/OriginalScenes.h"
 #include "../Game/TitleScreen/TitleScreen.h"
 #include "../Game/Stage/Stage.h"
+#include "../Game/Stage/MidBoss/MidBoss.h"
+#include "../Game/Stage/Background/Background.h"
 #include "../Game/Stage/Chara/Chara.h"
 #include "../Game/Stage/CharaBullet/CharaBullet.h"
 #include "../Game/Stage/EnemyBullet/EnemyBullet.h"
@@ -9,6 +11,8 @@
 #include "../Game/Stage/Dialogue/Dialogue.h"
 #include "../Game/Stage/Item/Item.h"
 #include "../Game/Stage/Boss/BossStage1.h"
+#include "../Game/Stage/Boss/BossStageEx.h"
+#include "../Game/Stage/Laser/Laser.h"
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
@@ -132,6 +136,33 @@ struct PracticeTests {
   player->m_bombTimer=80;Check(player->GetBombDamage(2000,3100,128,100,false)==0,"native Marisa beam stops at frame eighty");
   delete stage;StopDemo(true);
  }
+ static void NativeBossMechanics(CGame& game){using namespace original;StopDemo(true);Check(StartDemo(),"boss fixture starts native Demo");
+  CStage* stage=new CStage;stage->Initialize();CBossStageEx boss;boss.m_pStage=stage;boss.Initialize();
+  boss.m_curX=250*16;boss.m_curY=64*16;boss.m_imgGoLeft=186;boss.m_imgGoRight=184;boss.m_imgStay=180;
+  ResetDemoSeed();boss.RandomWalk(0);Check(Demo().ringIndex==1&&boss.m_curX==4000+math::X(112,64)&&boss.m_curY==1024+math::Y(112,64),"native right-side flystep keeps masked angles and integer vectors");
+  boss.m_curX=boss.m_curY=100;boss.MoveTo(85,85);Check(boss.m_curX==97&&boss.m_curY==93,"native return movement uses signed truncation and different X/Y divisors");
+  boss.m_curX=3000;boss.m_curY=1200;int positions[5][2];ResetDemoSeed();for(int i=0;i<5;i++){positions[i][0]=3000-1024+(Random()&2047);positions[i][1]=1200-1024+(Random()&2047);}
+  ResetDemoSeed();boss.DropItem();for(int i=0;i<5;i++)Check(stage->m_pItem->m_item[i].curX==positions[i][0]&&stage->m_pItem->m_item[i].curY==positions[i][1],"native boss drop draws X before Y independently of argument evaluation order");
+  boss.m_curPhaseFrame=64;boss.m_demoPatternState=200;Demo().bulletTemplateAngle=17;Demo().ringIndex=0;
+  boss.Phase6ShootType2();Check(boss.m_demoPatternState==57&&Demo().bulletTemplateAngle==20&&Demo().ringIndex==0,"native ring direction shares a byte with aimed attacks, with no random initial angle");
+  boss.m_bFireWave[0]=false;boss.m_bFireWave[1]=true;boss.m_fireWaveY[1]=588;stage->m_pChara->m_bMiss=false;boss.StepFireWave();Check(!boss.m_bFireWave[1],"native firewave ends at screen row 608");
+  delete stage;StopDemo(true);
+ }
+ static void NativeSpecialMechanics(CGame& game){using namespace original;StopDemo(true);Check(StartDemo(),"special-bullet fixture starts native Demo");
+  CStage* stage=new CStage;stage->Initialize();stage->m_curFrame=2;
+  CCurvingBullet curves;curves.m_pStage=stage;curves.Initialize();
+  for(int i=0;i<8;i++)curves.AddBullet(1000,1000,0,6,11);
+  Check(curves.m_bullet[6].flag&&!curves.m_bullet[7].flag,"native curved bullets have seven slots");
+  curves.Step();auto& b=curves.m_bullet[0];Check(b.nodeX[0]==1000&&b.demoHeadX==1006&&b.demoHeadY==1000&&b.speed==5&&b.age==1,"native curved head advances separately from old-head trail node zero");
+  b.flag=0;curves.AddBullet(1000,1000,0,4,11);Check(b.age==1,"reusing a native curved slot retains head age");
+  b.nodeX[14]=400*16;curves.Step();Check(!b.flag,"native curved trail retires exactly on the expanded right boundary");
+  stage->m_pLaser->Initialize();auto& ray=stage->m_pLaser->m_laser[0];
+  ray.mode=LASER_MODE_SHOOT_OUT;ray.srcX=3197;ray.srcY=1049;ray.lenLower=3016;ray.lenUpper=5776;ray.angle=8;ray.width=6;
+  stage->m_pLaser->FinishDemoFrame();Check(ray.mode==LASER_MODE_NONE,"native Extra frame 20187 frees a clipped inner ray before reusing its slot");
+  ray.mode=LASER_MODE_SHOOT_OUT;ray.lenLower=256;ray.lenUpper=1000;ray.angle=64;
+  stage->m_pLaser->FinishDemoFrame();Check(ray.mode==LASER_MODE_SHOOT_OUT,"native clipping retains a ray inside the playfield");
+  delete stage;StopDemo(true);
+ }
  static void HashWord(uint64_t& hash,uint32_t word){for(int i=0;i<4;i++){hash^=(word>>(i*8))&255;hash*=1099511628211ull;}}
  static uint64_t DemoDigest(CStage& stage,uint64_t hash){using namespace original;
   HashWord(hash,Demo().seed);HashWord(hash,Demo().ringIndex);HashWord(hash,Demo().index);HashWord(hash,Demo().extraPart2);
@@ -139,14 +170,65 @@ struct PracticeTests {
   HashWord(hash,stage.m_nCurLife);HashWord(hash,stage.m_nCurBomb);HashWord(hash,stage.m_curScore);HashWord(hash,stage.m_nMiss);HashWord(hash,stage.m_nBomb);
   HashWord(hash,stage.m_curDream);HashWord(hash,stage.m_playerPerformance);HashWord(hash,stage.m_pChara->GetPower());
   if(stage.m_pBoss){HashWord(hash,stage.m_pBoss->m_curPhase);HashWord(hash,stage.m_pBoss->m_curHP);HashWord(hash,stage.m_pBoss->m_curPhaseFrame);}
+  return SpecialFrame(stage,hash);
+ }
+ static uint64_t CombatFrame(CStage& stage,uint64_t hash){using namespace original;
+  auto* p=stage.m_pChara;
+  const uint32_t fields[]={uint32_t(stage.m_curFrame),uint32_t(p->m_curX),uint32_t(p->m_curY),Demo().seed,uint32_t(Demo().ringIndex),uint32_t(p->GetPower()),uint32_t(stage.GetDream()),uint32_t(stage.m_nCurLife),uint32_t(stage.m_nCurBomb),uint32_t(stage.m_playerPerformance),uint32_t(p->m_bMiss),uint32_t(p->m_nextLifeComeTimeLeft),uint32_t(p->m_invulnerableTimeLeft),uint32_t(p->m_cannotControlTimeLeft)};
+  for(auto word:fields)HashWord(hash,word);
+  int count=0;for(int i=0;i<40;i++)if(stage.m_pItem->m_item[i].flag==1)++count;HashWord(hash,count);
+  for(int i=0;i<40;i++){const auto& v=stage.m_pItem->m_item[i];if(v.flag!=1)continue;const int words[]={i,v.flag,int(v.curX),int(v.curY),int(v.velX),int(v.velY),v.itemType};for(auto word:words)HashWord(hash,word);}
+  count=0;for(int i=0;i<32;i++)if(stage.m_pEnemy->m_enemy[i].flag==1)++count;HashWord(hash,count);
+  for(int i=0;i<32;i++){const auto& v=stage.m_pEnemy->m_enemy[i];if(v.flag!=1)continue;const int words[]={i,v.flag,v.life,int(v.curX),int(v.curY),int(v.velX),int(v.velY),v.autoShootTimer};for(auto word:words)HashWord(hash,word);}
+  count=0;for(int i=0;i<400;i++)if(stage.m_pEnemyBullet->m_bullets[i<180?i:1800+i-180].flag==1)++count;HashWord(hash,count);
+  for(int i=0;i<400;i++){const auto& v=stage.m_pEnemyBullet->m_bullets[i<180?i:1800+i-180];if(v.flag!=1)continue;const int words[]={i,int(v.curX),int(v.curY),int(v.velX),int(v.velY),int(v.curSpeed),int(v.curAngle),v.bornStageAndGrazeFlag,v.dieStageAndMoveType,v.age};for(auto word:words)HashWord(hash,word);}
   return hash;
+ }
+ static uint64_t SpecialFrame(CStage& stage,uint64_t hash){
+  int count=0;for(const auto& v:stage.m_pLaser->m_laser)if(v.mode)++count;HashWord(hash,count);
+  for(int i=0;i<32;i++){const auto& v=stage.m_pLaser->m_laser[i];if(!v.mode)continue;const int words[]={i,int(v.mode),int(v.srcX),int(v.srcY),int(v.lenLower),int(v.lenUpper),int(v.angle)&255,int(v.width),int(v.speed),v.age,v.ageThres};for(int word:words)HashWord(hash,word);}
+  count=0;const CBossStageEx* boss=stage.m_pBoss&&stage.m_pBoss->m_curPhase&&CGame::GVar().m_playStage==6?static_cast<const CBossStageEx*>(stage.m_pBoss):NULL;
+  if(boss)for(int i=0;i<7;i++)if(boss->m_curvingBullet.m_bullet[i].flag)++count;HashWord(hash,count);
+  if(boss)for(int i=0;i<7;i++){const auto& v=boss->m_curvingBullet.m_bullet[i];if(!v.flag)continue;const int words[]={i,v.mode,v.demoHeadX,v.demoHeadY,int(v.velX),int(v.velY),int(v.angle),int(v.speed),v.age};for(int word:words)HashWord(hash,word);for(int k=0;k<16;k++){HashWord(hash,int(v.nodeX[k]));HashWord(hash,int(v.nodeY[k]));}}
+  return hash;
+ }
+ static void WriteDemoTrace(CStage& stage,FILE* trace){using namespace original;
+  auto* p=stage.m_pChara;
+  fprintf(trace,"{\"frame\":%d,\"x\":%d,\"y\":%d,\"seed\":%u,\"ring\":%d,\"power\":%d,\"dream\":%d,\"lives\":%d,\"bombs\":%d,\"rank\":%d,\"hit\":%d,\"miss\":%d,\"inv\":%d,\"lock\":%d,\"items\":[",stage.m_curFrame,int(p->m_curX),int(p->m_curY),Demo().seed,Demo().ringIndex,p->GetPower(),stage.GetDream(),stage.m_nCurLife,stage.m_nCurBomb,stage.m_playerPerformance,int(p->m_bMiss),p->m_nextLifeComeTimeLeft,p->m_invulnerableTimeLeft,p->m_cannotControlTimeLeft);bool comma=false;
+  for(int j=0;j<40;j++){const auto& v=stage.m_pItem->m_item[j];if(v.flag){fprintf(trace,"%s[%d,%d,%d,%d,%d,%d,%d]",comma?",":"",j,v.flag,int(v.curX),int(v.curY),int(v.velX),int(v.velY),v.itemType);comma=true;}}
+  fprintf(trace,"],\"enemies\":[");comma=false;
+  for(int j=0;j<32;j++){const auto& v=stage.m_pEnemy->m_enemy[j];if(v.flag){fprintf(trace,"%s[%d,%d,%d,%d,%d,%d,%d,%d]",comma?",":"",j,v.flag,v.life,int(v.curX),int(v.curY),int(v.velX),int(v.velY),v.autoShootTimer);comma=true;}}
+  fprintf(trace,"],\"bullets\":[");comma=false;
+  for(int j=0;j<400;j++){const auto& v=stage.m_pEnemyBullet->m_bullets[j<180?j:1800+j-180];if(v.flag==1){fprintf(trace,"%s[%d,%d,%d,%d,%d,%d,%d,%d,%d,%d]",comma?",":"",j,int(v.curX),int(v.curY),int(v.velX),int(v.velY),int(v.curSpeed),int(v.curAngle),v.bornStageAndGrazeFlag,v.dieStageAndMoveType,v.age);comma=true;}}
+  fprintf(trace,"],\"lasers\":[");comma=false;
+  for(int j=0;j<32;j++){const auto& v=stage.m_pLaser->m_laser[j];if(v.mode){fprintf(trace,"%s[%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d]",comma?",":"",j,int(v.mode),int(v.srcX),int(v.srcY),int(v.lenLower),int(v.lenUpper),int(v.angle)&255,int(v.width),int(v.speed),v.age,v.ageThres);comma=true;}}
+  fprintf(trace,"],\"curves\":[");comma=false;
+  if(stage.m_pBoss&&stage.m_pBoss->m_curPhase&&CGame::GVar().m_playStage==6){const auto* boss=static_cast<const CBossStageEx*>(stage.m_pBoss);
+   for(int j=0;j<7;j++){const auto& v=boss->m_curvingBullet.m_bullet[j];if(v.flag){fprintf(trace,"%s[%d,%d,%d,%d,%d,%d,%d,%d,%d",comma?",":"",j,v.mode,v.demoHeadX,v.demoHeadY,int(v.velX),int(v.velY),int(v.angle),int(v.speed),v.age);for(int k=0;k<16;k++)fprintf(trace,",%d,%d",int(v.nodeX[k]),int(v.nodeY[k]));fprintf(trace,"]");comma=true;}}
+  }
+  fprintf(trace,"],\"boss\":[%d,%d,%d,%d,%d,%d],\"scroll\":[%d,%d],\"midboss\":[%d,%d,%d,%d,%d]}\n",stage.m_pBoss?int(stage.m_pBoss->m_curX):0,stage.m_pBoss?int(stage.m_pBoss->m_curY):0,stage.m_pBoss?stage.m_pBoss->m_curHP:0,stage.m_pBoss?stage.m_pBoss->m_curPhase:0,stage.m_pBoss?stage.m_pBoss->m_curPhaseFrame:0,stage.m_pBoss?stage.m_pBoss->m_curMode:0,stage.m_pBackground->GetCurScrollSpeed(),stage.m_pBackground->GetLastScrollDeltaPixel()*16,stage.m_pMidBoss?int(stage.m_pMidBoss->m_curX):0,stage.m_pMidBoss?int(stage.m_pMidBoss->m_curY):0,stage.m_pMidBoss?stage.m_pMidBoss->m_curHP:0,stage.m_pMidBoss?stage.m_pMidBoss->m_curPhase:0,stage.m_pMidBoss?stage.m_pMidBoss->m_curPhaseFrame:0);
  }
  static void DemoSimulation(CGame& game){using namespace original;auto& g=game.m_globalVar;bool extras[4];memcpy(extras,g.m_bExtraPlayable,4);memset(g.m_bExtraPlayable,1,4);
   uint64_t expected[5]={};const int cadences[]={60,0,1};
-  for(int pass=0;pass<3;pass++){StopDemo(true);for(int n=0;n<5;n++){
+  for(int pass=0;pass<(getenv("TH05_DEMO_ONLY")?1:3);pass++){StopDemo(true);for(int n=getenv("TH05_DEMO_ONLY")?4:0;n<5;n++){
    Check(StartDemo(n==4),"original Demo initializes simulation");CStage* stage=new CStage;stage->Initialize();game.m_pCurScheme=stage;game.m_curSchemeID=4;
    int steps=0;uint64_t digest=14695981039346656037ull;
-   while(!stage->m_bQuit&&steps<41000){stage->StepFrame(0);if(cadences[pass]&&steps%cadences[pass]==0)stage->Draw();digest=DemoDigest(*stage,digest);++steps;}
+   FILE* trace=NULL;if(!pass&&getenv("TH05_DEMO_TRACE")){char path[80];sprintf(path,"port-demo-%d.jsonl",n+1);trace=fopen(path,"wb");Check(trace!=NULL,"Demo trace output opens successfully");}
+   uint64_t combat=14695981039346656037ull,special=combat;int lastCombatFrame=-1;
+   while(!stage->m_bQuit&&steps<41000){
+    stage->StepFrame(0);
+    if(stage->m_curFrame>=0&&stage->m_curFrame!=lastCombatFrame){combat=CombatFrame(*stage,combat);special=SpecialFrame(*stage,special);lastCombatFrame=stage->m_curFrame;}
+    if(trace&&stage->m_curFrame>=0)WriteDemoTrace(*stage,trace);
+    if(cadences[pass]&&steps%cadences[pass]==0)stage->Draw();
+    digest=DemoDigest(*stage,digest);++steps;
+   }
+   const uint64_t nativeGolden[]={0xcfa52d7b55bc18c4ull,0xed12e228ceec92e1ull,0xc3e0677110a1485eull,0x93747c3bbd75f739ull};
+   if(n<4)Check(lastCombatFrame==4995&&combat==nativeGolden[n],"every normal Demo combat frame matches the original Japanese instructions");
+   else Check(lastCombatFrame==26217&&combat==0x3a135d8958738d5full,"Extra combat and native title-return endpoint match the original instructions");
+   Check(special==(n<4?0xbf207814eb9925a5ull:0xedc31a317fc555ddull),"all native laser slots and curved heads/trail nodes match at every frame");
+   printf("SPECIAL number=%d digest=%016llx\n",n+1,static_cast<unsigned long long>(special));
+   printf("COMBAT number=%d frames=%d digest=%016llx\n",n+1,lastCombatFrame+1,static_cast<unsigned long long>(combat));
+   if(trace)fclose(trace);
    printf("DEMO number=%d renderEvery=%d inputs=%d ticks=%d lives=%d misses=%d bombs=%d score=%d digest=%016llx\n",Demo().number,cadences[pass],Demo().index,steps,stage->m_nCurLife,stage->m_nMiss,stage->m_nBomb,stage->m_curScore,static_cast<unsigned long long>(digest));
    Check(stage->m_bQuit,"original input ends or native game-over exits safely; no survival requirement");
    if(!pass){expected[n]=digest;stage->Draw();glFinish();if(!n)Screenshot("original-demo.bmp");}
@@ -155,7 +237,7 @@ struct PracticeTests {
    delete stage;delete next;game.m_pCurScheme=NULL;
   }}memcpy(g.m_bExtraPlayable,extras,4);
  }
- static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
+ static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
 };int PracticeTests::checks=0;
 }
 int main(){return th5w::PracticeTests::Run();}

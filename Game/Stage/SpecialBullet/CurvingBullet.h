@@ -9,6 +9,7 @@ typedef struct strCURVING_BULLET{
 	float angle;
 	float nodeX[16],nodeY[16];
 	float velX,velY;
+ int demoHeadX,demoHeadY; // Native head is separate from the sixteen trail nodes.
 	int age;
 	float speed;
 	float color[3];
@@ -19,6 +20,7 @@ class CStage;
 
 class CCurvingBullet
 {
+friend struct PracticeTests;
 protected:
 	CURVING_BULLET m_bullet[CURVING_BULLET_N_RECORD];
 public:

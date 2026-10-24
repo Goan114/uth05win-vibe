@@ -641,7 +641,8 @@ int CStage::StepFrame(unsigned short liveInput)
 				CGame::s_pCurGame->m_soundEffect.PlaySound(i);
 		memset(m_bPlaySound,0,sizeof(m_bPlaySound));
 
-		if (m_curFrame%4096==0)
+  const int performanceFrame=original::DemoActive()&&original::Demo().extraPart2?original::Demo().index-1:m_curFrame;
+		if (performanceFrame>0&&performanceFrame%4096==0)
 			ChangePlayerPerformance(1);
 
 		StepScore();
@@ -682,6 +683,7 @@ int CStage::StepFrame(unsigned short liveInput)
 		m_pStage2BG->Step();
 	if (m_bInCharaBomb)
 		m_pChara->StepBomb();
+ m_pLaser->FinishDemoFrame();
 	m_pTextOverlay->Step();
 	m_pFloatingText->Step();
  if(practice::Options().showKeys)practice::RecordKey(5,m_curGameKeyState);

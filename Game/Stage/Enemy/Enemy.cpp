@@ -102,8 +102,10 @@ void CEnemy::EnemyDie(ENEMY *pEnemy)
 	if (pEnemy->dropItemType!=0xfe)				//0xfe for no drop
 	{
 		unsigned char dropItemType=pEnemy->dropItemType;
-		if(!original::DemoActive()||pEnemy->dropItemType==0xff)m_enemyDropTableIdx++;
-		if (pEnemy->dropItemType==0xff)
+		// Native items_add converts random drops before consulting the drop table.
+		if(original::DemoActive()&&m_pStage->m_bInCharaBombForItem&&dropItemType==0xff)dropItemType=ITEM_POWER;
+		if(!original::DemoActive()||dropItemType==0xff)m_enemyDropTableIdx++;
+		if (dropItemType==0xff)
 		{
 			if (m_enemyDropTableIdx%2==0)
 			{
@@ -372,7 +374,8 @@ void CEnemy::StepEnemyScript(ENEMY *pEnemy)
 			ptr+=2;
 			break;
 		case 27:
-			pEnemy->shootInfo.shootType+=*(char *)(ptr+1);
+			if(original::DemoActive())pEnemy->shootInfo.shootType=ptr[1];
+			else pEnemy->shootInfo.shootType+=*(char *)(ptr+1);
 			ptr+=2;
 			break;
 		case 28:

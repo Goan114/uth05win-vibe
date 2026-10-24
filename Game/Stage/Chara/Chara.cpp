@@ -400,7 +400,7 @@ void CChara::Step()
 			if (m_pStage->GetDream()<=2)
 				m_pStage->SetDream(1);
 			else
-				if (m_pStage->m_bInBossBattle||m_pStage->m_curFrame%2!=0)
+				if ((original::DemoActive()?(!m_pStage->m_pBoss||m_pStage->m_pBoss->GetCurPhase()==0):m_pStage->m_bInBossBattle)||m_pStage->m_curFrame%2!=0)
 					m_pStage->SetDream(m_pStage->GetDream()-2);
 			m_missExplodeRadius+=7.0f*16.0f;
 			m_missExplodeBaseAngle+=8.0f;

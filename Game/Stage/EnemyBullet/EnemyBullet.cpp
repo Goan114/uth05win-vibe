@@ -323,6 +323,7 @@ unsigned char CEnemyBullet::AdjustBulletImageBasedOnAngle(unsigned char curImgId
 
 void CEnemyBullet::Shoot(ENEMY_SHOOT_INFO *shootInfo,bool bSpecialBullet,bool bAdjustSpeed)
 {
+ if(original::DemoActive())original::Demo().bulletTemplateAngle=static_cast<unsigned char>(int(shootInfo->shootAngle));
 	if (m_noEnemyBullet==true)
 		return;
 
@@ -706,8 +707,9 @@ void CEnemyBullet::Step()
 		int nAvailBullet=0;
 		int bonusLimit[]={960,1280,1280,1280,1600};
 		int maxSingleBonus=bonusLimit[CGame::GVar().m_playDifficulty];
-		for (int i=0;i<ENEMY_BULLET_N_RECORD;i++)
+		for (int iteration=0;iteration<ENEMY_BULLET_N_RECORD;iteration++)
 		{
+   const int i=original::DemoActive()?ENEMY_BULLET_N_RECORD-1-iteration:iteration;
 			if (m_bullets[i].flag==1)
 			{
 				m_bullets[i].velX=m_bullets[i].velY=0;
