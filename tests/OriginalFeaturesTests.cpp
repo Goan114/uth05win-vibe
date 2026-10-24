@@ -5,6 +5,7 @@
 #include "../Game/Stage/Chara/Chara.h"
 #include "../Game/Stage/CharaBullet/CharaBullet.h"
 #include "../Game/Stage/EnemyBullet/EnemyBullet.h"
+#include "../Game/Stage/Enemy/Enemy.h"
 #include "../Game/Stage/Dialogue/Dialogue.h"
 #include "../Game/Stage/Item/Item.h"
 #include "../Game/Stage/Boss/BossStage1.h"
@@ -103,6 +104,34 @@ struct PracticeTests {
   Check(Demo().ringIndex==4&&player->m_bombTimer==16&&stage->GetDream()==120,"Mima native bomb frames zero through twelve consume four ring draws");
   delete stage;StopDemo(true);
  }
+ static void NativeEnemies(CGame& game){using namespace original;StopDemo(true);Check(StartDemo(),"enemy fixture starts native Demo");
+  CStage* stage=new CStage;stage->Initialize();auto* enemies=stage->m_pEnemy;auto* player=stage->m_pChara;
+  unsigned char table[]={1,0,1,0,0x70,0x3e,0x70,0x3e,0xfe,0,0,0,0};
+  stage->m_curFrame=1;ResetDemoSeed();enemies->m_pEnemyTableReadPtr=table;enemies->m_noAddEnemy=true;
+  enemies->StepEnemyTable();Check(Demo().ringIndex==0&&enemies->m_pEnemyTableReadPtr==table+11,"midboss skips random enemy coordinates while advancing STD");
+  enemies->m_noAddEnemy=false;for(int i=0;i<ENEMY_N_RECORD;i++)enemies->m_enemy[i].flag=1;
+  enemies->m_pEnemyTableReadPtr=table;enemies->StepEnemyTable();Check(Demo().ringIndex==0,"full enemy pool does not consume spawn RNG");
+  memset(enemies->m_enemy,0,sizeof(enemies->m_enemy));enemies->m_pEnemyTableReadPtr=table;
+  enemies->StepEnemyTable();Check(Demo().ringIndex==3&&enemies->m_enemy[0].curX==55368%(384*16)&&enemies->m_enemy[0].curY==46808%(368*16)&&enemies->m_enemy[0].autoShootTimer==182,"native spawn consumes X, Y, then autofire RNG in order");
+  unsigned char wait[]={2,0,0,255};player->m_curX=192*16;player->m_curY=200*16;
+  const int offsets[][2]={{-768,0},{767,0},{768,0},{-769,0},{0,-768},{0,767},{0,768},{0,-769}};
+  const bool fires[]={false,false,true,true,false,false,true,true};
+  for(int i=0;i<8;i++){
+   memset(enemies->m_enemy,0,sizeof(enemies->m_enemy));auto& e=enemies->m_enemy[0];e.flag=1;e.pScript=wait;e.bAutoShoot=true;e.autoShootTimer=127;e.autoShootInterval=128;
+   e.curX=player->m_curX+offsets[i][0];e.curY=player->m_curY+offsets[i][1];e.shootInfo.shootType=EST15_DEFAULT_SINGLE_TO_CHARA;e.shootInfo.bulletSpeed=42;
+   enemies->Step();Check((e.autoShootTimer==0)==fires[i],"native autofire safe box includes left/top and excludes right/bottom");
+  }
+  delete stage;StopDemo(true);
+ }
+ static void NativeBeam(CGame& game){using namespace original;StopDemo(true);Check(StartDemo()&&StartDemo()&&Demo().number==2,"beam fixture selects Marisa Demo");
+  CStage* stage=new CStage;stage->Initialize();auto* player=stage->m_pChara;
+  stage->m_curFrame=1;player->m_bombTimer=16;player->m_curX=2000;player->m_curY=3000;
+  Check(player->GetBombDamage(2000,3100,128,100,false)==22,"native Marisa beam includes target top edge above its center");
+  Check(player->GetBombDamage(2000,3101,128,100,false)==0,"native Marisa beam excludes target one subpixel below player");
+  Check(player->GetBombDamage(2128,3100,128,100,true)==22&&player->GetBombDamage(2129,3100,128,100,true)==0,"native Marisa beam includes horizontal hitbox edge");
+  player->m_bombTimer=80;Check(player->GetBombDamage(2000,3100,128,100,false)==0,"native Marisa beam stops at frame eighty");
+  delete stage;StopDemo(true);
+ }
  static void HashWord(uint64_t& hash,uint32_t word){for(int i=0;i<4;i++){hash^=(word>>(i*8))&255;hash*=1099511628211ull;}}
  static uint64_t DemoDigest(CStage& stage,uint64_t hash){using namespace original;
   HashWord(hash,Demo().seed);HashWord(hash,Demo().ringIndex);HashWord(hash,Demo().index);HashWord(hash,Demo().extraPart2);
@@ -126,7 +155,7 @@ struct PracticeTests {
    delete stage;delete next;game.m_pCurScheme=NULL;
   }}memcpy(g.m_bExtraPlayable,extras,4);
  }
- static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);NativeMovement(game);NativeMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
+ static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
 };int PracticeTests::checks=0;
 }
 int main(){return th5w::PracticeTests::Run();}
