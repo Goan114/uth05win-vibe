@@ -28,7 +28,9 @@ void CTextOverlay::StepStageFadeIn()
 {
 	if (m_stageFadeTimer<72)
 		m_stageFadeTimer++;
-	else
+	else if(original::DemoActive()&&original::Demo().number!=5)
+  SetMode(TEXT_OVERLAY_DEMO_PLAY);
+ else
 		SetMode(TEXT_OVERLAY_DRAW_STAGE_NAME_BGM_NAME,
 				m_pStage->m_pStageRes->m_pStageStd->m_stageName,m_pStage->m_pStageRes->m_pStageStd->m_stageBGMName);
 }
@@ -188,10 +190,22 @@ void CTextOverlay::DrawStageNameBGMName()
 	}
 }
 
+void CTextOverlay::DrawDemoPlay()
+{
+ // Original gDEMO_PLAY gaiji, TX_YELLOW | TX_BLINK, including its off-center placement.
+ const unsigned char demoPlay[]={0xad,0xae,0xb6,0xb8,2,0xb9,0xb5,0xaa,0xc2,0};
+ if((m_stageNameBGMNameTimer&32)==0)
+  CTh5ExtFont::DrawExtString(demoPlay,9,m_pStage->m_playAreaUpperLeftX+112,
+   m_pStage->m_playAreaUpperLeftY+176,1,1,0);
+}
+
 void CTextOverlay::Step()
 {
 	switch(m_curMode)
 	{
+	case TEXT_OVERLAY_DEMO_PLAY:
+  m_stageNameBGMNameTimer=(m_stageNameBGMNameTimer+1)&63;
+  return;
 	case TEXT_OVERLAY_NONE:
 		return;
 	case TEXT_OVERLAY_STAGE_FADE_IN:
@@ -210,6 +224,9 @@ void CTextOverlay::Draw()
 {
 	switch(m_curMode)
 	{
+ case TEXT_OVERLAY_DEMO_PLAY:
+  DrawDemoPlay();
+  return;
 	case TEXT_OVERLAY_NONE:
 		return;
 	case TEXT_OVERLAY_STAGE_FADE_IN:
@@ -228,6 +245,7 @@ void CTextOverlay::SetMode(int mode,char *stageName,char *bgmName)
 {
 	m_curMode=mode;
 	m_stageFadeTimer=0;
+ if(mode==TEXT_OVERLAY_DEMO_PLAY)m_stageNameBGMNameTimer=0;
 	if (mode==TEXT_OVERLAY_DRAW_STAGE_NAME_BGM_NAME)
 	{
 		if (stageName!=NULL)
