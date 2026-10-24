@@ -784,6 +784,9 @@ void CBossStage4::Phase2()
 				if (m_curHP+m_2curHP<=2250)
 					if (m_nModeChange<14)
 					{
+      // HP interruption skips MaiShootType1's frame-160 laser stop.
+      // Use the native stop path: drop collision, then shrink the sprite.
+      m_pStage->m_pLaser->RemoveLaser(0);
 						m_curMode=0;
 						m_curPhaseFrame=0;
 						m_nModeChange=14;
