@@ -11,6 +11,7 @@ namespace th5w { namespace practice {
 namespace {
 bool tools[ToolCount] = {}, assisted = false, initialized = false, focusPause = false;
 bool overlayOpen = false,infoOpen=false,preparingSection=false;
+unsigned int timeoutLockRevision=0;
 float pauseAlpha = 0;
 int pauseAge = 0, pauseAction = -1, actionAge = 0;
 const char* keys[ToolCount] = {"F1", "F2", "F3", "F4", "F5", "F6", "F7", "U"};
@@ -22,7 +23,7 @@ bool Replay() { return CGame::s_pCurGame && (CGame::GVar().m_bReplayMode||origin
 }
 void PreparingSection(bool value){preparingSection=value;}
 bool Enabled(Tool tool) { return tools[tool] && !Replay() && !preparingSection; }
-void Toggle(Tool tool) { if (!Replay()) { tools[tool] = !tools[tool]; if (tools[tool]) MarkAssisted(); } }
+void Toggle(Tool tool) { if (!Replay()) { tools[tool] = !tools[tool]; if(tool==LockTimeout)++timeoutLockRevision; if (tools[tool]) MarkAssisted(); } }
 bool Assisted() { return assisted; }
 bool InGameInfoOpen(){return infoOpen;}
 void MarkAssisted() {
@@ -30,7 +31,8 @@ void MarkAssisted() {
  assisted = true;
  // Hotkey toggles are live tools, not serialized Practice parameters.
 }
-void ResetRun() { assisted = Options().showHitbox || Options().alwaysHitbox; }
+void ResetRun() { assisted = Options().showHitbox || Options().alwaysHitbox;for(int i=0;i<ToolCount;i++)if(tools[i])assisted=true; }
+unsigned int TimeoutLockRevision(){return timeoutLockRevision;}
 bool AllowTimeout(bool expired) { return expired && !Enabled(LockTimeout); }
 bool BeforeTimeout(bool beforeDeadline) { return beforeDeadline || Enabled(LockTimeout); }
 bool Initialize(HWND window) {

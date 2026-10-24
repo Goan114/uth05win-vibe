@@ -13,6 +13,7 @@ void ResetRun();
 bool Assisted();
 bool InGameInfoOpen();
 void MarkAssisted();
+unsigned int TimeoutLockRevision();
 bool AllowTimeout(bool expired);
 bool BeforeTimeout(bool beforeDeadline);
 bool Initialize(HWND window);

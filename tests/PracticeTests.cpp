@@ -671,6 +671,38 @@ struct PracticeTests {
   Check(!practice::Options().phaseTimeoutAsTime,"rounds display preference survives reload");
   g.m_bPracticeMode=false;g.m_bReplayMode=false;g.m_initDifficulty=g.m_playDifficulty=1;
  }
+ static void LockTimeoutRestart(CGame& game){
+  ResetTools();practice::Options()=practice::AdvancedOptions();practice::Options().fastRetry=true;auto& g=CGame::GVar();auto& menu=practice::MenuConfig();
+  menu=practice::Config();menu.mode=1;menu.stage=0;menu.warp=2;menu.section=3;g.m_initDifficulty=1;
+  Check(practice::StartSetup(),"timer restart fixture starts native final boss attack");CStage* stage=new CStage;stage->Initialize();game.m_pCurScheme=stage;game.m_curSchemeID=4;
+  Key(game,VK_F6);const int frozen=stage->GetPhaseTimeout().value;auto* boss=stage->m_pBoss;
+  boss->m_curPhaseFrame+=112;
+  Check(stage->GetPhaseTimeout().value==frozen,"F6 freezes remaining-time display while native attack time advances");
+  for(int retry=0;retry<3;retry++){
+   int exit=0;
+   if(retry==1){stage->RequestFastRetry();for(int i=0;i<20&&!exit;i++)exit=stage->StepFrame(0);}
+   else{stage->PracticeExit(3);for(int i=0;i<60&&!exit;i++)exit=stage->StepFrame(0);}
+   Check(exit==STAGE_END_RESTART,"pause restart and quick retry reach the real restart exit");CScheme* next=NULL;int id=0;
+   Check(CSchemeSwitcher::SwitchScheme(&next,&id,4,exit)&&id==4,"locked retry constructs a new native stage");delete stage;stage=static_cast<CStage*>(next);game.m_pCurScheme=stage;game.m_curSchemeID=4;boss=stage->m_pBoss;
+   Check(practice::Enabled(practice::LockTimeout)&&boss->m_curPhase==4,"F6 remains active after repeated restart initialization");
+   const int reset=stage->GetPhaseTimeout().value;Check(reset==practice::PhaseTimeout::Frames(1300,boss->m_curPhaseFrame).value,"new run locks its own fresh phase countdown");
+   boss->m_curPhaseFrame+=112;Check(stage->GetPhaseTimeout().value==reset,"restarted run keeps visible countdown locked");
+   stage->m_pChara->m_invulnerableTimeLeft=10000;boss->m_curPhaseFrame=1299;boss->Step();Check(boss->m_curPhase==4&&boss->m_curPhaseFrame==1300,"restart retains timeout prevention without freezing native attack clock");
+   Frame(*stage);Check(stage->GetPhaseTimeout().value==reset,"rendering preserves the locked value after a native deadline");
+  }
+  Key(game,VK_F6);Check(stage->GetPhaseTimeout().value==0,"unlock immediately reveals current native remaining time");
+  boss->m_curPhaseFrame=100;Key(game,VK_F6);Check(stage->GetPhaseTimeout().value==22,"re-enabling F6 captures a new remaining-time value");
+  boss->m_curPhase=1;boss->m_curPhaseFrame=31;boss->Step();
+  const auto turns=stage->GetPhaseTimeout();Check(turns.unit==practice::PhaseTimeout::Turns&&turns.value==32,"a new phase captures its own turn count");
+  practice::Options().phaseTimeoutAsTime=true;const int seconds=stage->GetPhaseTimeout().value;boss->m_nModeChange=4;boss->m_curPhaseFrame=50;
+  Check(stage->GetPhaseTimeout().value==seconds,"time view uses the same locked cycle snapshot");practice::Options().phaseTimeoutAsTime=false;Check(stage->GetPhaseTimeout().value==32,"switching back to turns preserves the locked snapshot");
+  g.m_bReplayMode=true;Check(stage->GetPhaseTimeout().value==28,"replay isolates the live F6 display lock");g.m_bReplayMode=false;
+  Key(game,VK_F6);boss->m_curPhase=4;boss->m_curPhaseFrame=1299;Key(game,VK_F6);stage->GetPhaseTimeout();boss->m_curHP=1;
+  for(int i=0;i<10;i++)stage->m_pCharaBullet->AddBullet(boss->m_curX,boss->m_curY,3,0,0,0,0,255);
+  boss->Step();Check(boss->m_curPhase==0xfd,"locked restarted phase remains defeatable after its native deadline");
+  Check(stage->GetPhaseTimeout().unit==practice::PhaseTimeout::None,"defeated phase clears its locked countdown");
+  ResetTools();g.m_replay.CloseStage(false);delete stage;game.m_pCurScheme=NULL;practice::Options()=practice::AdvancedOptions();
+ }
  static void PhaseTimeoutDisplay(CGame& game){
   ResetTools();practice::Options()=practice::AdvancedOptions();CStage* stage=Stage(game);
   stage->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);
@@ -698,7 +730,7 @@ struct PracticeTests {
   boss->m_curPhaseFrame=1243;Check(stage->GetPhaseTimeout().value==2,"remaining seconds round upward at the native 56-fps boundary");
   boss->m_curPhaseFrame=1299;Frame(*stage);Screenshot("f12-phase-seconds.bmp");
   srand(55);const int expected=rand();srand(55);for(int i=0;i<100;i++)stage->GetPhaseTimeout();Check(rand()==expected&&boss->m_curPhaseFrame==1299,"timer reads do not mutate the native phase or consume replay RNG");
-  practice::Toggle(practice::LockTimeout);boss->Step();Check(boss->m_curPhase==4&&stage->GetPhaseTimeout().value==0,"F6 keeps the exhausted native timeout at zero without advancing phase");
+  practice::Toggle(practice::LockTimeout);stage->GetPhaseTimeout();boss->Step();Check(boss->m_curPhase==4&&stage->GetPhaseTimeout().value==1,"F6 freezes the displayed countdown without advancing phase");
   Frame(*stage);Screenshot("f12-phase-locked.bmp");ResetTools();boss->Step();Check(boss->m_curPhase==0xfd&&stage->GetPhaseTimeout().unit==practice::PhaseTimeout::None,"releasing lock permits the real timeout and hides the finished phase timer");
   stage->m_pBoss=NULL;delete boss;
   CMidBossStage1* mid=new CMidBossStage1;mid->m_pStage=stage;mid->Initialize();stage->m_pMidBoss=mid;mid->m_curPhase=3;mid->m_curPhaseFrame=1499;mid->m_curHP=1000;
@@ -822,7 +854,7 @@ struct PracticeTests {
   CGame game; CGame::s_pCurGame=&game;
   Check(game.Initialize(false),"hidden production OpenGL/game initialization");
   Check(practice::Initialize(game.m_gameWindow.m_hWnd),"ImGui Win32/OpenGL2 initialization");
-  if(getenv("TH05_TAB_ONLY")){TabInfo(game);game.OnGameEnd();printf("PASS %d Tab checks\n",checks);return 0;}
+  if(getenv("TH05_LOCK_RESTART_ONLY")){LockTimeoutRestart(game);game.OnGameEnd();printf("PASS %d lock restart checks\n",checks);return 0;}if(getenv("TH05_TAB_ONLY")){TabInfo(game);game.OnGameEnd();printf("PASS %d Tab checks\n",checks);return 0;}
   CStage* s=Stage(game); CChara& p=*s->m_pChara;
   InactiveFloatingText(*s);
   for(int i=0;i<7;i++) { Key(game,VK_F1+i);Check(practice::Enabled(practice::Tool(i)),"F1-F7 enabled");Key(game,VK_F1+i,true);Check(practice::Enabled(practice::Tool(i)),"key repeat does not toggle"); }
@@ -916,7 +948,7 @@ struct PracticeTests {
   Check(CSchemeSwitcher::SwitchScheme(&next,&nextID,4,STAGE_END_RESTART)&&nextID==4&&CGame::GVar().m_playStage==0,"Restart initializes a fresh normal run");
   delete next;
   CGame::GVar().m_bCanSaveReplay=true;practice::MarkAssisted();Check(CGame::GVar().m_bCanSaveReplay,"live tools preserve the replay-save option");
-  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);PracticeDialogue(game);MusicRoom(game);AdvancedMenu(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);RingBossBar(game);ShinkiRingVisibility(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
+  delete s;game.m_pCurScheme=NULL;NativePractice(game);CustomPractice(game);PhasePractice(game);PracticeDialogue(game);MusicRoom(game);AdvancedMenu(game);LockTimeoutRestart(game);PhaseTimeoutDisplay(game);CycleTimeProjection(game);EosdBossBar(game);RingBossBar(game);ShinkiRingVisibility(game);TabInfo(game);game.OnGameEnd();printf("PASS %d production practice checks\n",checks);return 0;
  }
 };int PracticeTests::checks=0;
 }

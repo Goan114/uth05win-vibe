@@ -267,6 +267,7 @@ void CStage::Initialize()
   if(m_bLogo){char bgm[]="ST00.M2";bgm[3]=char('0'+CGame::GVar().m_playStage);CPMDPlayer::UnloadPMDData();CCommonFunctionMusicSE::LoadMusicToPMDFromDat(&CGame::s_pCurGame->m_th5Dat2,bgm);CPMDPlayer::SetVolume(100);CPMDPlayer::Play();}
   m_bLogo=false;
  }
+ GetPhaseTimeout();
  CGame::GVar().OnStageEnter();
 }
 
@@ -662,6 +663,7 @@ int CStage::StepFrame(unsigned short liveInput)
 	m_pLaser->Step();
 	m_pEnemyBullet->Step();
 	m_pEnemy->Step();
+ GetPhaseTimeout(); // Capture a newly enabled F6 before the native attack advances.
 	if (m_pMidBoss)
 		if (m_pMidBoss->Step()!=0)
 		{
@@ -1000,10 +1002,22 @@ void CStage::PlayAreaFade(float fadeScale)
 
 
 practice::PhaseTimeout CStage::GetPhaseTimeout() const {
- if(m_bLogo||m_bQuit||m_bContinueScr)return practice::PhaseTimeout();
- if(m_pBoss)return m_pBoss->GetPhaseTimeout().ForDisplay(practice::Options().phaseTimeoutAsTime);
- if(m_pMidBoss)return m_pMidBoss->GetPhaseTimeout().ForDisplay(practice::Options().phaseTimeoutAsTime);
- return practice::PhaseTimeout();
+ practice::PhaseTimeout timer;
+ const int kind=m_pBoss?2:m_pMidBoss?1:0;
+ const void* owner=m_pBoss?static_cast<const void*>(m_pBoss):static_cast<const void*>(m_pMidBoss);
+ const int phase=m_pBoss?m_pBoss->m_curPhase:m_pMidBoss?m_pMidBoss->m_curPhase:-1;
+ if(!m_bLogo&&!m_bQuit&&!m_bContinueScr){
+  if(m_pBoss)timer=m_pBoss->GetPhaseTimeout();
+  else if(m_pMidBoss)timer=m_pMidBoss->GetPhaseTimeout();
+ }
+ if(!practice::Enabled(practice::LockTimeout)||timer.unit==practice::PhaseTimeout::None){m_timeoutOwner=nullptr;return timer.ForDisplay(practice::Options().phaseTimeoutAsTime);}
+ // Lock the complete display projection, not the actor's attack frame/RNG.
+ // Each new stage, actor, phase or F6 activation gets its own snapshot.
+ const unsigned int revision=practice::TimeoutLockRevision();
+ if(owner!=m_timeoutOwner||kind!=m_timeoutKind||phase!=m_timeoutPhase||revision!=m_timeoutRevision){
+  m_timeoutOwner=owner;m_timeoutKind=kind;m_timeoutPhase=phase;m_timeoutRevision=revision;m_timeoutSnapshot=timer;
+ }
+ return m_timeoutSnapshot.ForDisplay(practice::Options().phaseTimeoutAsTime);
 }
 
 void CStage::DrawStatistics()
