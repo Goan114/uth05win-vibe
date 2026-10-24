@@ -44,7 +44,7 @@ int Random(){
  // includes the cursor byte itself, before INC wraps it back to zero.
  const unsigned int i=demo.ringIndex;const int value=demo.ring[i]|((i==255?demo.ringIndex:demo.ring[i+1])<<8);++demo.ringIndex;return value;
 }
-void ResetDemoSeed(){if(demo.active){demo.seed=318;for(int i=255;i>=0;i--)demo.ring[i]=static_cast<unsigned char>(IRandom());demo.ringIndex=0;demo.itemDropIndex=static_cast<unsigned char>(IRandom()&15);}}
+void ResetDemoSeed(){if(demo.active){demo.bulletTemplateAngle=0;demo.seed=318;for(int i=255;i>=0;i--)demo.ring[i]=static_cast<unsigned char>(IRandom());demo.ringIndex=0;demo.itemDropIndex=static_cast<unsigned char>(IRandom()&15);}}
 void StopDemo(bool reset){demo.active=false;demo.data.clear();demo.index=0;demo.extraPart2=false;if(reset)demo.number=0;}
 bool StartDemo(bool extra){
  auto& g=CGame::GVar();if(extra){for(int i=0;i<4;i++)if(!g.m_bExtraPlayable[i]){demo.number=0;return false;}}demo.number=extra?5:demo.number%4+1;demo.frames=extra?20000:5000;demo.extraPart2=false;demo.index=0;ReadDemo(demo.number-1);if(demo.data.size()!=size_t(demo.frames*2)){StopDemo();return false;}

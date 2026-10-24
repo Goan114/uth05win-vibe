@@ -77,9 +77,9 @@ protected:
 		pEnemy->lastY=pEnemy->curY;
 		pEnemy->curX+=pEnemy->velX;
 		pEnemy->curY+=pEnemy->velY;
-		if ((pEnemy->canLeave&1)&&(pEnemy->curX<=-16.0f*16.0f||pEnemy->curX>=400.0f*16.0f))
+		if ((pEnemy->canLeave&1)&&((original::DemoActive()?pEnemy->curX<-256.0f:pEnemy->curX<=-256.0f)||pEnemy->curX>=400.0f*16.0f))
 			return true;
-		if ((pEnemy->canLeave&0x10)&&(pEnemy->curY<=-16.0f*16.0f||pEnemy->curY>=384.0f*16.0f))
+		if ((pEnemy->canLeave&0x10)&&((original::DemoActive()?pEnemy->curY<-256.0f:pEnemy->curY<=-256.0f)||pEnemy->curY>=384.0f*16.0f))
 			return true;
 		return false;
 	}

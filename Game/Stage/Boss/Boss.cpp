@@ -111,6 +111,21 @@ void CBoss::AddDefeatScoreAndPopupNumbers(int n1000)
 
 int CBoss::RandomWalk(int frameIdx)
 {
+ if(original::DemoActive()){
+  if(frameIdx<0)return 0;
+  if(frameIdx==0){
+   int angle=m_curX<144*16?original::Random()%96-48:m_curX>240*16?(original::Random()&0x60)+0x30:original::Random();
+   angle&=255;if((m_forceGoUpOrDown==1&&angle<128)||(m_forceGoUpOrDown==2&&angle>=128))angle=(-angle)&255;
+   m_randomWalkMovingAngle=float(angle);m_forceGoUpOrDown=0;
+  }
+  m_velX=float(original::math::X(int(m_randomWalkMovingAngle),64-frameIdx*2));
+  m_velY=float(original::math::Y(int(m_randomWalkMovingAngle),64-frameIdx*2));
+  m_curX+=m_velX;m_curY+=m_velY;m_curImage=m_velX<0?m_imgGoLeft:m_imgGoRight;
+  if(m_curY<m_yLowerBound){m_curY=m_yLowerBound;m_forceGoUpOrDown=2;}
+  else if(m_curY>m_yUpperBound){m_curY=m_yUpperBound;m_forceGoUpOrDown=1;}
+  if(m_curX<m_xLowerBound)m_curX=m_xLowerBound;else if(m_curX>m_xUpperBound)m_curX=m_xUpperBound;
+  if(frameIdx<28)return 0;m_curImage=m_imgStay;return 1;
+ }
 	if (frameIdx<0)
 		return 0;
 
@@ -163,6 +178,13 @@ int CBoss::RandomWalk(int frameIdx)
 
 int CBoss::MoveTo(float tarX,float tarY)
 {
+ if(original::DemoActive()){
+  int reached=0;const int dx=int(tarX-m_curX),dy=int(tarY-m_curY);
+  if(dx/16)m_curX+=float(dx/16);else if(dx/4)m_curX+=float(dx/4);else{m_curX=tarX;++reached;}
+  m_curImage=dx<0?m_imgGoLeft:m_imgGoRight;
+  if(dy/16)m_curY+=float(dy/16);else if(dy/2)m_curY+=float(dy/2);else{m_curY=tarY;++reached;}
+  if(reached!=2)return 0;m_curImage=m_imgStay;return 1;
+ }
 	if (m_curX!=tarX||m_curY!=tarY)
 	{
 		float deltaX=(tarX-m_curX);
@@ -202,6 +224,14 @@ void CBoss::DropItem()
 		setIdx=1;
 	int itemSet[2][5]={{ITEM_POWER,ITEM_POWER,ITEM_BIGPOWER,ITEM_POWER,ITEM_POWER},
 					   {ITEM_POINT,ITEM_POINT,ITEM_POINT,ITEM_POINT,ITEM_POINT}};
+ if(original::DemoActive()){
+  for(int i=0;i<5;i++){
+   const float x=m_curX-64*16+(original::Random()&2047);
+   const float y=m_curY-64*16+(original::Random()&2047);
+   m_pStage->m_pItem->AddItem(x,y,itemSet[setIdx][i],0,-48);
+  }
+  return;
+ }
 	for (int i=0;i<5;i++)
 		m_pStage->m_pItem->AddItem(m_curX-64.0f*16.0f+(float)(original::Random()%2048),m_curY-64.0f*16.0f+(float)(original::Random()%2048),
 								   itemSet[setIdx][i],0,-48);
@@ -355,7 +385,7 @@ void CBoss::DeathSequence(int n1000)
 	}
 	if (m_curPhase==0xfe)
 	{
-		if (m_curPhaseFrame%16==0)
+		if (m_curPhaseFrame%(original::DemoActive()?8:16)==0)
 		{
 			m_curImage++;
 			if (m_curImage>=12)

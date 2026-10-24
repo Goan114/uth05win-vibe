@@ -1,6 +1,7 @@
 #include ".\background.h"
 #include "../Stage.h"
 #include "../../Game.h"
+#include "../../Original/OriginalFeatures.h"
 
 namespace th5w{
 
@@ -43,7 +44,7 @@ void CBackground::Initialize()
 		}
 	}
 	m_curPos=0;
-	m_curSpeed=m_pStage->m_pStageRes->m_pStageStd->m_pBGScrollSpeedArray[4];
+	m_curSpeed=original::DemoActive()?m_pStage->m_pStageRes->m_pStageStd->m_nBGScroolSpeed:m_pStage->m_pStageRes->m_pStageStd->m_pBGScrollSpeedArray[4];
 	m_curDeltaPixel=0;
 	m_bDraw=true;
 	m_bForceDraw=false;
@@ -52,7 +53,13 @@ void CBackground::Initialize()
 void CBackground::Step()
 {
 	int nextPos=m_curPos+m_curSpeed;
-	if ((nextPos+1279)/1280>(m_curPos+1279)/1280)
+	if(original::DemoActive())
+	{
+		// Native tile rows advance on whole pixels, not fractional subpixels.
+		const int section=(nextPos/16+79)/80;
+		if(section>(m_curPos/16+79)/80)m_curSpeed=m_pStage->m_pStageRes->m_pStageStd->m_pBGScrollSpeedArray[section+4];
+	}
+	else if ((nextPos+1279)/1280>(m_curPos+1279)/1280)
 		m_curSpeed=m_pStage->m_pStageRes->m_pStageStd->m_pBGScrollSpeedArray[(nextPos+1279)/1280+4];
 	m_curDeltaPixel=nextPos/16-m_curPos/16;
 	m_curPos=nextPos;

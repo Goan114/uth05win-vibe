@@ -39,6 +39,7 @@ void CMidBossStage4::Phase0()
 		m_curPhaseFrame=0;
 		m_bPhase1CanBeHit=true;
 		m_phase1CurMode=1;
+		m_phase1Mode2Angle=0;
 		m_phase1NModeChange=0;		//in stage 3 mid boss, it is initialized to 1 not 0.
 									//This is because in CMidBossStage4::Phase1(), it is first increased
 									//and then %3 to get current mode. But in CMidBossStage3::Phase1(),
@@ -74,8 +75,8 @@ int CMidBossStage4::FadeOutAndIn()
 	{
 		if (frameIdx==32)
 		{
-			m_phase1FadeCenterX=(float)(64+original::Random()%256)*16;
-			m_curY=(float)(64+original::Random()%32)*16;
+			m_phase1FadeCenterX=original::DemoActive()?float(1024+original::Random()%4096):(float)(64+original::Random()%256)*16;
+			m_curY=original::DemoActive()?float(1024+original::Random()%512):(float)(64+original::Random()%32)*16;
 			return 0;
 		}
 		frameIdx=64-frameIdx;
@@ -108,6 +109,7 @@ void CMidBossStage4::Phase1Mode1()
 	shootInfo.bulletBornType=2;
 	shootInfo.shootType=EST13_RANDOM_BASE_SPEED_32;
 	shootInfo.nWay=7;
+	if(original::DemoActive())shootInfo.shootAngle=m_phase1Mode2Angle;
 	m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 	if (m_curPhaseFrame>=48&&m_curPhaseFrame<=80&&m_curPhaseFrame%8==0)
 	{
@@ -116,7 +118,7 @@ void CMidBossStage4::Phase1Mode1()
 		{
 			shootInfo.bulletImg=i%2*116;
 			shootInfo.shootOrigX=m_curX+(float)(original::Random()%(48*16)-24*16);
-			shootInfo.shootOrigY=m_curY+(float)(original::Random()%(48*16)-24*16);
+			shootInfo.shootOrigY=m_curY+(float)(original::Random()%(48*16)-(original::DemoActive()?32:24)*16);
 			m_pStage->m_pEnemyBullet->Shoot(&shootInfo,false,false);
 			shootInfo.bulletSpeed+=16;
 		}
@@ -195,6 +197,7 @@ void CMidBossStage4::Phase1Mode3()
 	{
 		shootInfo.bulletSpeed=(float)16+(m_curPhaseFrame-48)/4*12;
 		shootInfo.shootAngle=(float)32-(m_curPhaseFrame-48)/4*8;
+		if(original::DemoActive())m_phase1Mode2Angle=float((int(shootInfo.shootAngle)-8)&255);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo);
 		m_pStage->m_bPlaySound[15]=true;
 	}
@@ -223,7 +226,7 @@ void CMidBossStage4::Phase1()
 			m_phase1CurMode=m_phase1NModeChange%3+1;
 			if (m_phase1NModeChange>=16)
 				bPhaseEnd=true;
-			if (m_phase1CurMode==2)
+			if (m_phase1CurMode==2&&!original::DemoActive())
 				m_phase1Mode2Angle=(float)(original::Random()%256);
 		}
 		break;

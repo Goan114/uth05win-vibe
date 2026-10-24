@@ -14,6 +14,7 @@ class CStage;
 class CMidBoss
 {
 friend class CStage;
+friend struct PracticeTests;
 
 protected:
 	CStage *m_pStage;

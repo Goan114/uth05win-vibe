@@ -31,6 +31,7 @@ class CStage;
 class CLaser
 {
 friend class CStage;
+friend struct PracticeTests;
 protected:
 	CStage *m_pStage;
 protected:
@@ -52,6 +53,7 @@ protected:
 public:
 	void Initialize();
 	void Step();
+ void FinishDemoFrame();
 	void Draw();
 public:
 	CLaser(CStage *pStage);
