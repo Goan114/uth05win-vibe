@@ -30,6 +30,7 @@
 #include "../third_party/imgui/imgui.h"
 #include "../third_party/imgui/imgui_internal.h"
 #include <cstdio>
+#include <sstream>
 #include <cstdlib>
 #include <new>
 #include <vector>
@@ -431,11 +432,26 @@ struct PracticeTests {
    Check(g.m_replay.LoadFile("custom-v2.rpy")&&!g.m_replay.m_practiceConfig.dialogue,"old TPC5 v2 replay retains dialogue-disabled default");}
   g.m_bReplayMode=g.m_bPracticeMode=false;g.m_initDifficulty=g.m_playDifficulty=1;
  }
+ static void CheckTabCounts(CStage& stage,int misses,int bombs){
+  remove("tab-counts.log");practice::BeginFrame();stage.Draw();ImGui::LogToFile(-1,"tab-counts.log");practice::DrawStatus();
+  ImGui::LogFinish();practice::EndFrame();glFinish();char text[1024]={};FILE* log=fopen("tab-counts.log","rb");
+  Check(log!=NULL,"Tab text capture opens the production ImGui log");fread(text,1,sizeof(text)-1,log);fclose(log);std::istringstream rendered(text);
+  std::string token;int shownMiss=-1,shownBomb=-1;
+  while(rendered>>token){if(token=="miss:")rendered>>shownMiss;else if(token=="bomb:")rendered>>shownBomb;}
+  if(shownMiss!=misses||shownBomb!=bombs)fprintf(stderr,"TAB expected=%d/%d shown=%d/%d resident=%d/%d stage=%d/%d text=[%s]\n",misses,bombs,shownMiss,shownBomb,int(original::Stats().misses),int(original::Stats().bombs),stage.m_nMiss,stage.m_nBomb,rendered.str().c_str());
+  Check(shownMiss==misses&&shownBomb==bombs,"Tab renders whole-run Miss and Bomb counts through the production ImGui path");
+ }
+ static void CountTabActions(CStage& stage,int misses,int bombs){
+  auto& player=*stage.m_pChara;
+  for(int i=0;i<misses;i++){player.m_nextLifeComeTimeLeft=33;player.m_cannotControlTimeLeft=1;player.m_bMiss=false;player.Step();}
+  player.m_nextLifeComeTimeLeft=0;stage.m_nCurBomb=bombs;
+  for(int i=0;i<bombs;i++){stage.m_bInCharaBomb=false;player.DropBomb();}
+ }
  static void TabInfo(CGame& game){
   practice::Options()=practice::AdvancedOptions();ResetTools();CStage* st=Stage(game);
-  st->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);st->m_nMiss=2;st->m_nBomb=3;
+  st->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);CountTabActions(*st,2,3);
   Check(!practice::InGameInfoOpen(),"Tab information is hidden by default");Key(game,VK_TAB);Check(practice::InGameInfoOpen(),"Tab opens the purple-style in-game information panel");
-  Frame(*st);ImGuiWindow* panel=ImGui::FindWindowByName("TH05 In-Game Info");
+  CheckTabCounts(*st,2,3);ImGuiWindow* panel=ImGui::FindWindowByName("TH05 In-Game Info");
   Check(panel&&panel->Pos.x==432&&panel->Pos.y==408&&panel->Size.x==192&&panel->Size.y==48,"Tab panel uses fixed native sidebar coordinates");
   Check(panel->Pos.x>=st->m_playAreaUpperLeftX+384&&panel->Pos.y>=408&&panel->Pos.y+panel->Size.y<=460,"Tab panel avoids playfield, Power gauge and FPS");
   Check((panel->Flags&ImGuiWindowFlags_NoInputs)==ImGuiWindowFlags_NoInputs&&(panel->Flags&ImGuiWindowFlags_NoMove),"Tab panel retains purple's non-interactive non-draggable behavior");
@@ -446,6 +462,15 @@ struct PracticeTests {
   practice::SetAdvancedOpen(true);Key(game,VK_TAB);Check(practice::InGameInfoOpen(),"Tab inside advanced settings does not toggle the gameplay panel");practice::SetAdvancedOpen(false);
   Key(game,VK_BACK);Frame(*st);Screenshot("tab-info-mod-menu.bmp");Key(game,VK_BACK);
   Key(game,VK_TAB);Check(!practice::InGameInfoOpen(),"Tab closes the information panel");Frame(*st);Screenshot("tab-info-closed.bmp");
+  Key(game,VK_TAB);st->SetQuit(STAGE_END_CLEAR);int end=0;for(int i=0;i<60&&!end;i++)end=st->StepFrame(0);
+  Check(end==STAGE_END_CLEAR,"Tab fixture completes native stage-clear bookkeeping");CScheme* next=NULL;int id=0;
+  Check(CSchemeSwitcher::SwitchScheme(&next,&id,4,end)&&id==4&&CGame::GVar().m_playStage==1,"Tab fixture enters the next stage through the production clear route");
+  delete st;st=static_cast<CStage*>(next);game.m_pCurScheme=st;st->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);
+  Check(st->m_nMiss==0&&st->m_nBomb==0,"per-stage counters still reset for native single-stage scoring");CheckTabCounts(*st,2,3);
+  CountTabActions(*st,1,1);CheckTabCounts(*st,3,4);
+  st->SetQuit(STAGE_END_RESTART);end=0;for(int i=0;i<60&&!end;i++)end=st->StepFrame(0);
+  Check(end==STAGE_END_RESTART&&CSchemeSwitcher::SwitchScheme(&next,&id,4,end)&&id==4,"Tab fixture starts a fresh run through native restart");
+  delete st;st=static_cast<CStage*>(next);game.m_pCurScheme=st;st->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);CheckTabCounts(*st,0,0);Key(game,VK_TAB);
   CGame::GVar().m_replay.CloseStage(false);delete st;game.m_pCurScheme=NULL;practice::Options()=practice::AdvancedOptions();practice::SaveAdvancedOptions();
  }
  static void EosdBossBar(CGame& game){
@@ -797,6 +822,7 @@ struct PracticeTests {
   CGame game; CGame::s_pCurGame=&game;
   Check(game.Initialize(false),"hidden production OpenGL/game initialization");
   Check(practice::Initialize(game.m_gameWindow.m_hWnd),"ImGui Win32/OpenGL2 initialization");
+  if(getenv("TH05_TAB_ONLY")){TabInfo(game);game.OnGameEnd();printf("PASS %d Tab checks\n",checks);return 0;}
   CStage* s=Stage(game); CChara& p=*s->m_pChara;
   InactiveFloatingText(*s);
   for(int i=0;i<7;i++) { Key(game,VK_F1+i);Check(practice::Enabled(practice::Tool(i)),"F1-F7 enabled");Key(game,VK_F1+i,true);Check(practice::Enabled(practice::Tool(i)),"key repeat does not toggle"); }

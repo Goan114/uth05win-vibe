@@ -24,8 +24,8 @@ void CStage::DrawPracticeInfo(){
  ImGui::SetCursorPosX((ImGui::GetWindowSize().x-ImGui::CalcTextSize(heading).x)*.5f);
  ImGui::TextUnformatted(heading);
  ImGui::Columns(2);
- ImGui::TextUnformatted("miss:");ImGui::NextColumn();ImGui::Text("%8d",m_nMiss);ImGui::NextColumn();
- ImGui::TextUnformatted("bomb:");ImGui::NextColumn();ImGui::Text("%8d",m_nBomb);
+ ImGui::TextUnformatted("miss:");ImGui::NextColumn();ImGui::Text("%8d",original::Stats().misses);ImGui::NextColumn();
+ ImGui::TextUnformatted("bomb:");ImGui::NextColumn();ImGui::Text("%8d",original::Stats().bombs);
  ImGui::Columns(1);ImGui::End();ImGui::PopStyleVar(2);
 }
 }
