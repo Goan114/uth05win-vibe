@@ -26,14 +26,13 @@ void Stipple(const unsigned short* mask,int x,int y){
  glPolygonStipple(pixels);glEnable(GL_POLYGON_STIPPLE);
 }
 }
-COriginalEnd::COriginalEnd(Mode mode):m_mode(mode),m_stats(original::Stats()),m_verdict(original::Evaluate(m_stats)),m_background(NULL),m_font(0),m_commentsTranslated(false),m_age(0),m_measure(0),m_phase(0),m_phaseAge(0),m_card(0),m_cardAge(0),m_cardOut(-1),m_auxAge(0),m_auxOut(-1),m_fadeOut(0),m_scroll(0),m_scrollDirection(0),m_cameraAge(0),m_rainAge(0),m_particleIndex(0),m_rainIndex(0),m_windowX(320),m_windowY(200),m_windowW(384),m_windowH(320),m_cameraX(0),m_cameraY(0),m_decay(0),m_orbRadius(0),m_cameraSway(false),m_released(false),m_ready(false),m_lastKey(0),m_seed(0),m_castScreen(0),m_castLine(0),m_castTarget(2),m_castAnim(0),m_castState(0),m_testMeasure(-1){memset(m_palette,0,48);}
-COriginalEnd::~COriginalEnd(){if(m_background)m_background->Destroy();if(m_font)glDeleteTextures(1,&m_font);}
+COriginalEnd::COriginalEnd(Mode mode):m_mode(mode),m_stats(original::Stats()),m_verdict(original::Evaluate(m_stats)),m_background(NULL),m_font(0),m_age(0),m_measure(0),m_phase(0),m_phaseAge(0),m_card(0),m_cardAge(0),m_cardOut(-1),m_auxAge(0),m_auxOut(-1),m_fadeOut(0),m_scroll(0),m_scrollDirection(0),m_cameraAge(0),m_rainAge(0),m_particleIndex(0),m_rainIndex(0),m_windowX(320),m_windowY(200),m_windowW(384),m_windowH(320),m_cameraX(0),m_cameraY(0),m_decay(0),m_orbRadius(0),m_cameraSway(false),m_released(false),m_ready(false),m_lastKey(0),m_seed(0),m_castScreen(0),m_castLine(0),m_castTarget(2),m_castAnim(0),m_castState(0),m_testMeasure(-1){memset(m_palette,0,48);}
+COriginalEnd::~COriginalEnd(){if(m_background)m_background->Destroy();if(m_font)glDeleteTextures(1,&m_font);for(auto& entry:m_chineseText)entry.second->Destroy();}
 void COriginalEnd::StartMusic(const char* name){auto* p=CGame::s_pCurGame->FindResource(name);CPMDPlayer::UnloadPMDData();if(p&&CCommonFunctionMusicSE::LoadMusicToPMDFromDat(p,const_cast<char*>(name))){CPMDPlayer::SetVolume(100);CPMDPlayer::Play();}}
 bool COriginalEnd::Initialize(){
  auto* game=CGame::s_pCurGame;
  m_font=CPC98Font::LoadAuxiliaryAtlas("anex86.bmp");
- auto* p=game->FindResource("_UDE.TXT");
- if(p){m_commentsTranslated=p==&game->m_modDat;int i=p->GetChildFileIndex("_UDE.TXT"),n=p->GetChildFileLength(i);auto* bytes=p->GetChildFileContentPointer(i);for(int row=0;row<35;row++){int offset=row*30;if(offset+30<=n){m_comments[row].assign(reinterpret_cast<char*>(bytes+offset),28);while(!m_comments[row].empty()&&(unsigned char)m_comments[row].back()<=32)m_comments[row].pop_back();}}}
+ auto* p=game->FindResource("UDE.PI");
  if(m_mode==VerdictOnly){p=game->FindResource("UDE.PI");return m_ready=p&&CCommonFunctionGraphic::LoadPIFromDat(&m_background,m_palette,p,"UDE.PI");}
  if(m_mode==AllCast){LoadCastPicture();StartMusic("EXED.M2");return m_ready=m_background!=NULL;}
  p=game->FindResource("STF00.BFT");C2DImage* paletteImage=NULL;
@@ -65,23 +64,51 @@ void COriginalEnd::Text(const char* text,int x,int y,int color,bool bold,bool tr
  }
  CPC98Font::DrawString(&value[0],int(value.size()),x,y+40,r,g,b);if(bold)CPC98Font::DrawString(&value[0],int(value.size()),x+1,y+40,r,g,b);
 }
+C2DImage* COriginalEnd::ChineseImage(const wchar_t* text)
+{
+ auto found=m_chineseText.find(text);if(found!=m_chineseText.end())return found->second;
+ const int length=int(wcslen(text)),width=length*16;
+ HDC dc=CreateCompatibleDC(NULL);if(!dc)return NULL;
+ BITMAPINFO info={};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+ info.bmiHeader.biWidth=width;info.bmiHeader.biHeight=-16;
+ info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+ void* pixels=NULL;HBITMAP bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,NULL,0);
+ if(!bitmap){DeleteDC(dc);return NULL;}
+ HGDIOBJ oldBitmap=SelectObject(dc,bitmap);
+ HFONT font=CreateFontW(-16,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,GB2312_CHARSET,
+  OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,NONANTIALIASED_QUALITY,FIXED_PITCH,L"SimSun");
+ HGDIOBJ oldFont=font?SelectObject(dc,font):NULL;
+ memset(pixels,0,width*16*4);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(255,255,255));
+ TextOutW(dc,0,0,text,length);GdiFlush();
+ C2DImage* image=C2DImage::Create2DImage(width,16);
+ unsigned char* out=image->GetDataPointer();
+ const unsigned char* in=static_cast<const unsigned char*>(pixels);
+ for(int y=0;y<16;y++)for(int x=0;x<width;x++){
+  const int dest=((15-y)*width+x)*4;out[dest]=out[dest+1]=out[dest+2]=255;out[dest+3]=in[(y*width+x)*4];
+ }
+ image->UploadToTexture();
+ if(font){SelectObject(dc,oldFont);DeleteObject(font);}SelectObject(dc,oldBitmap);
+ DeleteObject(bitmap);DeleteDC(dc);m_chineseText[text]=image;return image;
+}
+void COriginalEnd::Chinese(const wchar_t* text,int x,int y,int color){
+ auto* image=ChineseImage(text);if(image)image->DrawColorScaled(float(x),float(y+40),m_palette[color*3]/255.f,m_palette[color*3+1]/255.f,m_palette[color*3+2]/255.f);
+}
 void COriginalEnd::Number(const char* text,int x,int y,int color){for(int i=0;text[i];i++){if(text[i]>='0'&&text[i]<='9')CTh5ExtFont::DrawExtChar(0xa0+text[i]-'0',x+i*16,y+40,m_palette[color*3]/255.f,m_palette[color*3+1]/255.f,m_palette[color*3+2]/255.f);}}
 void COriginalEnd::Fraction(unsigned int value,int x,int y,int color,bool percent){
  // graph_fraction_of_million_put displays three digits and two decimals.
- const unsigned int unit=10000;char digits[16];sprintf_s(digits,"%3u",value/unit);Number(digits,x,y,color);sprintf_s(digits," %02u",(value%unit)/(unit/100));Number(digits,x+48,y,color);Text("\x81\x44",x+48,y,color);Text(percent?"\x81\x93":"\x93\x5f",x+96,y,color);
+ const unsigned int unit=10000;char digits[16];sprintf_s(digits,"%3u",value/unit);Number(digits,x,y,color);sprintf_s(digits," %02u",(value%unit)/(unit/100));Number(digits,x+48,y,color);Text("\x81\x44",x+48,y,color);Chinese(percent?L"\uff05":L"\u5206",x+96,y,color);
 }
 void COriginalEnd::DrawVerdict(int x,int y,int color,bool comments){
- using namespace original;Text(VerdictLabels[0],x,y,color);const int offsets[]={24,48,72,96,120,144,168,192,216,240,272};for(int i=0;i<11;i++)Text(VerdictLabels[i+1],x,y+offsets[i],color);
- static const unsigned char ranks[5][8]={{2,2,2,0xae,0xaa,0xbc,0xc2,0},{2,0xb7,0xb8,0xbb,0xb6,0xaa,0xb5,0},{2,2,2,0xb1,0xaa,0xbb,0xad,0},{0xb5,0xbe,0xb7,0xaa,0xbd,0xb2,0xac,0},{2,2,0xae,0xc1,0xbd,0xbb,0xaa,0}};
- CTh5ExtFont::DrawExtString(ranks[m_stats.stage==6?4:m_stats.difficulty],7,x+160,y+24+40,m_palette[color*3]/255.f,m_palette[color*3+1]/255.f,m_palette[color*3+2]/255.f);
- char value[32];sprintf_s(value,"%9d",m_stats.finalScore);Number(value,x+128,y+48,color);Text("\x93\x5f",x+272,y+48,color);
- sprintf_s(value,"%3u",m_stats.misses);Number(value,x+224,y+72,color);Text("\x89\xf1",x+272,y+72,color);
- sprintf_s(value,"%3u",m_stats.bombs);Number(value,x+224,y+96,color);Text("\x89\xf1",x+272,y+96,color);
+ using namespace original;Chinese(VerdictLabels[0],x+120,y,color);const int offsets[]={24,48,72,96,120,144,168,192,216,240,272};for(int i=0;i<11;i++)Chinese(VerdictLabels[i+1],x,y+offsets[i],color);
+ Chinese(VerdictDifficulties[m_stats.stage==6?4:m_stats.difficulty],x+224,y+24,color);
+ char value[32];sprintf_s(value,"%9d",m_stats.finalScore);Number(value,x+128,y+48,color);Chinese(L"\u5206",x+272,y+48,color);
+ sprintf_s(value,"%3u",m_stats.misses);Number(value,x+224,y+72,color);Chinese(L"\u6b21",x+272,y+72,color);
+ sprintf_s(value,"%3u",m_stats.bombs);Number(value,x+224,y+96,color);Chinese(L"\u6b21",x+272,y+96,color);
  for(int i=0;i<6;i++)Fraction(m_verdict.fractions[i],x+176,y+120+i*24,color,i!=4);
- if(m_verdict.valid){Fraction(m_verdict.skill,x+176,y+272,color,false);if(comments){Text(m_comments[m_verdict.row].c_str(),x+48,y+296,color,true,m_commentsTranslated);Text(m_comments[26+m_verdict.comment].c_str(),x+48,y+312,color,true,m_commentsTranslated);}}
- else{Text("\x81\x48\x81\x48\x81\x48\x81\x48\x81\x48\x81\x48\x93\x5f",x+176,y+272,color);Text(VerdictLabels[12],x+48,y+296,color);}
+ if(m_verdict.valid){Fraction(m_verdict.skill,x+176,y+272,color,false);if(comments){Chinese(VerdictComments[m_verdict.row],x+48,y+296,color);Chinese(VerdictComments[26+m_verdict.comment],x+48,y+312,color);}}
+ else{Chinese(L"\uff1f\uff1f\uff1f\uff1f\uff1f\uff1f\u5206",x+176,y+272,color);Chinese(VerdictLabels[12],x+48,y+296,color);}
 }
-void COriginalEnd::DrawScores(int x,int y,int color){for(int i=0;i<7;i++){char label[16],value[32];const int offset=i==6?288:64+i*32;if(i<6){strcpy_s(label,"\x81\x40\x82\x50\x96\xca\x81\x40");label[3]=char('P'+i);Text(label,x,y+offset,color);}else Text(original::VerdictLabels[2],x,y+offset,color);sprintf_s(value,"%9d",i==6?m_stats.finalScore:m_stats.stageScores[i]);Number(value,x+128,y+offset,color);Text("\x93\x5f",x+272,y+offset,color);}}
+void COriginalEnd::DrawScores(int x,int y,int color){for(int i=0;i<7;i++){char value[32];const int offset=i==6?288:64+i*32;Chinese(i<6?original::VerdictStages[i]:original::VerdictLabels[2],x,y+offset,color);sprintf_s(value,"%9d",i==6?m_stats.finalScore:m_stats.stageScores[i]);Number(value,x+128,y+offset,color);Chinese(L"\u5206",x+272,y+offset,color);}}
 int COriginalEnd::Random(){m_seed=m_seed*0x015a4e35u+1;return (m_seed>>16)&32767;}
 void COriginalEnd::Velocity(Particle& p){p.vx=int(std::cos((p.angle&255)*Tau/256)*p.speed);p.vy=int(std::sin((p.angle&255)*Tau/256)*p.speed);}
 void COriginalEnd::InitSpace(){
