@@ -56,12 +56,14 @@ CTitleScreen::CTitleScreen(void)
 	m_pBGImage=NULL;
 	m_pMenuImgPractice=NULL;
 	m_pPracticeDescription=NULL;
+ m_pSpeedDescription[0]=m_pSpeedDescription[1]=NULL;
 	m_pMenuImgReplay=NULL;
 }
 
 CTitleScreen::~CTitleScreen(void)
 {
 	if(m_pPracticeDescription) m_pPracticeDescription->Destroy();
+ for(auto* image:m_pSpeedDescription)if(image)image->Destroy();
 	if (m_pBGImage!=NULL)
 		m_pBGImage->Destroy();
 	m_pBGImage=NULL;
@@ -336,31 +338,39 @@ void CTitleScreen::DrawMainMenuItems()
 		DrawDescString(startGameDesc[CGame::GVar().m_initDifficulty]);
 }
 
-// The simplified Chinese hint is outside the Japanese resident bitmap font.
-// Rasterize this fixed string once, then render it through the game's image path.
-void CTitleScreen::CreatePracticeDescription()
+// Fixed Chinese hints use Unicode, independent of the mod's legacy font encoding.
+static C2DImage* CreateChineseDescription(const wchar_t* text)
 {
- HDC dc=CreateCompatibleDC(NULL);if(!dc)return;
+ const int length=int(wcslen(text)),width=length*16;
+ HDC dc=CreateCompatibleDC(NULL);if(!dc)return NULL;
  BITMAPINFO info={};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
- info.bmiHeader.biWidth=96;info.bmiHeader.biHeight=-16;
+ info.bmiHeader.biWidth=width;info.bmiHeader.biHeight=-16;
  info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
  void* pixels=NULL;HBITMAP bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,NULL,0);
- if(!bitmap){DeleteDC(dc);return;}
+ if(!bitmap){DeleteDC(dc);return NULL;}
  HGDIOBJ oldBitmap=SelectObject(dc,bitmap);
  HFONT font=CreateFontW(-16,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,GB2312_CHARSET,
   OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,NONANTIALIASED_QUALITY,FIXED_PITCH,L"SimSun");
  HGDIOBJ oldFont=font?SelectObject(dc,font):NULL;
- memset(pixels,0,96*16*4);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(255,255,255));
- TextOutW(dc,0,0,L"\u5f00\u59cb\u5355\u5173\u7ec3\u4e60",6);GdiFlush();
- m_pPracticeDescription=C2DImage::Create2DImage(96,16);
- unsigned char* out=m_pPracticeDescription->GetDataPointer();
+ memset(pixels,0,width*16*4);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(255,255,255));
+ TextOutW(dc,0,0,text,length);GdiFlush();
+ C2DImage* image=C2DImage::Create2DImage(width,16);
+ unsigned char* out=image->GetDataPointer();
  const unsigned char* in=static_cast<const unsigned char*>(pixels);
- for(int y=0;y<16;y++)for(int x=0;x<96;x++){
-  const int dest=((15-y)*96+x)*4;out[dest]=out[dest+1]=out[dest+2]=255;out[dest+3]=in[(y*96+x)*4];
+ for(int y=0;y<16;y++)for(int x=0;x<width;x++){
+  const int dest=((15-y)*width+x)*4;out[dest]=out[dest+1]=out[dest+2]=255;out[dest+3]=in[(y*width+x)*4];
  }
- m_pPracticeDescription->UploadToTexture();
+ image->UploadToTexture();
  if(font){SelectObject(dc,oldFont);DeleteObject(font);}SelectObject(dc,oldBitmap);
- DeleteObject(bitmap);DeleteDC(dc);
+ DeleteObject(bitmap);DeleteDC(dc);return image;
+}
+void CTitleScreen::CreatePracticeDescription()
+{
+ if(m_pPracticeDescription)m_pPracticeDescription->Destroy();
+ for(auto* image:m_pSpeedDescription)if(image)image->Destroy();
+ m_pPracticeDescription=CreateChineseDescription(L"\u5f00\u59cb\u5355\u5173\u7ec3\u4e60");
+ m_pSpeedDescription[0]=CreateChineseDescription(L"\u6162\u901f\u6a21\u5f0f\uff1a\u5f39\u91cf\u8f83\u591a\u65f6\u81ea\u52a8\u51cf\u901f\u3002");
+ m_pSpeedDescription[1]=CreateChineseDescription(L"\u6807\u51c6\u6a21\u5f0f\uff1a\u4e0d\u989d\u5916\u8fdb\u884c\u5f39\u91cf\u51cf\u901f\u3002");
 }
 void CTitleScreen::DrawDescString(char *descStr)
 {
@@ -430,8 +440,14 @@ void CTitleScreen::DrawOptionMenuItems()
 		}
 	}
 
-	if (m_optionMenuCursorPosition!=0)
-		DrawDescString(m_optionMenuCursorPosition==5&&!CGame::GVar().m_turboMode?"敵弾の多い場所で、わざと処理落ち（スロー）させます（初心者用）":optionMenuDesc[m_optionMenuCursorPosition]);
+ // Do not use menudesc.txt's obsolete SlowMode-not-implemented hint or legacy encoding.
+ if(m_optionMenuCursorPosition==5){
+  C2DImage* hint=m_pSpeedDescription[CGame::GVar().m_turboMode?1:0];
+  if(hint)hint->DrawColorScaled(float(624-hint->m_width),424,
+   m_globalPalette[27]/255.f,m_globalPalette[28]/255.f,m_globalPalette[29]/255.f);
+ }
+ else if(m_optionMenuCursorPosition!=0)
+  DrawDescString(optionMenuDesc[m_optionMenuCursorPosition]);
 	else
 		DrawDescString(difficultyDesc[CGame::GVar().m_initDifficulty]);
 }

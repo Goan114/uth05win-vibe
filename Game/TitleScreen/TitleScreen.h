@@ -23,6 +23,7 @@ protected:
 	int m_curFrame;
 
 	C2DImage *m_pPracticeDescription;
+ C2DImage* m_pSpeedDescription[2];
 	void CreatePracticeDescription();
 	C2DImage *m_pMenuImgPractice;
 	C2DImage *m_pMenuImgReplay;
