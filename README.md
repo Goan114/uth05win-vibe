@@ -14,14 +14,18 @@ You should provide your own legal copy of the game.
 The following text was taken from the original author Pegasy
 
 ### 介绍 Introduction
+
 ============
+
 这是“东方怪绮谈：Mystic Square”的非官方Windows移植版本。（Touhou 05,下称th05）
 此移植版几乎已经完全移植了原版的功能和特性，但是仍然有许多区别。
 请看“对比”以了解详细信息。
 This is an unofficial port of the game Touhou Kaikidan: Mystic Square (the fifth game of the touhou series, referred to as th05 below) to windows. It faithfully reproduces almost all features of the original PC98 version. Check "Comparison" section for the details
 
 ### 使用方法 Usage
+
 =====
+
 1.克隆/下载源代码/thprac Branch的源代码。
 2.使用msvc等编译器编译二进制文件。
 3.去SourceForge下载[glew](https://glew.sourceforge.net/)注意版本必须早于2014年。
@@ -44,7 +48,9 @@ This is an unofficial port of the game Touhou Kaikidan: Mystic Square (the fifth
 To start the game without translation, open config.ini and comment the line with "MOD_FILE = chs.dat"
 
 ### 对比 Comparison
+
 ==========
+
 在该移植版本，添加的功能：
  * Replay 支持
  * 中文翻译（可关闭）
@@ -76,6 +82,7 @@ Features not ported in this version:
  * some options
 
 ### 操作 Controls
+
 ========
 
 和大部分东方游戏类似：
@@ -106,12 +113,16 @@ To toggle fullscreen mode, press alt + enter.
 
 Game pad is not supported.
 
-Known bugs
+### 已知问题 Known bugs
+
 ==========
+
 When you switch to/from full screen mode, the font texture may become corrupted.
 
 ### 版权 Copyright
+
 =========
+
 1999 上海爱丽丝幻乐团/ZunTeam
 2011 Pegasy
 1999 Team Shanghai Alice
