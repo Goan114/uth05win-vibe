@@ -86,7 +86,7 @@ void CMidBossStage2::Phase1Shoot()
 		shootInfo.nMulti=3;
 		shootInfo.deltaSpeed=8;
 		shootInfo.bulletSpeed=24;
-		shootInfo.shootAngle=(float)(rand()%256);
+		shootInfo.shootAngle=(float)(original::Random()%256);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo);
 
@@ -100,7 +100,7 @@ void CMidBossStage2::Phase1Shoot()
 			if (m_curHP<=800)
 				shootInfo.nWay=4;
 		shootInfo.bulletSpeed=24;
-		shootInfo.shootAngle=(float)(rand()%256);
+		shootInfo.shootAngle=(float)(original::Random()%256);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo);
 	}
@@ -161,7 +161,7 @@ void CMidBossStage2::Phase2Shoot()
 		shootInfo.nMulti=3;
 		shootInfo.deltaSpeed=15;
 		shootInfo.bulletSpeed=24;
-		shootInfo.shootAngle=(float)(rand()%256);
+		shootInfo.shootAngle=(float)(original::Random()%256);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&shootInfo);
 		m_pStage->m_pEnemyBullet->Shoot(&shootInfo);
 	}

@@ -1,4 +1,6 @@
 #pragma once
+#include "../Original/OriginalMath.h"
+#include "../Original/OriginalFeatures.h"
 #include "../scheme.h"
 #include "../../gameLib/Graphic/2DImageArray.h"
 #include "../../gameLib/CommonFunction/CommonFunctionGraphic.h"
@@ -214,6 +216,7 @@ protected:
 	int AdjustDamageFromChara(int origDmg, bool isBoss);
 	__forceinline float AdjustSpeedBasedOnPlayerPerformance(float origSpeed)
 	{
+		if(original::DemoActive())return float(original::math::Speed(int(origSpeed),m_playerPerformance));
 		float ret=origSpeed*(0.5f+(float)m_playerPerformance/64.0f);
 		if (ret>128) ret=128;
 		if (ret<8) ret=8;

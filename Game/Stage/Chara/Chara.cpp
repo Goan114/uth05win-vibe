@@ -1,5 +1,7 @@
 #include ".\chara.h"
 #include <stdio.h>
+#include "../../Game.h"
+#include "../Boss/Boss.h"
 #include "../Stage.h"
 #include "../EnemyBullet/EnemyBullet.h"
 #include "../Item/Item.h"
@@ -17,11 +19,13 @@ namespace th5w{
 CChara::CChara(void)
 {
 	m_pStage=NULL;
+ m_originalLastDirection=0;
 	m_deltaX=0;
 	m_deltaY=0;
 	m_bDraw=true;
 
 	m_collisionAreaAlpha=0;
+ m_missExplodeBaseAngle=0;m_missExplodeRadius=0;
 }
 
 CChara::~CChara(void)
@@ -45,7 +49,17 @@ void CChara::MoveChara(unsigned short keyState)
 	if (m_bCharaCanMove==false)
 		return;
 
-	char dirX=0,dirY=0;
+	if(original::DemoActive()){
+  // Native player_move rejects opposing directions, then retries after
+  // removing the previous valid input. A retry does not update that input.
+  unsigned short movement=keyState&15;
+  const bool invalid=(movement&3)==3||(movement&12)==12;
+  if(invalid&&movement!=m_originalLastDirection)movement&=~m_originalLastDirection;
+  else m_originalLastDirection=movement;
+  if((movement&3)==3||(movement&12)==12)movement=0;
+  keyState=(keyState&~15)|movement;
+ }
+ char dirX=0,dirY=0;
 	if (CCommonFunctionInput::UpKey(keyState)) dirY=-1;
 	if (CCommonFunctionInput::DownKey(keyState)) dirY=1;
 	if (CCommonFunctionInput::LeftKey(keyState)) dirX=-1;
@@ -107,7 +121,7 @@ void CChara::DropBomb()
 		else
 		{										//bomb on death
 			m_nextLifeComeTimeLeft=0;
-			m_cannotControlTimeLeft=0;			//let player control chara again, PC98 ver does not do so
+			m_cannotControlTimeLeft=0;			// Original player_bomb also clears byte_2CEBD.
 			m_bMiss=false;
 		}
 	m_pStage->m_nCurBomb--;
@@ -117,13 +131,15 @@ void CChara::DropBomb()
 	m_pStage->m_pEnemyBullet->SetClearBulletTimeLeft(m_bombClearEnemyBulletTime);
 	m_pStage->m_bPlaySound[13]=true;
 	m_pStage->m_bInCharaBombForItem=true;
-	m_pStage->m_nBomb++;
+	m_pStage->m_nBomb++;original::Bomb();
 	m_pStage->ChangePlayerPerformance(-1);
 }
 
 void CChara::DecreaseDreamInBomb()
 {
-	if (m_bombTimer%2==0||(m_pStage->m_bInBossBattle&&m_bombTimer%4==0))
+ // sub_C52D: even frames in phase 0, only 2 mod 4 in later boss phases.
+ const bool nativeDrain=(m_bombTimer%2==0)&&(!m_pStage->m_pBoss||m_pStage->m_pBoss->GetCurPhase()==0||m_bombTimer%4!=0);
+	if (original::DemoActive()?nativeDrain:(m_bombTimer%2==0||(m_pStage->m_bInBossBattle&&m_bombTimer%4==0)))
 	{
 		if (m_pStage->GetDream()>1)
 			m_pStage->SetDream(m_pStage->GetDream()-1);
@@ -132,7 +148,8 @@ void CChara::DecreaseDreamInBomb()
 
 void CChara::OnMissDropItem()
 {
-	int bigPowerIdx=rand()%5;
+	int bigPowerIdx=original::Random()%5;
+ if(original::DemoActive()){while(original::Random()%5==bigPowerIdx){}}
 	int curPosArea;
 	if (m_curX<128.0f*16.0f)
 		curPosArea=0;
@@ -149,7 +166,7 @@ void CChara::OnMissDropItem()
 		if (i==bigPowerIdx)
 			itemType=ITEM_BIGPOWER;
 		else
-			itemType=rand()%2;		//power or point
+			itemType=original::Random()%2;		//power or point
 		if (m_pStage->m_nCurLife==1)
 			itemType=ITEM_FULLPOWER;
 		m_pStage->m_pItem->AddItem(m_curX,m_curY,itemType,velX[curPosArea][i],velY[curPosArea][i],false,false);
@@ -158,6 +175,7 @@ void CChara::OnMissDropItem()
 
 void CChara::CaughtItem(float itemX,float itemY,unsigned char itemType)
 {
+ original::ItemCollected(itemType==ITEM_POINT,itemType==ITEM_POINT&&(m_pStage->GetDream()>=128||itemY-m_pStage->GetDream()*24-896<=0));
 	const int powerOverflowBonus[]={1,1,2,3,4,5,6,7,8,9,
 									10,20,30,40,50,60,70,80,90,100,
 									150,200,250,300,350,400,450,500,550,600,
@@ -338,11 +356,11 @@ void CChara::Step()
 		{
 			if (m_charaShootTimer%6==0)
 				m_pStage->m_bPlaySound[1]=true;
-			ShootBullet();
+			if(original::DemoActive())GetCharaBullet()->ShootOriginal(CGame::GVar().m_playChara,m_powerLevel,m_charaShootTimer,m_curX,m_curY);else ShootBullet();
 			m_charaShootTimer--;
 		}
 	}
-	if (CCommonFunctionInput::XPressed(m_pStage->m_curGameKeyState,m_pStage->m_lastGameKeyState))
+	if (original::DemoActive()?CCommonFunctionInput::XKey(m_pStage->m_curGameKeyState):CCommonFunctionInput::XPressed(m_pStage->m_curGameKeyState,m_pStage->m_lastGameKeyState))
 		DropBomb();
 	if (m_nextLifeComeTimeLeft!=0)
 	{
@@ -355,16 +373,16 @@ void CChara::Step()
 				m_deltaX=0;m_deltaY=0;
 				m_pStage->m_powerOverflowLevel=0;
 				m_missExplodeRadius=0.0f;
-				m_missExplodeBaseAngle=(float)(rand()%256);
+				if(!original::DemoActive())m_missExplodeBaseAngle=(float)(original::Random()%256);
 				OnMissDropItem();
 				int powerDec=m_power/4;
 				if (powerDec>16) powerDec=16;
 				SetPower(m_power-powerDec);
 				m_pStage->m_bPlaySound[2]=true;
 				if (m_pStage->m_playerPerformance>38)
-					m_pStage->m_playerPerformance=38;
+					m_pStage->ChangePlayerPerformance(38-m_pStage->m_playerPerformance);
 				m_pStage->ChangePlayerPerformance(-4);
-				m_pStage->m_nMiss++;
+				m_pStage->m_nMiss++;original::Miss();
 			}
 			if (m_pStage->GetDream()<=2)
 				m_pStage->SetDream(1);
@@ -459,6 +477,7 @@ void CChara::DrawCollisionArea()
 
 bool CChara::TestCrash(float testX,float testY, float testHalfWidth,float testHalfHeight)
 {
+	if(original::DemoActive())return testX>=m_curX-testHalfWidth&&testX<=m_curX+testHalfWidth&&testY>=m_curY-testHalfHeight&&testY<=m_curY+testHalfHeight;
 	if (testX>=m_curX-testHalfWidth&&testX<=m_curX+testHalfWidth)
 		if (testY>=m_curY-testHalfHeight&&testY<=m_curY+testHalfHeight)
 			return true;
@@ -514,7 +533,7 @@ void CChara::ShootPowerLevel0Common()
 void CChara::ShootPowerLevel1Common()
 {
 	if (m_charaShootTimer%6==0)
-		GetCharaBullet()->AddBullet(m_curX,m_curY,20,CHARA_BULLET_TYPE_NORMAL,0,0,188+(float)(rand()%8),10);
+		GetCharaBullet()->AddBullet(m_curX,m_curY,20,CHARA_BULLET_TYPE_NORMAL,0,0,188+(float)(original::Random()%8),10);
 }
 
 }

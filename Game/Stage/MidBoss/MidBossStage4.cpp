@@ -74,8 +74,8 @@ int CMidBossStage4::FadeOutAndIn()
 	{
 		if (frameIdx==32)
 		{
-			m_phase1FadeCenterX=(float)(64+rand()%256)*16;
-			m_curY=(float)(64+rand()%32)*16;
+			m_phase1FadeCenterX=(float)(64+original::Random()%256)*16;
+			m_curY=(float)(64+original::Random()%32)*16;
 			return 0;
 		}
 		frameIdx=64-frameIdx;
@@ -115,8 +115,8 @@ void CMidBossStage4::Phase1Mode1()
 		for (int i=0;i<4;i++)
 		{
 			shootInfo.bulletImg=i%2*116;
-			shootInfo.shootOrigX=m_curX+(float)(rand()%(48*16)-24*16);
-			shootInfo.shootOrigY=m_curY+(float)(rand()%(48*16)-24*16);
+			shootInfo.shootOrigX=m_curX+(float)(original::Random()%(48*16)-24*16);
+			shootInfo.shootOrigY=m_curY+(float)(original::Random()%(48*16)-24*16);
 			m_pStage->m_pEnemyBullet->Shoot(&shootInfo,false,false);
 			shootInfo.bulletSpeed+=16;
 		}
@@ -224,7 +224,7 @@ void CMidBossStage4::Phase1()
 			if (m_phase1NModeChange>=16)
 				bPhaseEnd=true;
 			if (m_phase1CurMode==2)
-				m_phase1Mode2Angle=(float)(rand()%256);
+				m_phase1Mode2Angle=(float)(original::Random()%256);
 		}
 		break;
 	case 1:

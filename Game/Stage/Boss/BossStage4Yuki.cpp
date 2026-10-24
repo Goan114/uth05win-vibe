@@ -86,7 +86,7 @@ void CBossStage4Yuki::Phase3ShootType1()
 	if (m_curPhaseFrame==48)
 	{
 		m_curImage=208;
-		m_phase3ShootType1Angle=(float)(rand()%256);
+		m_phase3ShootType1Angle=(float)(original::Random()%256);
 		m_phase3ShootType1DeltaAngle=1;
 		return;
 	}
@@ -138,9 +138,9 @@ void CBossStage4Yuki::Phase3ShootType2()
 		si.bulletBornType=18;
 		si.shootType=EST02_NWAY;
 		si.bulletImg=48;
-		si.nWay=rand()%8;
+		si.nWay=original::Random()%8;
 		si.nWayUnitAngle=6;
-		si.bulletSpeed=(float)(8+rand()%32);
+		si.bulletSpeed=(float)(8+original::Random()%32);
 		si.shootAngle=(float)(128+(m_curPhaseFrame-10)/2*6);
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&si);
 		m_pStage->m_pEnemyBullet->Shoot(&si,true);
@@ -218,8 +218,8 @@ void CBossStage4Yuki::Phase5ShootType1()
 		si.bulletImg=0;
 		si.nWay=24;
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&si);
-		si.shootAngle=(float)(rand()%256);
-		si.bulletSpeed=(float)(32+rand()%32);
+		si.shootAngle=(float)(original::Random()%256);
+		si.bulletSpeed=(float)(32+original::Random()%32);
 		m_pStage->m_pEnemyBullet->Shoot(&si);
 		m_pStage->m_bPlaySound[15]=true;
 	}
@@ -253,7 +253,7 @@ void CBossStage4Yuki::Phase5ShootType2()
 		si.nWayUnitAngle=12;
 		si.shootAngle=0;
 		m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&si);
-		si.bulletSpeed=(float)(16+rand()%32);
+		si.bulletSpeed=(float)(16+original::Random()%32);
 		m_pStage->m_pEnemyBullet->Shoot(&si);
 		m_pStage->m_bPlaySound[15]=true;
 
@@ -385,7 +385,7 @@ void CBossStage4Yuki::Phase9ShootType1()
 	if (m_curPhaseFrame==32)
 	{
 		m_pStage->m_bPlaySound[15]=true;
-		m_phase9ShootType1Angle=(float)(rand()%256);
+		m_phase9ShootType1Angle=(float)(original::Random()%256);
 	}
 	if (m_curPhaseFrame%4==0)
 	{

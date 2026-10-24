@@ -36,6 +36,13 @@ std::array<int,8> CPMDPlayer::PianoNotes()
  for(int i=0;i<8;i++){QQ* p=getpartwork(i<5?i:i+1);if(p&&p->leng>(p->qdat<4?p->qdat:4)&&p->leng>1)result[i]=p->onkai;}
  LeaveCriticalSection(&s_csLocalBuf);return result;
 }
+int CPMDPlayer::Measure()
+{
+ if(!s_bInitialized||!s_bMusicDataExist)return -1;
+ EnterCriticalSection(&s_csLocalBuf);OPEN_WORK* work=getopenwork();
+ const int result=work?work->syousetu:-1;
+ LeaveCriticalSection(&s_csLocalBuf);return result;
+}
 bool CPMDPlayer::InitPMDWin()
 {
 	bool initres=pmdwininit(NULL);

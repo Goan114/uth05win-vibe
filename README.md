@@ -60,6 +60,7 @@ To start the game without translation, open config.ini and comment the line with
 在该Fork中，新添加的功能：
  * Practice 单关练习支持
  * Music Room
+ * 原版通关 Staff Roll、Extra All Cast 和角色实力评价
  * thprac 支持（位于`thprac`分支内）
  * 部分视觉优化和QoS
 
@@ -69,16 +70,15 @@ New features in this ported version:
  * fixed a number of bugs in the PC98 version
  * uses float instead of int where necessary, increasing accuracy
 
-在目前的版本中,未实现的功能：
- * Demo Play
- * Staff 菜单
- * 角色实力评价
+目前仍需验证／实现的功能：
+ * 原始 Demo 已接入输入和专用原版运算路径，仍需 PC-98 原版逐帧轨迹对照；原版允许掉残与放 Bomb，不能以无伤或播放到末尾作为还原判据。
  * 部分选项
 
-Features not ported in this version:
- * demo play
- * staff roll
- * player performance evaluation
+The current fork restores Staff Roll, All Cast and player performance evaluation using the original game data.
+See [PRACTICE.md](PRACTICE.md) for controls, verification and Demo compatibility details.
+
+Features still requiring verification or implementation:
+ * original-frame validation of Demo battle simulation (original inputs and source-based compatibility are implemented; native misses and bombs are allowed)
  * some options
 
 ### 操作 Controls
@@ -140,10 +140,7 @@ The assets and libraries it uses belongs to their authors. Check their webpage f
 
 This program uses:
 * assets from th05 (http://www.kt.rim.or.jp/~aotaka/am/index.htm)
-* now need to prepare your own assets 
+* now need to prepare your own assets
 * The OpenGL Extension Wrangler Library (http://glew.sourceforge.net/)
 * PMDWin (http://c60.fmp.jp/)
 * Rec98 (rec98.nmlgc.net)
-
-
-

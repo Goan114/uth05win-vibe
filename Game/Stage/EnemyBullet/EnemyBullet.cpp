@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include ".\enemybullet.h"
 #include "../Stage.h"
 #include "../Chara/Chara.h"
@@ -180,6 +181,11 @@ int CEnemyBullet::GetNRecordNeeded(ENEMY_SHOOT_INFO *shootInfo)
 int CEnemyBullet::FindFreeRecord(int *retIdxArray,int startIdx,int nIdx,int nNeeded)
 {
 	int nFound=0;
+ if(original::DemoActive()){
+  nIdx=startIdx==0?180:220;
+  for(int i=startIdx+nIdx-1;i>=startIdx;i--)if(!m_bullets[i].flag){retIdxArray[nFound++]=i;if(nFound==nNeeded)return nNeeded;}
+  retIdxArray[nFound]=-1;return nFound;
+ }
 	for (int i=startIdx;i<startIdx+nIdx;i++)
 		if (m_bullets[i].flag==0)
 		{
@@ -196,6 +202,24 @@ int CEnemyBullet::FindFreeRecord(int *retIdxArray,int startIdx,int nIdx,int nNee
 void CEnemyBullet::FillRecordSpeedAndAngle(int *freeRecIdx,ENEMY_SHOOT_INFO *shootInfo)
 {
 	float angleToChara=m_pStage->m_pChara->AngleToChara(shootInfo->shootOrigX,shootInfo->shootOrigY);
+ if(original::DemoActive()){
+  const int type=shootInfo->shootType;int way=1,stack=1;
+  if((type>=2&&type<=5)||(type>=8&&type<=13))way=shootInfo->nWay?shootInfo->nWay:1;
+  if(type>=6&&type<=11)stack=shootInfo->nMulti?shootInfo->nMulti:1;
+  const bool spread=type==2||type==3||type==8||type==9,ring=type==4||type==5||type==10||type==11;
+  for(int i=0;i<way*stack;i++){
+   if(freeRecIdx[i]<0)return;int angle=0,speed=int(shootInfo->bulletSpeed);
+   if(type==13)speed=(speed+(original::Random()&31))&255;
+   if(type==12||type==13)angle=original::Random()&255;
+   else if(ring)angle=(i%way)*256/way;
+   else if(spread){int n=i%way,d=int(shootInfo->nWayUnitAngle);if(way&1)angle=n?((n&1)?((n+1)/2)*d:-(n/2)*d):0;else angle=(n&1)?-(d/2+(n/2)*d):(d/2+(n/2)*d);}
+   if(type>=6&&type<=11)speed=(speed+(i/way)*int(shootInfo->deltaSpeed))&255;
+   if((type&1)&&type!=13)angle+=int(angleToChara);
+   auto& b=m_bullets[freeRecIdx[i]];b.curAngle=float((angle+int(shootInfo->shootAngle))&255);b.curSpeed=float(speed);
+   if((type==6||type==7)&&speed>=160){for(int j=i+1;j<way*stack&&freeRecIdx[j]>=0;j++){m_bullets[freeRecIdx[j]].flag=0;}freeRecIdx[i+1]=-1;return;}
+  }
+  return;
+ }
 
 	bool bRandSpeed=false;
 
@@ -252,8 +276,8 @@ void CEnemyBullet::FillRecordSpeedAndAngle(int *freeRecIdx,ENEMY_SHOOT_INFO *sho
 		{
 			if (freeRecIdx[i]==-1)
 				return;
-			m_bullets[freeRecIdx[i]].curAngle=(float)(rand()%256);
-			m_bullets[freeRecIdx[i]].curSpeed=shootInfo->bulletSpeed+(bRandSpeed?(float)(rand()%32):0);
+			m_bullets[freeRecIdx[i]].curAngle=(float)(original::Random()%256);
+			m_bullets[freeRecIdx[i]].curSpeed=shootInfo->bulletSpeed+(bRandSpeed?(float)(original::Random()%32):0);
 		}
 		return;
 	}
@@ -443,8 +467,9 @@ void CEnemyBullet::SpecialMove(int recordIdx)
 		}
 		return;
 	case EBMT03_SPEED_UP:
-		pBul.curSpeed+=pBul.specialMoveVar;
-		UpdateVelXYFromSpeedAngle(recordIdx);
+		if(original::DemoActive()){
+   UpdateVelXYFromSpeedAngle(recordIdx);pBul.curSpeed=float((int(pBul.curSpeed)+pBul.specialMoveVar)&255);
+  }else{pBul.curSpeed+=pBul.specialMoveVar;UpdateVelXYFromSpeedAngle(recordIdx);}
 		return;
 	case EBMT04_SLOW_DOWN_AND_TURN:
 		if (pBul.curSpeed<=0)
@@ -466,7 +491,8 @@ void CEnemyBullet::SpecialMove(int recordIdx)
 				float deltaAngle=pBul.delta-pBul.curAngle;
 				while(deltaAngle>128) deltaAngle-=256;
 				while(deltaAngle<-128) deltaAngle+=256;
-				pBul.curAngle+=deltaAngle/4;
+				if(original::DemoActive())pBul.curAngle=float((int(pBul.curAngle)+int(int8_t(int(pBul.delta)-int(pBul.curAngle)))/4)&255);
+    else pBul.curAngle+=deltaAngle/4;
 			}
 		}
 		return;
@@ -483,6 +509,10 @@ void CEnemyBullet::SpecialMove(int recordIdx)
 		bBounceXLow=bBounceXHigh=bBounceYLow=true;
 	    break;
 	case EBMT09_SPEED_UP_VERTICAL:
+  if(original::DemoActive()){
+   if(m_pStage->m_curFrame&1)pBul.velY=float(int16_t(int(pBul.velY)+pBul.specialMoveVar));
+   return;
+  }
 		if (m_pStage->m_curFrame%2==0)
 		{
 			pBul.velY+=pBul.specialMoveVar;
@@ -490,8 +520,16 @@ void CEnemyBullet::SpecialMove(int recordIdx)
 			pBul.imgIdx=AdjustBulletImageBasedOnAngle(pBul.imgIdx,pBul.curAngle);
 		}
 	    return;
-	case EBMT10_STRAIGHT:		//simply move in straight line. existed in PC98 ver just because
-	    return;									//it used integer coordinates and speed, which is not precise
+	case EBMT10_STRAIGHT:
+  if(original::DemoActive()){
+   // Native BSM_EXACT_LINEAR recomputes the point from total distance.
+   // Repeatedly adding a quantized velocity follows a different trajectory.
+   const int distance=int16_t(int(pBul.totalDistanceTravelled)+int(pBul.curSpeed));
+   pBul.totalDistanceTravelled=float(distance);
+   pBul.velX=float(int16_t(int(pBul.origX)+original::math::X(int(pBul.curAngle),distance))-int(pBul.curX));
+   pBul.velY=float(int16_t(int(pBul.origY)+original::math::Y(int(pBul.curAngle),distance))-int(pBul.curY));
+  }
+	    return;
 	}
 	if ((pBul.curX<=m_bounceXLow&&bBounceXLow==true)||(pBul.curX>=m_bounceXHigh&&bBounceXHigh==true))
 	{
@@ -519,8 +557,9 @@ void CEnemyBullet::Step()
 
 	if (m_noEnemyBullet==false)
 	{
-		for (int i=0;i<ENEMY_BULLET_N_RECORD;i++)
+		for (int iteration=0;iteration<ENEMY_BULLET_N_RECORD;iteration++)
 		{
+   const int i=original::DemoActive()?ENEMY_BULLET_N_RECORD-1-iteration:iteration;
 			if (m_bullets[i].flag==0||m_bullets[i].flag==2)
 			{
 				m_bullets[i].flag=0;
@@ -559,6 +598,7 @@ void CEnemyBullet::Step()
 					m_pStage->AddScore(removeBulletScore);
 				}
 			}
+			if(original::DemoActive())++m_bullets[i].age;
 			if (m_bullets[i].bornStageAndGrazeFlag==2)	//set grazed flag to false for bullets just ended born stage
 				m_bullets[i].bornStageAndGrazeFlag=0;
 			if (m_bullets[i].bornStageAndGrazeFlag>2)	//bullets still in born stage
@@ -584,8 +624,8 @@ void CEnemyBullet::Step()
 					{
 						m_bullets[i].lastX=m_bullets[i].curX;		//move forward with 1/3x speed
 						m_bullets[i].lastY=m_bullets[i].curY;
-						m_bullets[i].curX+=m_bullets[i].velX/3;
-						m_bullets[i].curY+=m_bullets[i].velY/3;
+						m_bullets[i].curX+=(original::DemoActive()?float(int(m_bullets[i].velX)/3):m_bullets[i].velX/3);
+						m_bullets[i].curY+=(original::DemoActive()?float(int(m_bullets[i].velY)/3):m_bullets[i].velY/3);
 						m_bullets[i].bornStageAndGrazeFlag++;
 					}
 				if (m_bullets[i].bornStageAndGrazeFlag>=20)			//born stage end, change to normal mode
@@ -607,7 +647,7 @@ void CEnemyBullet::Step()
 					{
 						m_bullets[i].accumulator--;
 						//speed transit from 72 to origSpeed linearly within 32 frames
-						m_bullets[i].curSpeed=m_bullets[i].origSpeed+m_bullets[i].delta*m_bullets[i].accumulator/32.0f;
+						m_bullets[i].curSpeed=m_bullets[i].origSpeed+(original::DemoActive()?float((int(m_bullets[i].delta)*m_bullets[i].accumulator)/32):m_bullets[i].delta*m_bullets[i].accumulator/32.0f);
 						if (m_bullets[i].accumulator==0)			//end of fade in frames
 						{
 							m_bullets[i].curSpeed=m_bullets[i].origSpeed;
@@ -627,7 +667,7 @@ void CEnemyBullet::Step()
 					m_bullets[i].flag=2;						//outside play area, remove
 					continue;
 				}
-				if (m_clearEnemyBulletTimeLeft>0)
+				if (m_clearEnemyBulletTimeLeft>0 || (original::DemoActive()&&m_pStage->m_pChara->m_invulnerableTimeLeft!=0))
 					continue;
 				float charaX=m_pStage->m_pChara->GetCurX();
 				float charaY=m_pStage->m_pChara->GetCurY();
@@ -635,8 +675,8 @@ void CEnemyBullet::Step()
 				{
 					//the graze area inf PC98 ver is very strange: left 16, right 20, up/down 22
 					//we rotate it 90 degrees clockwise here: up 16, down 20, left/right 22
-					if (m_bullets[i].curX>=charaX-22.0f*16.0f&&m_bullets[i].curX<=charaX+22.0f*16.0f)
-						if (m_bullets[i].curY>=charaY-16.0f*16.0f&&m_bullets[i].curY<=charaY+20.0f*16.0f)
+					if (original::DemoActive()?(m_bullets[i].curX>=charaX-256&&m_bullets[i].curX<=charaX+320):(m_bullets[i].curX>=charaX-352&&m_bullets[i].curX<=charaX+352))
+						if (original::DemoActive()?(m_bullets[i].curY>=charaY-352&&m_bullets[i].curY<=charaY+352):(m_bullets[i].curY>=charaY-256&&m_bullets[i].curY<=charaY+320))
 						{
 							m_pStage->m_pSparkEffect->AddEffect(m_bullets[i].curX,m_bullets[i].curY,32,2,false);
 							m_bullets[i].bornStageAndGrazeFlag=1;

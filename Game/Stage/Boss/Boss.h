@@ -30,6 +30,7 @@ class CStage;
 
 class CBoss
 {
+friend struct PracticeTests;
 friend class CStage;
 
 protected:

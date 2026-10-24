@@ -264,6 +264,12 @@
 
   <ItemGroup>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Game\Original\OriginalFeatures.cpp" />
+    <ClCompile Include="Game\Original\OriginalScenes.cpp" />
+    <ClInclude Include="Game\Original\OriginalFeatures.h" />
+    <ClInclude Include="Game\Original\OriginalScenes.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

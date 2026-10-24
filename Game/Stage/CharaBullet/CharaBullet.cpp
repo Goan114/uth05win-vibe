@@ -8,6 +8,8 @@
 #define PI 3.1415926535897932384626433832795
 #endif
 
+#include "../../Original/OriginalShots.h"
+
 namespace th5w{
 
 CCharaBullet::CCharaBullet(CStage *pStage)
@@ -22,6 +24,7 @@ CCharaBullet::~CCharaBullet(void)
 
 void CCharaBullet::Initialize()
 {
+	m_originalHitCounter=0;
 	memset(m_bullets,0,sizeof(m_bullets));
 	memset(m_hitBullets,0,sizeof(m_hitBullets));
 	m_clipXLow=-128;
@@ -67,9 +70,20 @@ void CCharaBullet::AddBullet(float bulletX, float bulletY, unsigned char imgIdx,
 				m_bullets[i].velX=(float)cos(moveAngle/256.0*2*PI)*192;
 				m_bullets[i].velY=(float)sin(moveAngle/256.0*2*PI)*192;
 				m_bullets[i].moveAngle=moveAngle;
+    if(original::DemoActive()){m_bullets[i].velX=float(original::math::X(int(moveAngle),192));m_bullets[i].velY=float(original::math::Y(int(moveAngle),192));}
 			}
 			break;
 		}
+}
+
+void CCharaBullet::ShootOriginal(int character,int level,int timer,float x,float y)
+{
+ using namespace original::shots;shot_time=timer;originX=int(x);originY=int(y);
+ for(int i=0;i<64;i++){auto& src=m_bullets[i];auto& dst=slots[i];dst.flag=src.flag;}
+ slots[64].flag=0;
+ Run(character,level);
+ for(int i=0;i<64;i++){auto& src=slots[i];auto& dst=m_bullets[i];if(!src.flag||dst.flag)continue;
+ dst.flag=1;dst.age=src.age;dst.curX=dst.lastX=float(src.pos.cur.x.v);dst.curY=dst.lastY=float(src.pos.cur.y.v);dst.velX=float(src.pos.velocity.x.v);dst.velY=float(src.pos.velocity.y.v);dst.imgIdx=src.patnum_base;dst.bulletType=src.type;dst.damage=src.damage;dst.moveAngle=float(src.angle);}
 }
 
 void CCharaBullet::StepBullets()
@@ -89,7 +103,13 @@ void CCharaBullet::StepBullets()
 					m_bullets[i].bulletType=CHARA_BULLET_TYPE_NORMAL;
 				if (m_pStage->m_bHomingEnemyExist==false)
 					break;
-				float desiredAngle=atan2(m_pStage->m_homingEnemyY-m_bullets[i].curY,m_pStage->m_homingEnemyX-m_bullets[i].curX);
+				if(original::DemoActive()){
+      auto& b=m_bullets[i];const int desired=original::math::Angle(int(m_pStage->m_homingEnemyY-b.curY),int(m_pStage->m_homingEnemyX-b.curX));
+      const int diff=(int(b.moveAngle)-desired)&255;int angle=int(b.moveAngle);
+      if(diff>=128){int step=(256-diff)/4;angle=step<3?desired:angle+step;}else{int step=diff/4;angle=step<3?desired:angle-step;}
+      b.moveAngle=float(angle&255);b.velX=float(original::math::X(angle,192));b.velY=float(original::math::Y(angle,192));break;
+     }
+     float desiredAngle=atan2(m_pStage->m_homingEnemyY-m_bullets[i].curY,m_pStage->m_homingEnemyX-m_bullets[i].curX);
 				desiredAngle=(float)(desiredAngle/2.0/PI*256);
 				float deltaAngle=desiredAngle-m_bullets[i].moveAngle;
 				if (deltaAngle>128.0f)
@@ -214,7 +234,7 @@ int CCharaBullet::GetDamage(float ctrX,float ctrY,float halfWidth,float halfHeig
 					if (actualDamage==0)
 						actualDamage=1;
 					totalDamage+=actualDamage;
-					if (nHit%2==1)
+					if (original::DemoActive()?(++m_originalHitCounter&1):(nHit%2==1))
 						m_pStage->m_pSparkEffect->AddEffect(m_bullets[i].curX,m_bullets[i].curY,128,1,false);
 					if (bReflectAndAddScore)
 					{
@@ -222,7 +242,7 @@ int CCharaBullet::GetDamage(float ctrX,float ctrY,float halfWidth,float halfHeig
 						{
 							shootInfo.shootOrigX=m_bullets[i].curX;
 							shootInfo.shootOrigY=m_bullets[i].curY;
-							shootInfo.shootAngle=(float)(rand()%256);
+							shootInfo.shootAngle=(float)(original::Random()%256);
 							m_pStage->m_pEnemyBullet->Shoot(&shootInfo);
 						}
 					}

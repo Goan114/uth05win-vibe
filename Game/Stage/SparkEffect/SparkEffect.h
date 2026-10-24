@@ -27,6 +27,7 @@ protected:
 
 protected:
 	SPARK_EFFECT m_spark[SPARK_EFFECT_N_RECORD];
+ int m_nativeRingOffset;
 
 public:
 	void AddEffect(float origX,float origY,float baseSpeed,int nTrail,bool isExplode);

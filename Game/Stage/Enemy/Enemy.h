@@ -1,4 +1,6 @@
 #pragma once
+#include "../../Original/OriginalMath.h"
+#include "../../Original/OriginalFeatures.h"
 #include "../EnemyBullet/EnemyBullet.h"
 #include <math.h>
 #ifndef PI
@@ -64,6 +66,7 @@ protected:
 protected:
 	__forceinline static void UpdateVelXYFromSpeedAngle(ENEMY *pEnemy)
 	{
+		if(original::DemoActive()){pEnemy->velX=float(original::math::X(int(pEnemy->curAngle),int((unsigned char)int(pEnemy->curSpeed))));pEnemy->velY=float(original::math::Y(int(pEnemy->curAngle),int((unsigned char)int(pEnemy->curSpeed))));return;}
 		pEnemy->velX=(float)cos(pEnemy->curAngle/256.0f*2*PI)*pEnemy->curSpeed;
 		pEnemy->velY=(float)sin(pEnemy->curAngle/256.0f*2*PI)*pEnemy->curSpeed;
 	}

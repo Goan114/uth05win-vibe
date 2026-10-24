@@ -111,9 +111,9 @@ void CStage::UploadVarToGlobal()
 
 void CStage::DownloadVarFromGlobal()
 {
-	//make sure that after creation of CStage, no rand() calls before this statement,
+	//make sure that after creation of CStage, no original::Random() calls before this statement,
 	//otherwise, replays may work incorrectly!
-	srand(CGame::GVar().m_randomSeed[CGame::GVar().m_playStage]);
+	srand(CGame::GVar().m_randomSeed[CGame::GVar().m_playStage]);original::ResetDemoSeed();
 	//printf("------------------\n");
 	//printf("%d\n",CGame::GVar().m_randomSeed[CGame::GVar().m_playStage]);
 	//printf("------------------\n");
@@ -192,7 +192,8 @@ void CStage::InitChara()
 
 void CStage::Initialize()
 {
-	if (CGame::GVar().m_bReplayMode==false)
+	if (original::DemoActive()) {}
+	else if (CGame::GVar().m_bReplayMode==false)
 		CGame::GVar().m_replay.OpenStage(CGame::GVar().m_playStage,false);
 	else
 		CGame::GVar().m_replay.OpenStage(CGame::GVar().m_playStage,true);
@@ -390,9 +391,11 @@ int CStage::StepFrame(unsigned short liveInput)
 		if (m_quitCode==STAGE_END_CLEAR && CGame::GVar().m_bPracticeMode && !CGame::GVar().m_bReplayMode)
             CGame::GVar().m_bCanSaveReplay=true;
 		UploadVarToGlobal();
+ original::EndStage(CGame::GVar().m_playStage,m_curScore,m_quitCode==STAGE_END_CLEAR);
 		//make sure to upload var before close stage
 		//otherwise, replay will not get the correct score
-		if (m_quitCode==STAGE_END_CLEAR)
+		if (original::DemoActive()) {}
+		else if (m_quitCode==STAGE_END_CLEAR)
 		{
 			CGame::GVar().m_replay.CloseStage(true);
 		}
@@ -413,19 +416,21 @@ int CStage::StepFrame(unsigned short liveInput)
 			return 0;
 		m_bLogo=false;
 
+		if(!original::DemoActive()||original::Demo().number==5){
 		char bgmFileName[]="ST00.M2";
 		bgmFileName[3]=CGame::GVar().m_playStage+48;
 		CPMDPlayer::UnloadPMDData();
 		CCommonFunctionMusicSE::LoadMusicToPMDFromDat(&CGame::s_pCurGame->m_th5Dat2,bgmFileName);
 		CPMDPlayer::SetVolume(100);
 		CPMDPlayer::Play();
+  }
 
 		m_bCanPause=true;
 	}
 
 	if (m_bPaused)
 	{
-		StepPause();
+		original::PausedFrame();StepPause();
 		return 0;
 	}
 
@@ -435,7 +440,13 @@ int CStage::StepFrame(unsigned short liveInput)
 		return 0;
 	}
 
-	if (CGame::GVar().m_bReplayMode==false)
+ if(original::DemoActive()){
+  if(m_pDialogue->IsRunning()){
+   if(original::Demo().extraPart2){SetQuit(STAGE_END_PLAYER_QUIT);return 0;}
+   m_curGameKeyState=128;for(int i=0;i<10000&&m_pDialogue->IsRunning();i++)m_pDialogue->Step();m_curGameKeyState=0;original::DemoDialogueEnded();return 0;
+  }
+  m_lastGameKeyState=m_curGameKeyState;if(!original::DemoInput(liveInput,m_curGameKeyState)){SetQuit(STAGE_END_PLAYER_QUIT);return 0;}
+ }else if (CGame::GVar().m_bReplayMode==false)
 	{
 		m_lastGameKeyState=m_curGameKeyState;
 		m_curGameKeyState=liveInput;
@@ -465,7 +476,7 @@ int CStage::StepFrame(unsigned short liveInput)
 		}
 	}
 
-	if (CGame::GVar().m_bReplayMode==false)
+	if (CGame::GVar().m_bReplayMode==false&&!original::DemoActive())
 		CGame::GVar().m_replay.PutNextdata(m_curGameKeyState);
 
 	if (CGame::GVar().m_bReplayMode)
@@ -478,6 +489,7 @@ int CStage::StepFrame(unsigned short liveInput)
 	if (m_pDialogue->Step()==0)
 		return 0;
 
+	original::Frame(m_pBackground->GetCurScrollSpeed()!=0,m_curScore);
 	m_curFrame++;
 
 	if (m_curFrame>0)
@@ -597,6 +609,7 @@ void CStage::Draw()
 
 void CStage::EnableContinueScreen()
 {
+ if(original::DemoActive()){SetQuit(STAGE_END_PLAYER_QUIT);return;}
 	if (m_bContinueScr==false)
 	{
 		m_bContinueScr=true;
@@ -762,7 +775,7 @@ int CStage::StepLogo()
 	m_logoFrame++;
 	if (m_logoFrame>=128+17)
 		return 1;
-	CPMDPlayer::SetVolume(100.0f-m_logoFrame);
+	if(!original::DemoActive()||original::Demo().number==5)CPMDPlayer::SetVolume(100.0f-m_logoFrame);else CPMDPlayer::SetVolume(100);
 	return 0;
 }
 

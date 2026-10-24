@@ -20,7 +20,8 @@ CSparkEffect::~CSparkEffect(void)
 
 void CSparkEffect::Initialize()
 {
-	memset(m_spark,0,sizeof(m_spark));
+	memset(m_spark,0,sizeof(m_spark));m_nativeRingOffset=0;
+ if(original::DemoActive())for(int i=0;i<96;i++){const int angle=original::IRandom()&255;if(i<64)m_spark[i].angle=float(angle);}
 	m_clipXLow=-64;
 	m_clipXHigh=6208;
 	m_clipYLow=-64;
@@ -29,7 +30,18 @@ void CSparkEffect::Initialize()
 
 void CSparkEffect::AddEffect(float origX,float origY,float baseSpeed,int nTrail,bool isExplode)
 {
-	int curAdd=0;
+	if(original::DemoActive()){
+  if(origX<0||origX>384*16||origY<0||origY>368*16)return;
+  for(int i=0;i<nTrail;i++){
+   auto& p=m_spark[m_nativeRingOffset];m_nativeRingOffset=(m_nativeRingOffset+1)%64;if(p.flag)continue;
+   p.flag=1;p.age=0;p.curX=origX;p.curY=origY;
+   const int angle=isExplode?((nTrail-i)*256/nTrail)&255:int(p.angle);
+   const int speed=int(baseSpeed)+(isExplode?0:(original::Random()&31));
+   p.velX=float(original::math::X(angle,speed));p.velY=float(original::math::Y(angle,speed));
+  }
+  return;
+ }
+ int curAdd=0;
 	for (int i=0;i<SPARK_EFFECT_N_RECORD;i++)
 	{
 		if (m_spark[i].flag!=0)
@@ -47,8 +59,8 @@ void CSparkEffect::AddEffect(float origX,float origY,float baseSpeed,int nTrail,
 		}
 		else
 		{
-			m_spark[i].angle=(float)(rand()%256);
-			speed=baseSpeed+(float)(rand()%32);
+			m_spark[i].angle=(float)(original::Random()%256);
+			speed=baseSpeed+(float)(original::Random()%32);
 		}
 		m_spark[i].velX=(float)cos((m_spark[i].angle/256.0f*2*PI))*speed;
 		m_spark[i].velY=(float)sin((m_spark[i].angle/256.0f*2*PI))*speed;

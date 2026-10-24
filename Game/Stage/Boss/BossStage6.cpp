@@ -106,8 +106,8 @@ int CBossStage6::Phase2ShootType1()
 {
 	if (m_curPhaseFrame==32)
 	{
-		m_phase2Type1DeltaAngle=(float)(rand()%2*4-2);
-		m_phase2Type1Angle=(float)(rand()%256);
+		m_phase2Type1DeltaAngle=(float)(original::Random()%2*4-2);
+		m_phase2Type1Angle=(float)(original::Random()%256);
 		m_pStage->m_bPlaySound[15]=true;
 	}
 	if (m_curPhaseFrame%4==0)
@@ -134,7 +134,7 @@ int CBossStage6::Phase2ShootType1()
 int CBossStage6::Phase2ShootType2()
 {
 	if (m_curPhaseFrame==32)
-		m_phase2Type2Angle=(float)(rand()%256);
+		m_phase2Type2Angle=(float)(original::Random()%256);
 	int intervalA[]={16,12,8,4};
 	int interval=intervalA[CGame::GVar().m_playDifficulty];
 	if (m_curPhaseFrame%interval==0)
@@ -146,7 +146,7 @@ int CBossStage6::Phase2ShootType2()
 		si.nWay=16;
 
 		si.shootAngle=m_phase2Type1Angle+(m_curPhaseFrame-32)/interval*8;
-		float len=(float)(rand()%(32*16));
+		float len=(float)(original::Random()%(32*16));
 		si.shootOrigX=m_curX+(float)cos(si.shootAngle/256.0f*2*PI)*len;
 		si.shootOrigY=m_curY+(float)sin(si.shootAngle/256.0f*2*PI)*len;
 
@@ -334,10 +334,10 @@ int CBossStage6::Phase5Effect()
 			si.bulletImg=44;
 			si.shootType=EST00_SINGLE;
 			m_pStage->m_pEnemyBullet->TuneEnemyShootInfo(&si);
-			si.shootOrigX=m_curX+(float)(rand()%(256*16)-128*16);
-			si.shootOrigY=m_curY+(float)(16*16-rand()%(64*16));
-			si.shootAngle=(float)(rand()%96+16);
-			si.bulletSpeed=(float)(rand()%64+24);
+			si.shootOrigX=m_curX+(float)(original::Random()%(256*16)-128*16);
+			si.shootOrigY=m_curY+(float)(16*16-original::Random()%(64*16));
+			si.shootAngle=(float)(original::Random()%96+16);
+			si.bulletSpeed=(float)(original::Random()%64+24);
 			m_pStage->m_pEnemyBullet->Shoot(&si);
 		}
 		m_curImage=184;
@@ -382,17 +382,17 @@ void CBossStage6::Phase6Shoot()
 		return;
 	if (m_curPhaseFrame%8==0)
 	{
-		float sX=(float)(rand()%(384*16));
-		float sY=(float)(rand()%(64*16)+32*16);
-		float speed=(float)(rand()%32+48);
+		float sX=(float)(original::Random()%(384*16));
+		float sY=(float)(original::Random()%(64*16)+32*16);
+		float speed=(float)(original::Random()%32+48);
 		m_shinkiBullet.AddBullet(sX,sY,200,64,speed);
 		m_pStage->m_bPlaySound[3]=true;
 	}
 	if (m_curPhaseFrame%24==0)
 	{
 		ENEMY_SHOOT_INFO si;
-		si.shootOrigX=m_curX+(float)(rand()%(256*16)-128*16);
-		si.shootOrigY=m_curY-(float)(rand()%(64*16));
+		si.shootOrigX=m_curX+(float)(original::Random()%(256*16)-128*16);
+		si.shootOrigY=m_curY-(float)(original::Random()%(64*16));
 		si.bulletBornType=18;
 		si.bulletImg=44;
 		si.shootType=EST03_NWAY_TO_CHARA;
@@ -418,7 +418,7 @@ void CBossStage6::Phase7Shoot()
 		si.bulletBornType=18;
 		si.bulletImg=45;
 		si.shootType=EST02_NWAY;
-		si.bulletSpeed=(float)(48+rand()%32);
+		si.bulletSpeed=(float)(48+original::Random()%32);
 		si.nWay=6;
 		si.nWayUnitAngle=8;
 		si.shootAngle=104;
@@ -429,7 +429,7 @@ void CBossStage6::Phase7Shoot()
 	int interval[]={128,48,32,24};
 	if (m_curPhaseFrame%interval[CGame::GVar().m_playDifficulty]==0)
 	{
-		m_curvingBullet.AddBullet(m_curX,m_curY,(float)(rand()%3*64),64,11);
+		m_curvingBullet.AddBullet(m_curX,m_curY,(float)(original::Random()%3*64),64,11);
 		m_pStage->m_bPlaySound[3]=true;
 	}
 }
@@ -470,10 +470,10 @@ int CBossStage6::Phase8Effect()
 	{
 		for (int i=0;i<16;i++)
 		{
-			float sX=m_curX+(float)(rand()%(256*16)-128*16);
-			float sY=m_curY+(float)(16*16-rand()%(64*16));
-			float angle=(float)(rand()%64+32);
-			float speed=(float)(rand()%64+32);
+			float sX=m_curX+(float)(original::Random()%(256*16)-128*16);
+			float sY=m_curY+(float)(16*16-original::Random()%(64*16));
+			float angle=(float)(original::Random()%64+32);
+			float speed=(float)(original::Random()%64+32);
 			m_shinkiBullet.AddBullet(sX,sY,201,angle,speed);
 		}
 		m_curImage=192;
@@ -642,8 +642,8 @@ void CBossStage6::Phase10Shoot()
 		}
 		if (m_phase10Var2!=0&&m_curPhaseFrame%m_phase10Var3==0)
 		{
-			float x=m_curX+(float)(rand()%(256*16)-128*16);
-			float y=m_curY+(float)(16*16-rand()%(64*16));
+			float x=m_curX+(float)(original::Random()%(256*16)-128*16);
+			float y=m_curY+(float)(16*16-original::Random()%(64*16));
 			float angle=m_pStage->m_pChara->AngleToChara(x,y);
 			m_shinkiBullet.AddBullet(x,y,201,angle,60);
 		}
@@ -944,9 +944,9 @@ void CBossStage6::StepBGTypeA()
 		m_bgParticle[m_bgTypeATimer].curY=184.0f*16.0f;
 		m_bgParticle[m_bgTypeATimer].origX=192.0f*16.0f;
 		m_bgParticle[m_bgTypeATimer].origY=184.0f*16.0f;
-		m_bgParticle[m_bgTypeATimer].angle=(float)(rand()%256);
+		m_bgParticle[m_bgTypeATimer].angle=(float)(original::Random()%256);
 		m_bgParticle[m_bgTypeATimer].age=0;
-		float speed=(float)(rand()%64+32);
+		float speed=(float)(original::Random()%64+32);
 		m_bgParticle[m_bgTypeATimer].velX=(float)cos(m_bgParticle[m_bgTypeATimer].angle/256.0f*2*PI)*speed;
 		m_bgParticle[m_bgTypeATimer].velY=(float)sin(m_bgParticle[m_bgTypeATimer].angle/256.0f*2*PI)*speed;
 		m_bgTypeATimer++;
@@ -996,12 +996,12 @@ void CBossStage6::StepBGTypeB()
 		for (int i=0;i<64;i++)
 		{
 			m_bgParticle[i].bFlag=true;
-			m_bgParticle[i].curX=(float)(rand()%(384*16));
-			m_bgParticle[i].curY=(float)(rand()%(384*16));
+			m_bgParticle[i].curX=(float)(original::Random()%(384*16));
+			m_bgParticle[i].curY=(float)(original::Random()%(384*16));
 			m_bgParticle[i].origX=m_bgParticle[i].curX;
 			m_bgParticle[i].origY=-1.0f*16.0f;
 			m_bgParticle[i].velX=m_bgParticle[i].velY=0;
-			m_bgParticle[i].imgIdx=172+rand()%4;
+			m_bgParticle[i].imgIdx=172+original::Random()%4;
 		}
 		m_bgParticleColor[0]=m_pStage->m_pStageRes->m_palette[8*3]/255.0f;
 		m_bgParticleColor[1]=m_pStage->m_pStageRes->m_palette[8*3+1]/255.0f;

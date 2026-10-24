@@ -267,7 +267,7 @@ void CBossStage4Mai::Phase5Shoot()
 	{
 		float c[]={m_pStage->m_pStageRes->m_palette[8*3]/255.0f,m_pStage->m_pStageRes->m_palette[8*3+1]/255.0f,
 				   m_pStage->m_pStageRes->m_palette[8*3+2]/255.0f};
-		float angle=(float)(rand()%256);
+		float angle=(float)(original::Random()%256);
 		for (int i=0;i<nLaser;i++)
 			m_pStage->m_pLaser->AddLaserFixed(i,m_curX,m_curY,c,8,angle+i*256.0f/nLaser);
 		m_phase5LaserAngleSpeed=1;
@@ -304,7 +304,7 @@ void CBossStage4Mai::Phase5Shoot()
 		else
 		{
 			m_phase5LaserAngleSpeed+=(float)(m_pStage->m_curFrame%2);
-			if (cycleFrame>212&&rand()%32==0)
+			if (cycleFrame>212&&original::Random()%32==0)
 				m_curPhaseFrame+=255-cycleFrame;
 		}
 
@@ -526,7 +526,7 @@ void CBossStage4Mai::Phase9ShootType2()
 	if (m_curPhaseFrame==16)
 	{
 		m_curImage=192;
-		float deltaAngle=(float)(16+rand()%16);
+		float deltaAngle=(float)(16+original::Random()%16);
 		float c[]={m_pStage->m_pStageRes->m_palette[8*3]/255.0f,m_pStage->m_pStageRes->m_palette[8*3+1]/255.0f,
 				   m_pStage->m_pStageRes->m_palette[8*3+2]/255.0f};
 		m_pStage->m_pLaser->AddLaserFixed(0,m_curX,m_curY,c,8,64.0f-deltaAngle/2.0f,32,90);

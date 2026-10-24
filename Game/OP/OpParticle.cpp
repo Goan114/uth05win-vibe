@@ -1,4 +1,5 @@
 #include ".\opparticle.h"
+#include "../Original/OriginalFeatures.h"
 #include <math.h>
 #ifndef PI
 #define PI 3.1415926535897932384626433832795
@@ -88,8 +89,8 @@ void COpParticle::AddParticles(int img,int nParticleToCreate,int originX,int ori
 		m_particle[curSlot].curY=originY*16;
 		m_particle[curSlot].lastR=0;
 		m_particle[curSlot].curR=0;
-		m_particle[curSlot].vel=rand()%224+64;
-		m_particle[curSlot].angle=rand()%256;
+		m_particle[curSlot].vel=original::Random()%224+64;
+		m_particle[curSlot].angle=original::Random()%256;
 		m_particle[curSlot].img=img;
 		nParticleCreated++;
 		if (nParticleCreated>=nParticleToCreate)

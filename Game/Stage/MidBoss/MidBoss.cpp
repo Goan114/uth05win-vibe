@@ -9,7 +9,7 @@ CMidBoss::CMidBoss(void)
 	m_curPhase=0;
 	m_curPhaseFrame=0;
 	m_lastDrawnHP=0;
-	m_explodeAngle=(float)(rand()%256);	//PC98 does does not initialize this var, but it doens't matter much
+	m_explodeAngle=original::DemoActive()?0.0f:(float)(original::Random()%256);	//PC98 does does not initialize this var, but it doens't matter much
 }
 
 CMidBoss::~CMidBoss(void)
@@ -34,8 +34,8 @@ void CMidBoss::AddDefeatScoreAndPopupNumbers(int n1280)
 	m_pStage->AddScore(n1280*1280);
 	for (int i=0;i<n1280;i++)
 	{
-		float drawX=m_curX-64.0f*16.0f+(float)(rand()%2048);
-		float drawY=m_curY-64.0f*16.0f+(float)(rand()%2048);
+		float drawX=m_curX-64.0f*16.0f+(float)(original::Random()%2048);
+		float drawY=m_curY-64.0f*16.0f+(float)(original::Random()%2048);
 		m_pStage->m_pPopupNumber->AddNumber(drawX,drawY,1280*10,
 											m_pStage->m_pStageRes->m_palette[11*3]/255.0f,
 											m_pStage->m_pStageRes->m_palette[11*3+1]/255.0f,

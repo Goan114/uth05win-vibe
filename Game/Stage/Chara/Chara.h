@@ -1,4 +1,6 @@
 #pragma once
+#include "../../Original/OriginalMath.h"
+#include "../../Original/OriginalFeatures.h"
 #include "../../../gameLib/Graphic/2DImageArray.h"
 #include <math.h>
 #ifndef PI
@@ -19,6 +21,7 @@ protected:
 	float m_curX,m_curY;
 	float m_lastX,m_lastY;
 	float m_deltaX,m_deltaY;
+ unsigned short m_originalLastDirection;
 public:
 	__forceinline float GetCurX() {return m_curX;}
 	__forceinline float GetCurY() {return m_curY;}
@@ -94,6 +97,7 @@ public:
 	virtual bool TestCrash(float testX,float testY, float testHalfWidth,float testHalfHeight);
 	__forceinline float AngleToChara(float srcX,float srcY)
 	{
+		if(original::DemoActive())return float(original::math::Angle(int(m_curY)-int(srcY),int(m_curX)-int(srcX)));
 		return (float)(atan2(m_curY-srcY,m_curX-srcX)/2.0/PI*256);
 	}
 	void CaughtItem(float itemX,float itemY,unsigned char itemType);

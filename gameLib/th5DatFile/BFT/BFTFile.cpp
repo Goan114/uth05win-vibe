@@ -96,6 +96,7 @@ bool CBFTFile::ExtractImageAndPalette(unsigned char *outImage, unsigned char *ou
 		else
 			palette=BFTdefaultPalette;
 
+	if(outPalette!=NULL&&outPalette!=palette)memcpy(outPalette,palette,48);
 	unsigned char *srcPtr=m_imgData+recordIdx*m_recordSize;
 	for (int i=0;i<m_height;i++)
 		for (int j=0;j<m_width;j++)
