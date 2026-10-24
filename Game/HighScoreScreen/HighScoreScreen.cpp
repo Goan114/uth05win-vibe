@@ -14,6 +14,7 @@ namespace th5w{
 CHighScoreScreen::CHighScoreScreen(void)
 {
 	m_pBGImage=NULL;
+ m_curFrame=0;
 	for (int i=0;i<17;i++)
 		m_charTable[0][i]=0xaa+i;
 	for (int i=0;i<11;i++)
@@ -44,6 +45,10 @@ CHighScoreScreen::~CHighScoreScreen(void)
 
 void CHighScoreScreen::Initialize(bool bViewMode,bool clearFlag)
 {
+ m_storeHighScore=true;
+ memcpy(m_scores,CGame::GVar().m_highScore,sizeof(m_scores));
+ memcpy(m_names,CGame::GVar().m_highScoreName,sizeof(m_names));
+ memcpy(m_flags,CGame::GVar().m_highScoreFlag,sizeof(m_flags));
 	m_bViewMode=bViewMode;
 	if (bViewMode)
 		m_curPage=0;
@@ -54,7 +59,7 @@ void CHighScoreScreen::Initialize(bool bViewMode,bool clearFlag)
 	{
 		int curScore=CGame::GVar().m_curScore;
 		m_opChara=CGame::GVar().m_playChara;
-		if (!CGame::GVar().m_runTurboMode || curScore<=CGame::GVar().m_highScore[m_opChara][m_curPage][4])
+		if (!CGame::GVar().m_runTurboMode || curScore<=m_scores[m_opChara][m_curPage][4])
 		{
 			m_bQuit=true;
 			m_quitCode=HIGHSCORESCREEN_END_ENTER_SKIPPED;
@@ -64,23 +69,23 @@ void CHighScoreScreen::Initialize(bool bViewMode,bool clearFlag)
 		m_opRank=4;
 		for (int i=4;i>=0;i--)
 		{
-			if (curScore>CGame::GVar().m_highScore[m_opChara][m_curPage][i])
+			if (curScore>m_scores[m_opChara][m_curPage][i])
 			{
 				if (i<4)
 				{
-					CGame::GVar().m_highScore[m_opChara][m_curPage][i+1]=CGame::GVar().m_highScore[m_opChara][m_curPage][i];
-					memcpy(CGame::GVar().m_highScoreName[m_opChara][m_curPage][i+1],CGame::GVar().m_highScoreName[m_opChara][m_curPage][i],10);
-					CGame::GVar().m_highScoreFlag[m_opChara][m_curPage][i+1]=CGame::GVar().m_highScoreFlag[m_opChara][m_curPage][i];
+					m_scores[m_opChara][m_curPage][i+1]=m_scores[m_opChara][m_curPage][i];
+					memcpy(m_names[m_opChara][m_curPage][i+1],m_names[m_opChara][m_curPage][i],10);
+					m_flags[m_opChara][m_curPage][i+1]=m_flags[m_opChara][m_curPage][i];
 				}
 				m_opRank=i;
-				CGame::GVar().m_highScore[m_opChara][m_curPage][i]=curScore;
-				CGame::GVar().m_highScoreName[m_opChara][m_curPage][i][0]=0;
-				CGame::GVar().m_highScoreFlag[m_opChara][m_curPage][i]=CGame::GVar().m_playStage+1;
+				m_scores[m_opChara][m_curPage][i]=curScore;
+				m_names[m_opChara][m_curPage][i][0]=0;
+				m_flags[m_opChara][m_curPage][i]=CGame::GVar().m_playStage+1;
 				if (CGame::GVar().m_playStage==6)
-					CGame::GVar().m_highScoreFlag[m_opChara][m_curPage][i]=1;
+					m_flags[m_opChara][m_curPage][i]=1;
 				else
 					if (clearFlag)
-						CGame::GVar().m_highScoreFlag[m_opChara][m_curPage][i]=128;
+						m_flags[m_opChara][m_curPage][i]=128;
 			}
 			else
 				break;
@@ -110,7 +115,9 @@ void CHighScoreScreen::Initialize(bool bViewMode,bool clearFlag)
 		m_curCursorPos=7;
 }
 
-int CHighScoreScreen::Step()
+int CHighScoreScreen::Step(){return Tick(CCommonFunctionInput::GetAllKeyState());}
+
+int CHighScoreScreen::Tick(unsigned short keys)
 {
 	m_curFrame++;
 
@@ -136,7 +143,7 @@ int CHighScoreScreen::Step()
 	}
 
 	m_lastKeyState=m_curKeyState;
-	m_curKeyState=CCommonFunctionInput::GetAllKeyState();
+	m_curKeyState=keys;
 
 	if (m_bViewMode)
 	{
@@ -200,8 +207,13 @@ int CHighScoreScreen::Step()
 			case 50:
 				m_bQuit=true;
 				m_quitCode=HIGHSCORESCREEN_END_ENTER_END;
-				memcpy(CGame::GVar().m_highScoreName[m_opChara][m_curPage][m_opRank],m_curEnterName,10);
-				CGame::GVar().SaveHighScore();
+				memcpy(m_names[m_opChara][m_curPage][m_opRank],m_curEnterName,10);
+				if(m_storeHighScore){
+     memcpy(CGame::GVar().m_highScore,m_scores,sizeof(m_scores));
+     memcpy(CGame::GVar().m_highScoreName,m_names,sizeof(m_names));
+     memcpy(CGame::GVar().m_highScoreFlag,m_flags,sizeof(m_flags));
+     CGame::GVar().SaveHighScore();
+    }
 				memcpy(CGame::GVar().m_defaultHighScoreName,m_curEnterName,10);
 				CGame::GVar().SaveConfig();
 				break;
@@ -291,12 +303,12 @@ void CHighScoreScreen::Draw()
 		int y=88+i/2*136+40;
 		for (int j=0;j<5;j++)
 		{
-			unsigned char *pName=CGame::GVar().m_highScoreName[i][m_curPage][j];
+			unsigned char *pName=m_names[i][m_curPage][j];
 			if (!m_bViewMode&&i==m_opChara&&j==m_opRank)
 				pName=m_curEnterName;
 			DrawItem(x,y,pName,
-					 CGame::GVar().m_highScore[i][m_curPage][j],
-					 CGame::GVar().m_highScoreFlag[i][m_curPage][j],
+					 m_scores[i][m_curPage][j],
+					 m_flags[i][m_curPage][j],
 					 (m_bViewMode&&j==0)||(!m_bViewMode&&i==m_opChara&&j==m_opRank));
 			if (!m_bViewMode&&i==m_opChara&&j==m_opRank)
 			{
