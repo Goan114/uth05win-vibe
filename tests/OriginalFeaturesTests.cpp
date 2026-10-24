@@ -13,6 +13,7 @@
 #include "../Game/Stage/Item/Item.h"
 #include "../Game/Stage/TextOverlay/TextOverlay.h"
 #include "../Game/Stage/Boss/BossStage1.h"
+#include "../Game/Stage/Boss/BossStage4.h"
 #include "../Game/Stage/Boss/BossStageEx.h"
 #include "../Game/Stage/Laser/Laser.h"
 #include <cstdio>
@@ -259,6 +260,28 @@ struct PracticeTests {
    delete stage;delete next;game.m_pCurScheme=NULL;
   }}memcpy(g.m_bExtraPlayable,extras,4);
  }
+ struct Stage4LaserBoss:CBossStage4 {using CBossStage4::m_2curHP;using CBossStage4::m_2curPhaseEndHP;using CBossStage4::m_2curMode;};
+ static void Stage4LaserInterruption(CGame& game){using namespace original;StopDemo(true);auto& g=game.m_globalVar;
+  for(int timing: {48,82,96,158})for(int cause=0;cause<3;cause++){
+   g.m_bPracticeMode=g.m_bReplayMode=false;g.m_playStage=3;g.m_playChara=0;g.m_playDifficulty=1;g.m_nInitLife=g.m_nInitBomb=3;g.OnBeginGame();
+   CStage* stage=new CStage;stage->Initialize();auto* boss=new Stage4LaserBoss;stage->m_pBoss=boss;boss->m_pStage=stage;boss->Initialize();
+   boss->m_curPhase=2;boss->m_curPhaseFrame=47;boss->m_curMode=boss->m_2curMode=1;boss->m_nModeChange=10;boss->m_curHP=boss->m_2curHP=4500;boss->m_curPhaseEndHP=boss->m_2curPhaseEndHP=0;
+   auto* lasers=stage->m_pLaser;auto* player=stage->m_pChara;
+   for(int frame=48;frame<=timing;frame++){stage->m_curFrame++;lasers->Step();boss->Step();}
+   Check(lasers->m_laser[0].mode!=LASER_MODE_NONE,"dual boss fixture spawns its native manual laser at the selected attack frame");
+   if(timing>=96){const float oldX=player->m_curX,oldY=player->m_curY;lasers->m_laser[0].angle=64;player->m_curX=lasers->m_laser[0].srcX;player->m_curY=lasers->m_laser[0].srcY+2656;player->m_bMiss=false;lasers->TestCrash(0);Check(player->m_bMiss,"active laser really hits the same probe position before interruption");player->m_bMiss=false;player->m_curX=oldX;player->m_curY=oldY;}
+   boss->m_curHP=cause==1?1:cause==2?4500:1126;boss->m_2curHP=cause==2?1:cause==1?4500:1126;
+   stage->m_curFrame=4;player->DropBomb();Check(stage->m_bInCharaBomb,"fixture uses a real native Bomb to cross the dual-boss HP boundary");
+   boss->Step();Check(cause?boss->m_curPhase==0xfd:boss->m_curHP+boss->m_2curHP<2250,"Bomb reaches the requested dual-boss defeat or rage transition");
+   if(!cause){stage->m_curFrame=5;lasers->Step();boss->Step();Check(boss->m_nModeChange==14&&boss->m_curMode==0,"HP interruption resets the laser attack before its frame-160 stop");}
+   Check(lasers->m_laser[0].mode==LASER_MODE_NONE||lasers->m_laser[0].mode==LASER_MODE_SHRINK,"interrupted laser releases or enters native shrink immediately");
+   const float x=lasers->m_laser[0].srcX,y=lasers->m_laser[0].srcY;lasers->m_laser[0].angle=64;player->m_curX=x;player->m_curY=y+2656;player->m_bMiss=false;player->m_invulnerableTimeLeft=0;stage->m_bInCharaBomb=false;
+   lasers->Step();Check(!player->m_bMiss,"interrupted laser has no collision even while its shrinking sprite remains visible");
+   for(int frame=0;frame<20;frame++)lasers->Step();Check(lasers->m_laser[0].mode==LASER_MODE_NONE,"interrupted manual laser cannot remain on screen indefinitely");
+   g.m_replay.CloseStage(false);delete stage;
+  }
+  g.m_bReplayMode=g.m_bPracticeMode=false;g.m_playStage=0;
+ }
  static void SpeedModes(CGame& game){using namespace original;StopDemo(true);auto& g=game.m_globalVar;
   g.m_turboMode=true;g.SaveConfig();g.m_turboMode=false;g.LoadConfig();Check(g.m_turboMode,"Turbo option persists in extended config");
   g.m_turboMode=false;g.SaveConfig();g.m_turboMode=true;g.LoadConfig();Check(!g.m_turboMode,"Slow option persists in extended config");
@@ -298,7 +321,7 @@ struct PracticeTests {
   g.m_bReplayMode=false;g.m_turboMode=true;g.OnBeginGame();BeginTimingFrame();BulletSlowdown(400,0,1);Check(FrameDelay()==1&&Stats().turbo,"Turbo bypasses intentional delay even above the original unused threshold");
   g.SaveConfig();BeginTimingFrame();
  }
- static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}SpeedModes(game);Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);DemoOverlay(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
+ static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_B4_LASER_ONLY")){Stage4LaserInterruption(game);game.OnGameEnd();printf("PASS %d dual-boss laser checks\n",checks);return 0;}if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}Stage4LaserInterruption(game);SpeedModes(game);Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);DemoOverlay(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
 };int PracticeTests::checks=0;
 }
 int main(){return th5w::PracticeTests::Run();}
