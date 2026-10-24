@@ -10,6 +10,7 @@
 #include "../Game/Stage/Enemy/Enemy.h"
 #include "../Game/Stage/Dialogue/Dialogue.h"
 #include "../Game/Stage/Item/Item.h"
+#include "../Game/Stage/TextOverlay/TextOverlay.h"
 #include "../Game/Stage/Boss/BossStage1.h"
 #include "../Game/Stage/Boss/BossStageEx.h"
 #include "../Game/Stage/Laser/Laser.h"
@@ -35,6 +36,25 @@ struct PracticeTests {
   for(int number=1;number<=4;number++){Check(StartDemo()&&Demo().number==number,"original normal Demo sequence rotates through four characters");uint32_t seed=318;Demo().seed=318;for(int i=0;i<16;i++){seed=seed*0x015a4e35u+1;Check(IRandom()==int((seed>>16)&32767),"Demo uses original IRand LCG");}const auto bytes=Demo().data;unsigned short input=0;for(int i=0;i<4996;i++){Check(DemoInput(15|64|128,input),"movement, slow and skip do not cancel Demo");Check(input==(bytes[i]|(bytes[5000+i]?64:0)),"original input and shift planes decode byte-for-byte");}Check(!DemoInput(0,input),"normal Demo ends before original 5000-byte buffer limit");Check(!g.m_bCanSaveReplay,"Demo cannot save replay");const auto oldClear=g.m_bClear[g.m_playChara][g.m_playDifficulty];g.OnClear();Check(g.m_bClear[g.m_playChara][g.m_playDifficulty]==oldClear,"Demo cannot set clear flags");StopDemo();}
   memset(g.m_bExtraPlayable,1,4);Check(StartDemo(true)&&Demo().number==5&&Demo().data.size()==40000,"hidden Extra loads its original first part");const auto seed=Demo().seed;DemoDialogueEnded();Check(Demo().extraPart2&&Demo().index==0&&Demo().data.size()==40000&&Demo().seed==seed,"Extra pre-boss dialogue swaps REC without reseeding");unsigned short input;Check(!DemoInput(32,input)&&!DemoInput(4096,input),"native shot and cancel terminate Demo");StopDemo(true);memcpy(g.m_bExtraPlayable,extras,4);
   srand(123);int expected=rand();srand(123);Check(Random()==expected,"ordinary games preserve their existing CRT RNG");
+ }
+ static int YellowOverlayPixels(){
+  std::vector<unsigned char> pixels(640*480*3);glReadPixels(0,0,640,480,GL_RGB,GL_UNSIGNED_BYTE,pixels.data());int count=0;
+  for(size_t i=0;i<pixels.size();i+=3)if(pixels[i]>200&&pixels[i+1]>200&&pixels[i+2]<50)++count;return count;
+ }
+ static void DemoOverlay(CGame& game){using namespace original;StopDemo(true);bool extras[4];memcpy(extras,game.m_globalVar.m_bExtraPlayable,4);
+  for(int n=1;n<=4;n++){
+   Check(StartDemo()&&Demo().number==n,"overlay fixture selects each ordinary native Demo");CStage* stage=new CStage;stage->Initialize();auto* overlay=stage->m_pTextOverlay;
+   overlay->m_stageFadeTimer=72;overlay->Step();Check(overlay->m_curMode==TEXT_OVERLAY_DEMO_PLAY,"ordinary Demo replaces stage and BGM titles after the native entrance fade");
+   if(n==1){
+    glClearColor(0,0,0,1);glClear(GL_COLOR_BUFFER_BIT);overlay->Draw();glFinish();Check(YellowOverlayPixels()>0,"DEMO PLAY renders yellow native gaiji");Screenshot("original-demo-overlay.bmp");
+    const int frame=overlay->m_stageNameBGMNameTimer;overlay->Draw();overlay->Draw();Check(overlay->m_stageNameBGMNameTimer==frame,"drawing Demo text does not advance its blink state");
+    for(int i=0;i<32;i++)overlay->Step();glClear(GL_COLOR_BUFFER_BIT);overlay->Draw();glFinish();Check(YellowOverlayPixels()==0,"Demo text has a transparent blink-off interval");
+   }
+   for(int i=0;i<400;i++)overlay->Step();Check(overlay->m_curMode==TEXT_OVERLAY_DEMO_PLAY,"DEMO PLAY persists beyond the ordinary title lifetime");delete stage;StopDemo();
+  }
+  memset(game.m_globalVar.m_bExtraPlayable,1,4);Check(StartDemo(true),"hidden Extra overlay fixture starts");
+  CStage* stage=new CStage;stage->Initialize();auto* overlay=stage->m_pTextOverlay;overlay->m_stageFadeTimer=72;overlay->Step();Check(overlay->m_curMode==TEXT_OVERLAY_DRAW_STAGE_NAME_BGM_NAME,"hidden Extra retains original stage and BGM titles");
+  StopDemo(true);overlay->Initialize();overlay->m_stageFadeTimer=72;overlay->Step();Check(overlay->m_curMode==TEXT_OVERLAY_DRAW_STAGE_NAME_BGM_NAME,"ordinary play retains stage and BGM titles");delete stage;memcpy(game.m_globalVar.m_bExtraPlayable,extras,4);
  }
  static void NativeIdle(){
   CTitleScreen title;title.Initialize(false,0,false);title.m_bMenuOn=true;title.m_bQuit=false;
@@ -220,6 +240,7 @@ struct PracticeTests {
     if(stage->m_curFrame>=0&&stage->m_curFrame!=lastCombatFrame){combat=CombatFrame(*stage,combat);special=SpecialFrame(*stage,special);lastCombatFrame=stage->m_curFrame;}
     if(trace&&stage->m_curFrame>=0)WriteDemoTrace(*stage,trace);
     if(cadences[pass]&&steps%cadences[pass]==0)stage->Draw();
+    if(!pass&&!n&&steps==300){stage->Draw();glFinish();Screenshot("original-demo-play.bmp");}
     digest=DemoDigest(*stage,digest);++steps;
    }
    const uint64_t nativeGolden[]={0xcfa52d7b55bc18c4ull,0xed12e228ceec92e1ull,0xc3e0677110a1485eull,0x93747c3bbd75f739ull};
@@ -237,7 +258,7 @@ struct PracticeTests {
    delete stage;delete next;game.m_pCurScheme=NULL;
   }}memcpy(g.m_bExtraPlayable,extras,4);
  }
- static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
+ static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);DemoOverlay(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
 };int PracticeTests::checks=0;
 }
 int main(){return th5w::PracticeTests::Run();}

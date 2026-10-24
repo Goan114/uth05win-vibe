@@ -7,12 +7,14 @@ namespace th5w{
 #define TEXT_OVERLAY_STAGE_FADE_IN 1
 #define TEXT_OVERLAY_DRAW_STAGE_NAME_BGM_NAME 2
 #define TEXT_OVERLAY_STAGE_FADE_OUT 3
+#define TEXT_OVERLAY_DEMO_PLAY 4
 
 class CStage;
 
 class CTextOverlay
 {
 friend class CStage;
+friend struct PracticeTests;
 
 protected:
 	CStage *m_pStage;
@@ -31,6 +33,7 @@ protected:
 	void DrawStageNameBGMName();
 	void StepStageFadeOut();
 	void DrawStageFadeOut();
+ void DrawDemoPlay();
 
 public:
 	void Initialize();
