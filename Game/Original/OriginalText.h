@@ -1,20 +1,59 @@
 #pragma once
 // Original TH05 end credit and verdict strings (ReC98 th05_maine.asm).
 namespace th5w { namespace original {
-static const char* const VerdictLabels[]={
-"\x81\x40\x81\x40\x81\x40\x81\x40\x81\x40\x81\x40\x81\x40\x20\x98\x72\x91\x4f\x94\xbb\x92\xe8",
-"\x93\xef\x88\xd5\x93\x78",
-"\x8d\xc5\x8f\x49\x93\xbe\x93\x5f",
-"\x83\x7e\x83\x58\x89\xf1\x90\x94",
-"\x83\x7b\x83\x80\x8e\x67\x97\x70\x89\xf1\x90\x94",
-"\x83\x51\x81\x5b\x83\x80\x92\x42\x90\xac\x97\xa6",
-"\x88\xab\x97\xec\x91\xde\x8e\xa1\x97\xa6",
-"\x83\x41\x83\x43\x83\x65\x83\x80\x89\xf1\x8e\xfb\x97\xa6",
-"\x93\xbe\x93\x5f\x83\x41\x83\x43\x83\x65\x83\x80\x8d\xc5\x8d\x82\x93\x5f\x97\xa6",
-"\x8b\x43\x8d\x87\x82\xa2",
-"\x8f\x88\x97\x9d\x97\x8e\x82\xbf\x97\xa6",
-"\x82\xa0\x82\xc8\x82\xbd\x82\xcc\x98\x72\x91\x4f",
-"\x8f\x88\x97\x9d\x97\x8e\x82\xbf\x82\xc9\x82\xe6\x82\xe9\x94\xbb\x92\xe8\x95\x73\x89\xc2"};
+// Simplified Chinese follows the original 26 grades and 9 goal indices.
+static const wchar_t* const VerdictLabels[]={
+L"\u5b9e\u529b\u8bc4\u4ef7",
+L"\u96be\u5ea6",
+L"\u6700\u7ec8\u5f97\u5206",
+L"\u5931\u8bef\u6b21\u6570",
+L"\u70b8\u5f39\u4f7f\u7528\u6b21\u6570",
+L"\u6e38\u620f\u5b8c\u6210\u7387",
+L"\u6076\u7075\u9000\u6cbb\u7387",
+L"\u9053\u5177\u56de\u6536\u7387",
+L"\u84dd\u70b9\u6700\u9ad8\u70b9\u7387",
+L"\u6c14\u52bf",
+L"\u51cf\u901f\u7387",
+L"\u4f60\u7684\u5b9e\u529b",
+L"\u56e0\u51cf\u901f\u8fc7\u591a\u800c\u65e0\u6cd5\u8bc4\u4ef7"};
+static const wchar_t* const VerdictComments[]={
+L"\u8def\u897f\u6cd5\u7ea7\u5c04\u51fb\u73a9\u5bb6",
+L"\u9b54\u4eba",
+L"\u4f20\u8bf4\u4e2d\u7684\u4eba\u7269",
+L"\u7a76\u6781\u540d\u4eba",
+L"\u5c04\u51fb\u73a9\u5bb6\u514d\u8bb8\u7686\u4f20\uff01\uff01",
+L"\u8d85\uff21\u7ea7\u5c04\u51fb\u73a9\u5bb6",
+L"\uff21\u7ea7\u5c04\u51fb\u73a9\u5bb6",
+L"\u9ad8\u7ea7\u5c04\u51fb\u73a9\u5bb6",
+L"\u5408\u683c\u7684\u5c04\u51fb\u73a9\u5bb6",
+L"\u64c5\u957f\u5c04\u51fb\u6e38\u620f\u7684\u4eba",
+L"\u76f8\u5f53\u5389\u5bb3",
+L"\u8fd8\u7b97\u4e0d\u9519",
+L"\u6c34\u5e73\u5c1a\u53ef\u7684\u73a9\u5bb6",
+L"\u8fd8\u5dee\u4e00\u70b9\u7684\u73a9\u5bb6",
+L"\u518d\u52a0\u628a\u52b2\u5427",
+L"\u53ef\u80fd\u6709\u70b9\u5403\u529b",
+L"\u8fd8\u5dee\u5f97\u8fdc\u5462",
+L"\u76f8\u5f53\u5403\u529b",
+L"\u53ef\u80fd\u5df2\u7ecf\u6ca1\u6551\u4e86",
+L"\u5df2\u7ecf\u6ca1\u6551\u4e86",
+L"\u771f\u9057\u61be",
+L"\u8bf7\u8ba4\u771f\u73a9\u54e6",
+L"\u518d\u8d77\u4e0d\u80fd",
+L"\u4e5f\u8bb8\u8fd8\u4e0d\u5982\u6b7b\u6389",
+L"\u65e0\u6cd5\u8bc4\u4ef7",
+L"\u4eba\u95f4\u5931\u683c",
+L"\u76ee\u6807\uff1a\u4e89\u53d6\u5168\u56fd\u7b2c\u4e00\uff08\u7b11\uff09",
+L"\u76ee\u6807\uff1a\u518d\u591a\u8d5a\u70b9\u5206\u5427",
+L"\u76ee\u6807\uff1a\u4e0d\u7eed\u5173\u901a\u5173\u5427",
+L"\u76ee\u6807\uff1a\u901a\u5173\u5427",
+L"\u76ee\u6807\uff1a\u6311\u6218\u666e\u901a\u96be\u5ea6\u5427",
+L"\u76ee\u6807\uff1a\u7528\u70b8\u5f39\u6d3b\u4e0b\u53bb\u5427",
+L"\u76ee\u6807\uff1a\u591a\u5403\u70b9\u84dd\u70b9\u5427",
+L"\u76ee\u6807\uff1a\u51cf\u5c11\u5931\u8bef\u5427",
+L"\u76ee\u6807\uff1a\u8282\u7ea6\u70b8\u5f39\u5427"};
+static const wchar_t* const VerdictDifficulties[]={L"\u7b80\u5355",L"\u666e\u901a",L"\u56f0\u96be",L"\u75af\u72c2",L"\u989d\u5916"};
+static const wchar_t* const VerdictStages[]={L"\u7b2c\u4e00\u5173",L"\u7b2c\u4e8c\u5173",L"\u7b2c\u4e09\u5173",L"\u7b2c\u56db\u5173",L"\u7b2c\u4e94\u5173",L"\u7b2c\u516d\u5173"};
 static const char* const CastLines[]={
 "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x50\x72\x6f\x6a\x65\x63\x74\x20\x6f\x66\x20\x54\x4f\x55\x48\x4f\x55\x20\x20\x20\x20\x41\x6c\x6c\x20\x43\x61\x73\x74",
 "\x4e\x6f\x2e\x31\x20\x81\x75\x93\x8c\x95\xfb\xe8\xcb\x88\xd9\x93\x60\x81\x76\x20\x81\x60\x20\x48\x69\x67\x68\x6c\x79\x20\x52\x65\x73\x70\x6f\x6e\x73\x69\x76\x65\x20\x74\x6f\x20\x50\x72\x61\x79\x65\x72\x73\x20\x20\x20\x20\x31\x39\x39\x36\x2c\x31\x39\x39\x37",

@@ -4,6 +4,7 @@
 #include "../../gameLib/Graphic/2DImageArray.h"
 #include <array>
 #include <string>
+#include <map>
 namespace th5w {
 // TH05 MAINE: staffroll_animate, allcast_animate and verdict_animate.
 // The original 640x400 image is letterboxed at y=40 in the Windows port.
@@ -21,10 +22,10 @@ private:
  original::RunStats m_stats;
  original::Verdict m_verdict;
  C2DImage* m_background;
- GLuint m_font;bool m_commentsTranslated;
+ GLuint m_font;
  C2DImageArray m_cards,m_sprites;
  unsigned char m_palette[48];
- std::array<std::string,35> m_comments;
+ std::map<std::wstring,C2DImage*> m_chineseText;
  int m_age,m_measure,m_phase,m_phaseAge,m_card,m_cardAge,m_cardOut,m_auxAge,m_auxOut;
  int m_fadeOut,m_scroll,m_scrollDirection,m_cameraAge,m_rainAge,m_particleIndex,m_rainIndex;
  int m_windowX,m_windowY,m_windowW,m_windowH,m_cameraX,m_cameraY,m_decay,m_orbRadius;
@@ -44,6 +45,8 @@ private:
  void LoadCastPicture();
  void StartMusic(const char* name);
  void Text(const char* text,int x,int y,int color,bool bold=true,bool translated=false);
+ C2DImage* ChineseImage(const wchar_t* text);
+ void Chinese(const wchar_t* text,int x,int y,int color);
  void Number(const char* value,int x,int y,int color);
  void Fraction(unsigned int value,int x,int y,int color,bool percent);
  void DrawVerdict(int x,int y,int color,bool comments);
