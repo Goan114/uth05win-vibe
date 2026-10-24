@@ -72,6 +72,7 @@ protected:
 	void DrawOptionMenuCursor();
 	void OnRollTamaEnd();
 	void ParseKeyEvent();
+ void ParseMenuKey(unsigned short curKeyState);
  void UpdateDemoIdle(unsigned short key);
 	void DrawDescString(char *descStr);
 

@@ -1,6 +1,7 @@
 #include "../Game/Game.h"
 #include "../Game/Original/OriginalScenes.h"
 #include "../Game/TitleScreen/TitleScreen.h"
+#include "../Game/HighScoreScreen/HighScoreScreen.h"
 #include "../Game/Stage/Stage.h"
 #include "../Game/Stage/MidBoss/MidBoss.h"
 #include "../Game/Stage/Background/Background.h"
@@ -258,7 +259,46 @@ struct PracticeTests {
    delete stage;delete next;game.m_pCurScheme=NULL;
   }}memcpy(g.m_bExtraPlayable,extras,4);
  }
- static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);DemoOverlay(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
+ static void SpeedModes(CGame& game){using namespace original;StopDemo(true);auto& g=game.m_globalVar;
+  g.m_turboMode=true;g.SaveConfig();g.m_turboMode=false;g.LoadConfig();Check(g.m_turboMode,"Turbo option persists in extended config");
+  g.m_turboMode=false;g.SaveConfig();g.m_turboMode=true;g.LoadConfig();Check(!g.m_turboMode,"Slow option persists in extended config");
+  unsigned char saved[101];FILE* f=fopen("game.cfg","rb");Check(f&&fread(saved,1,101,f)==101,"config has unchanged legacy and practice prefixes plus speed extension");fclose(f);
+  for(int size: {52,92,100}){f=fopen("game.cfg","wb");fwrite(saved,1,size,f);fclose(f);g.m_turboMode=false;g.LoadConfig();Check(g.m_turboMode,"legacy or truncated config defaults to Turbo");}
+  f=fopen("game.cfg","wb");fwrite(saved,1,101,f);fclose(f);g.LoadConfig();g.LoadPracticeProgress();unsigned char unlocked[16];memcpy(unlocked,g.m_practiceUnlocked,16);g.SaveConfig();
+  unsigned char roundtrip[101];f=fopen("game.cfg","rb");Check(fread(roundtrip,1,101,f)==101,"speed setting retains full config");fclose(f);Check(!memcmp(saved,roundtrip,92)&&!memcmp(unlocked,g.m_practiceUnlocked,16),"speed config preserves clear flags, names and practice progress");
+  {CTitleScreen title;title.Initialize(false,0,false);title.m_bMenuOn=true;title.m_curMenu=1;title.m_optionMenuCursorPosition=5;title.m_curScrFade=title.m_bgFade=100;
+   for(unsigned short key: {32,4,8}){bool previous=g.m_turboMode;title.ParseMenuKey(0);title.ParseMenuKey(key);Check(g.m_turboMode!=previous,"Z, Left and Right toggle the native speed option");title.ParseMenuKey(key);Check(g.m_turboMode!=previous,"held input does not flicker speed mode");bool mode=g.m_turboMode;g.LoadConfig();Check(g.m_turboMode==mode,"menu toggle saves selected mode");}
+   g.m_turboMode=true;title.Draw();glFinish();Screenshot("original-option-turbo.bmp");g.m_turboMode=false;title.Draw();glFinish();Screenshot("original-option-slow.bmp");
+  }
+  g.m_bPracticeMode=g.m_bReplayMode=false;g.m_playChara=g.m_playStage=0;g.m_playDifficulty=1;g.m_nInitBomb=g.m_nInitLife=3;g.OnBeginGame();
+  Check(!g.m_runTurboMode&&!g.m_replay.m_turboMode&&!Stats().turbo,"Slow mode is fixed for the run, recording and original evaluation");
+  for(int difficulty=0;difficulty<5;difficulty++)for(int parity=0;parity<2;parity++)for(int delta=-1;delta<=1;delta++){
+   BeginTimingFrame();BulletSlowdown(42+difficulty*8+delta,parity,difficulty);Check(FrameDelay()==(delta>=0&&!parity?2:1),"native difficulty threshold and even-frame Slow timing");
+  }
+  BeginTimingFrame();BulletSlowdown(400,0,1);Frame(true,0);RenderTiming(false);Check(Stats().slowFrames==1,"intentional Slow delay contributes to original slowdown rate");RenderTiming(true);Check(Stats().slowFrames==1,"one frame contributes at most once to slowdown statistics");
+  BeginTimingFrame();Check(FrameDelay()==1,"fresh frame clears Slow delay");Frame(true,0);RenderTiming(true);Check(Stats().slowFrames==2,"CPU slowdown is counted independently");
+  BeginTimingFrame();BulletSlowdown(400,0,1);Frame(true,0);RenderTiming(true);Check(Stats().slowFrames==3,"CPU and intentional slowdown are not double counted");
+  {CStage* stage=new CStage;stage->Initialize();stage->m_curFrame=2;auto* bullets=stage->m_pEnemyBullet;
+   memset(bullets->m_bullets,0,sizeof(bullets->m_bullets));for(int i=0;i<50;i++){auto& b=bullets->m_bullets[i];b.flag=1;b.bornStageAndGrazeFlag=19;b.curX=-1000;b.curY=-1000;}
+   BeginTimingFrame();bullets->Step();Check(FrameDelay()==2&&bullets->m_bullets[0].flag==2,"native count includes spawn clouds removed during this same update");
+   BeginTimingFrame();bullets->Step();Check(FrameDelay()==1,"already removed slots are excluded from native bullet count");
+   for(int i=0;i<50;i++){auto& b=bullets->m_bullets[i];b.flag=1;b.bornStageAndGrazeFlag=5;b.curX=b.curY=2000;}
+   bullets->m_noEnemyBullet=true;BeginTimingFrame();bullets->Step();Check(FrameDelay()==1,"native bullet-zap branch does not request Slow delay");
+   BulletSlowdown(400,0,1);stage->m_bLogo=true;stage->StepFrame(0);Check(FrameDelay()==1,"stage entrance resets delay before early return");delete stage;
+  }
+  {CHighScoreScreen score;const int before=g.m_highScore[0][1][0];g.m_curScore=before+10000000;score.Initialize(false,false);Check(score.Step()==HIGHSCORESCREEN_END_ENTER_SKIPPED&&g.m_highScore[0][1][0]==before,"native Slow mode skips highscore registration");}
+  CReplay recorded;recorded.m_stageFlag[0]=2;recorded.m_playDifficulty=1;recorded.m_turboMode=false;recorded.m_keyState[0].push_back(32);recorded.m_keyState[0].push_back(64);
+  Check(recorded.SaveFile("speed-slow.rpy"),"Slow recording writes optional timing extension");CReplay loaded;Check(loaded.LoadFile("speed-slow.rpy")&&!loaded.m_turboMode&&loaded.m_keyState[0]==recorded.m_keyState[0],"Slow replay restores mode and input stream");REPLAY_BRIEF_INFO info;Check(CReplay::GetRepFileInfo(&info,"speed-slow.rpy"),"Slow recording appears in replay browser");
+  g.m_turboMode=true;g.m_replay=loaded;g.m_bReplayMode=true;g.OnBeginGame();Check(!g.m_runTurboMode&&g.m_turboMode&&!Stats().turbo,"replay mode overrides runtime without modifying menu preference");
+  f=fopen("speed-slow.rpy","rb");fseek(f,0,SEEK_END);int size=int(ftell(f));rewind(f);std::vector<unsigned char> bytes(size);fread(bytes.data(),1,size,f);fclose(f);
+  for(int cut=1;cut<12;cut++){f=fopen("speed-truncated.rpy","wb");fwrite(bytes.data(),1,size-cut,f);fclose(f);Check(!loaded.LoadFile("speed-truncated.rpy"),"partial timing extension is rejected");}
+  for(int offset: {size-12,size-8,size-4}){unsigned char old=bytes[offset];bytes[offset]=9;f=fopen("speed-corrupt.rpy","wb");fwrite(bytes.data(),1,size,f);fclose(f);Check(!loaded.LoadFile("speed-corrupt.rpy")&&!CReplay::GetRepFileInfo(&info,"speed-corrupt.rpy"),"invalid speed signature, version and mode are rejected in playback and browser");bytes[offset]=old;}
+  recorded.m_turboMode=true;Check(recorded.SaveFile("speed-turbo.rpy")&&loaded.LoadFile("speed-turbo.rpy")&&loaded.m_turboMode,"legacy Turbo replay defaults correctly after loading Slow");
+  f=fopen("speed-turbo.rpy","rb");fseek(f,0,SEEK_END);Check(ftell(f)==size-12,"Turbo recordings preserve the original file layout");fclose(f);
+  g.m_bReplayMode=false;g.m_turboMode=true;g.OnBeginGame();BeginTimingFrame();BulletSlowdown(400,0,1);Check(FrameDelay()==1&&Stats().turbo,"Turbo bypasses intentional delay even above the original unused threshold");
+  g.SaveConfig();BeginTimingFrame();
+ }
+ static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}SpeedModes(game);Scenes(game);Routes(game);NativeIdle();Counters(game);DemoData(game);DemoOverlay(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
 };int PracticeTests::checks=0;
 }
 int main(){return th5w::PracticeTests::Run();}

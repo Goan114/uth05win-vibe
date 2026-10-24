@@ -34,6 +34,7 @@ public:
 	int m_playDifficulty;
 	int m_playChara;
 	bool m_bPracticeMode;
+ bool m_turboMode;
 
 public:
 	unsigned char m_stageFlag[7];

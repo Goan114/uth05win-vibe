@@ -18,6 +18,7 @@ CGlobalVariableAndStatistics::CGlobalVariableAndStatistics(void)
 	strcpy(m_replaySubDir,"replay");
 	memset(m_modMD5,0,sizeof(m_modMD5));
 	m_gameVersion=1;
+ m_turboMode=m_runTurboMode=true;
 	m_bReplayMode=false;
 	m_bCanSaveReplay=false;
 	memset(m_practiceUnlocked,0,sizeof(m_practiceUnlocked));
@@ -89,6 +90,7 @@ void CGlobalVariableAndStatistics::LoadConfig()
 	m_nInitLife=3;
 	m_nInitBomb=3;
 	m_initDifficulty=1;
+ m_turboMode=true;
 
 	memset(m_defaultHighScoreName,0,sizeof(m_defaultHighScoreName));
 	memset(m_defaultReplayName,0,sizeof(m_defaultReplayName));
@@ -111,6 +113,9 @@ void CGlobalVariableAndStatistics::LoadConfig()
 	fread(&m_bClear,1,20,fp);
 	fread(m_defaultHighScoreName,1,10,fp);
 	fread(m_defaultReplayName,1,10,fp);
+ // Keep the 52-byte prefix and the 40-byte practice extension unchanged.
+ unsigned char speed[9];fseek(fp,92,SEEK_SET);
+ if(fread(speed,1,9,fp)==9&&!memcmp(speed,"TH5SPD1",8)&&speed[8]<=1)m_turboMode=speed[8]!=0;
 	fclose(fp);
 }
 
@@ -128,6 +133,7 @@ void CGlobalVariableAndStatistics::SaveConfig()
 	fwrite("TH5PRC1",1,8,fp);
 	fwrite(m_modMD5,1,16,fp);
 	fwrite(m_practiceUnlocked,1,16,fp);
+ fwrite("TH5SPD1",1,8,fp);const unsigned char turbo=m_turboMode?1:0;fwrite(&turbo,1,1,fp);
 	fclose(fp);
 }
 
@@ -248,6 +254,7 @@ void CGlobalVariableAndStatistics::SaveHighScore()
 
 void CGlobalVariableAndStatistics::OnBeginGame()
 {
+ m_runTurboMode=m_bReplayMode?m_replay.m_turboMode:m_turboMode;
 	//for replay mode
 	if (m_bReplayMode)
 	{
@@ -273,6 +280,7 @@ void CGlobalVariableAndStatistics::OnBeginGame()
 	else
 	{
 		m_replay.Reset();
+  m_replay.m_turboMode=m_runTurboMode;
 		srand((unsigned int)time(NULL));
 		for (int i=0;i<7;i++)
 			m_randomSeed[i]=original::Random()*32768+original::Random();

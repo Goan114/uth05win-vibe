@@ -25,6 +25,7 @@ bool CReplay::Reset()
 	m_playDifficulty=0;
 	m_playChara=0;
 	m_bPracticeMode=false;
+ m_turboMode=true;
 	memset(m_stageFlag,0,sizeof(m_stageFlag));
 	memset(m_nCurLife,0,sizeof(m_nCurLife));
 	memset(m_nCurBomb,0,sizeof(m_nCurBomb));
@@ -79,6 +80,7 @@ bool CReplay::GetRepFileInfo(REPLAY_BRIEF_INFO* pOut, const char *fileName)
 	FAIL_CLOSE_SETERRORCODE_RETURN(fread(&pOut->stageScore,4,7,fp)!=7,InfoRes_InvalidReplay)
 
 	fclose(fp);
+ {CReplay parsed;if(!parsed.LoadFile(fileName)){pOut->infoRes=InfoRes_InvalidReplay;return false;}}
 	pOut->infoRes=InfoRes_ValidReplay;
 	return true;
 #undef FAIL_CLOSE_SETERRORCODE_RETURN
@@ -125,6 +127,12 @@ bool CReplay::SaveFile(const char *fileName)
 			FAIL_CLOSE_RETURN(fwrite(&nkey,4,1,fp)!=1)
 			FAIL_CLOSE_RETURN(fwrite(m_keyState[i].data(),2,nkey,fp)!=nkey)
 		}
+ // Legacy Turbo files remain byte-compatible; Slow stores its run timing.
+ if(!m_turboMode){const unsigned int version=1,mode=0;
+  FAIL_CLOSE_RETURN(fwrite("TSP5",1,4,fp)!=4)
+  FAIL_CLOSE_RETURN(fwrite(&version,4,1,fp)!=1)
+  FAIL_CLOSE_RETURN(fwrite(&mode,4,1,fp)!=1)
+ }
 	fclose(fp);
 	return true;
 #undef FAIL_CLOSE_RETURN
@@ -132,6 +140,7 @@ bool CReplay::SaveFile(const char *fileName)
 
 bool CReplay::LoadFile(const char *fileName)
 {
+ m_turboMode=true;
 #define FAIL_CLOSE_RETURN(x) if (x) {fclose(fp);return false;}
 	FILE *fp=fopen(fileName,"rb");
 	if (fp==NULL)
@@ -180,6 +189,15 @@ bool CReplay::LoadFile(const char *fileName)
 			m_keyState[i].resize(nkey);
 			FAIL_CLOSE_RETURN(fread(m_keyState[i].data(),2,nkey,fp)!=nkey)
 		}
+ const int extension=fgetc(fp);
+ if(extension!=EOF){
+  char sig[4];sig[0]=char(extension);unsigned int version=0,mode=0;
+  FAIL_CLOSE_RETURN(fread(sig+1,1,3,fp)!=3||memcmp(sig,"TSP5",4)!=0)
+  FAIL_CLOSE_RETURN(fread(&version,4,1,fp)!=1||version!=1)
+  FAIL_CLOSE_RETURN(fread(&mode,4,1,fp)!=1||mode>1)
+  FAIL_CLOSE_RETURN(fgetc(fp)!=EOF)
+  m_turboMode=mode!=0;
+ }
 	fclose(fp);
 	return true;
 #undef FAIL_CLOSE_RETURN

@@ -373,8 +373,9 @@ int CStage::Step()
 
 int CStage::StepFrame(unsigned short liveInput)
 {
+ original::BeginTimingFrame();
 	CGame::s_pCurGame->m_fpsLimit=56;
-	CGame::s_pCurGame->SetVSYNC(true);
+	CGame::s_pCurGame->SetVSYNC(CGame::GVar().m_runTurboMode);
 	if (m_bQuit)
 	{
 		if (m_nQuitFrameLeft>0)

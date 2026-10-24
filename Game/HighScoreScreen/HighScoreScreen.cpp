@@ -54,7 +54,7 @@ void CHighScoreScreen::Initialize(bool bViewMode,bool clearFlag)
 	{
 		int curScore=CGame::GVar().m_curScore;
 		m_opChara=CGame::GVar().m_playChara;
-		if (curScore<=CGame::GVar().m_highScore[m_opChara][m_curPage][4])
+		if (!CGame::GVar().m_runTurboMode || curScore<=CGame::GVar().m_highScore[m_opChara][m_curPage][4])
 		{
 			m_bQuit=true;
 			m_quitCode=HIGHSCORESCREEN_END_ENTER_SKIPPED;

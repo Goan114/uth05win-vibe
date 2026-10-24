@@ -331,6 +331,7 @@ void CGame::Run()
 			//LARGE_INTEGER a;
 			//QueryPerformanceCounter(&a);
 			m_gameWindow.m_pGLContext->MakeCurrent();
+   original::BeginTimingFrame();
 			int stepRes=m_pCurScheme->Step();
 			//LARGE_INTEGER b;
 			//QueryPerformanceCounter(&b);
@@ -339,14 +340,15 @@ void CGame::Run()
 			m_gameWindow.m_pGLContext->MakeCurrent();
 			m_pCurScheme->Draw();
 			glFinish();
+   const double frameFPS=double(m_fpsLimit)/original::FrameDelay();
 
 			CPMDPlayer::FillSoftwareBuffer(1000);
 
 			{
 				LARGE_INTEGER thisFrameTime;
 				QueryPerformanceCounter(&thisFrameTime);
-    original::RenderTiming(double(thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)/m_performanceFreq.QuadPart>1.0/56.423);
-				double frameQuota=1000/m_fpsLimit;
+    original::RenderTiming(double(thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)/m_performanceFreq.QuadPart>double(original::FrameDelay())/56.423);
+				double frameQuota=1000/frameFPS;
 				//printf("%lf ",frameQuota-(thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)
 				//			   /(double)m_performanceFreq.QuadPart*1000);
 			}
@@ -356,7 +358,7 @@ void CGame::Run()
 			{
 				LARGE_INTEGER thisFrameTime;
 				QueryPerformanceCounter(&thisFrameTime);
-				if ((double)m_performanceFreq.QuadPart/(thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)<=m_fpsLimit)
+				if ((double)m_performanceFreq.QuadPart/(thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)<=frameFPS)
 				{
 					//CPMDPlayer::SetPlayThreadPriority(THREAD_PRIORITY_BELOW_NORMAL);
 					m_thisFrameDuration=(float)((thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)
@@ -370,7 +372,7 @@ void CGame::Run()
 				}
 				else
 				{
-					double frameQuota=1000/m_fpsLimit;
+					double frameQuota=1000/frameFPS;
 					if (frameQuota-(thisFrameTime.QuadPart-m_lastFrameTime.QuadPart)
 						/(double)m_performanceFreq.QuadPart*1000>4)
 						if (CPMDPlayer::FillSoftwareBuffer(1000))

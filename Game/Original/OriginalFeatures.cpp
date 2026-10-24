@@ -3,15 +3,22 @@
 #include <algorithm>
 #include <cstdlib>
 namespace th5w { namespace original {
-namespace {RunStats stats;DemoState demo;
+namespace {RunStats stats;DemoState demo;int frameDelay=1;
 uint32_t Fraction(uint16_t total,uint16_t share){return total?(total==share?1000000u:(1000000u/total)*share):0;}
 void ReadDemo(int file){char name[16];sprintf_s(name,"DEMO%d.REC",file);auto& pack=CGame::s_pCurGame->m_th5Dat2;const int idx=pack.GetChildFileIndex(name);demo.data.clear();if(idx>=0){auto* p=pack.GetChildFileContentPointer(idx);const int n=pack.GetChildFileLength(idx);demo.data.assign(p,p+n);}}
 }
 RunStats& Stats(){return stats;}
-void BeginRun(){if(!demo.active)demo.number=0;stats=RunStats();const auto& g=CGame::GVar();stats.initialLives=g.m_nCurLife;stats.initialBombs=g.m_nCurBomb;stats.difficulty=g.m_playDifficulty;stats.stage=g.m_playStage;}
+void BeginTimingFrame(){frameDelay=1;}
+int FrameDelay(){return frameDelay;}
+void BulletSlowdown(int bullets,int frame,int difficulty){
+ // ReC98 th04/main/bullet/update.cpp (GAME=5): rank means selected difficulty.
+ // Its second, higher-threshold else-if is unreachable in the original.
+ if(!CGame::GVar().m_runTurboMode&&!(frame&1)&&bullets>=42+difficulty*8)frameDelay=2;
+}
+void BeginRun(){if(!demo.active)demo.number=0;stats=RunStats();const auto& g=CGame::GVar();stats.initialLives=g.m_nCurLife;stats.initialBombs=g.m_nCurBomb;stats.difficulty=g.m_playDifficulty;stats.stage=g.m_playStage;stats.turbo=g.m_runTurboMode;BeginTimingFrame();}
 void Frame(bool scrolling,int score){++stats.frames;if(scrolling)++stats.stdFrames;stats.highestScore=(std::max)(stats.highestScore,score*10);stats.pendingFrame=true;}
 void PausedFrame(){++stats.frames;++stats.slowFrames;stats.pendingFrame=false;}
-void RenderTiming(bool slow){if(stats.pendingFrame&&slow)++stats.slowFrames;stats.pendingFrame=false;}
+void RenderTiming(bool slow){if(stats.pendingFrame&&(slow||frameDelay>1))++stats.slowFrames;stats.pendingFrame=false;}
 void EndStage(int stage,int score,bool clear){stats.stage=stage;stats.finalScore=score*10;stats.highestScore=(std::max)(stats.highestScore,stats.finalScore);if(stage<6)stats.stageScores[stage]=stats.finalScore;if(clear&&stage>=5){stats.endSequence=stage==6?1:(CGame::GVar().m_nContinueUsed?2:3);stats.complete=true;}}
 void ItemSpawned(){++stats.itemsSpawned;}void ItemCollected(bool point,bool maxPoint){++stats.itemsCollected;if(point)++stats.points;if(maxPoint)++stats.maxPoints;}
 void EnemyGone(bool killed){++stats.enemiesGone;if(killed)++stats.enemiesKilled;}void Miss(){++stats.misses;}void Bomb(){++stats.bombs;}
