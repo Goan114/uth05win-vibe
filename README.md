@@ -83,6 +83,8 @@ New features in this ported version:
 目前仍需验证／实现的功能：
  * 原始 Demo
  * 部分选项
+ * thprac 道中阶段练习分段
+ * boss 阶段命名
 
 The current fork restores Staff Roll, All Cast and player performance evaluation using the original game data.
 See [PRACTICE.md](PRACTICE.md) for controls, verification and Demo compatibility details.
