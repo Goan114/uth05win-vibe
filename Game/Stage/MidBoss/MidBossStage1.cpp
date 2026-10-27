@@ -81,7 +81,7 @@ void CMidBossStage1::Phase3Shoot()
 		shootInterval=12;
 	if (m_curPhaseFrame%shootInterval==0)
 	{
-		ENEMY_SHOOT_INFO shootInfo;
+		ENEMY_SHOOT_INFO shootInfo={};
 		shootInfo.shootOrigX=m_curX;
 		shootInfo.shootOrigY=m_curY;
 		shootInfo.bulletBornType=0;

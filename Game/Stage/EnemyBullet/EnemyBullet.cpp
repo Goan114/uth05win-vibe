@@ -290,7 +290,10 @@ void CEnemyBullet::FillRecordSpeedAndAngle(int *freeRecIdx,ENEMY_SHOOT_INFO *sho
 			if (freeRecIdx[curIdx]==-1)
 				return;
 			m_bullets[freeRecIdx[curIdx]].curAngle=baseAngle+deltaAngle*i;
-			m_bullets[freeRecIdx[curIdx]].curSpeed=shootInfo->bulletSpeed+shootInfo->deltaSpeed*j;
+			// Unstacked shots do not define deltaSpeed; even NaN * 0 is NaN.
+			m_bullets[freeRecIdx[curIdx]].curSpeed=shootInfo->bulletSpeed;
+			if (j!=0)
+				m_bullets[freeRecIdx[curIdx]].curSpeed+=shootInfo->deltaSpeed*j;
 			curIdx++;
 		}
 }

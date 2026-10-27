@@ -6,6 +6,7 @@
 #include "../Game/HighScoreScreen/HighScoreScreen.h"
 #include "../Game/Stage/Stage.h"
 #include "../Game/Stage/MidBoss/MidBoss.h"
+#include "../Game/Stage/MidBoss/MidBossStage1.h"
 #include "../Game/Stage/Background/Background.h"
 #include "../Game/Stage/Chara/Chara.h"
 #include "../Game/Stage/CharaBullet/CharaBullet.h"
@@ -22,6 +23,7 @@
 #include <cstdlib>
 #include <vector>
 #include <cstring>
+#include <limits>
 namespace th5w {
 struct PracticeTests {
  static int checks;
@@ -311,6 +313,34 @@ struct PracticeTests {
   }
   g.m_bReplayMode=g.m_bPracticeMode=false;g.m_playStage=0;
  }
+ static void Stage1MidBossBullets(CGame& game){using namespace original;StopDemo(true);auto& g=game.m_globalVar;
+  for(int difficulty=0;difficulty<4;difficulty++){
+   g.m_bPracticeMode=g.m_bReplayMode=false;g.m_playStage=g.m_playChara=0;g.m_playDifficulty=difficulty;g.m_nInitLife=g.m_nInitBomb=3;g.OnBeginGame();
+   CStage* stage=new CStage;stage->Initialize();stage->m_bLogo=false;stage->m_pTextOverlay->SetMode(TEXT_OVERLAY_NONE);auto* bullets=stage->m_pEnemyBullet;
+   // Single shots and unstacked fans do not define a stack speed increment.
+   // NaN makes the former uninitialized-field dependency reproducible.
+   for(int type: {EST00_SINGLE,EST02_NWAY,EST04_NWAY_ALLAROUND,EST06_MULTI}){
+    bullets->Initialize();ENEMY_SHOOT_INFO info={};info.shootOrigX=3072;info.shootOrigY=1536;info.shootType=type;info.bulletSpeed=32;info.nWay=4;info.nWayUnitAngle=2;info.nMulti=3;
+    info.deltaSpeed=type==EST06_MULTI?6.f:std::numeric_limits<float>::quiet_NaN();
+    bullets->Shoot(&info,false,false);const int count=type==EST00_SINGLE?1:type==EST06_MULTI?3:4;
+    for(int i=0;i<count;i++)Check(bullets->m_bullets[i].flag==1&&bullets->m_bullets[i].curSpeed==(type==EST06_MULTI?32.f+6*i:32.f),"shot speed ignores unused stack increment and preserves real multi-shot increments");
+    bullets->Step();for(int i=0;i<count;i++)Check(std::isfinite(bullets->m_bullets[i].curX)&&std::isfinite(bullets->m_bullets[i].curY),"emitted bullets retain finite moving positions");
+   }
+   auto* mid=new CMidBossStage1;stage->m_pMidBoss=mid;mid->m_pStage=stage;mid->Initialize();
+   for(int frame=0;frame<384;frame++)mid->Step();Check(mid->m_curPhase==3,"stage-one midboss reaches attack through its normal entrance");
+   for(int hp: {1000,200}){
+    bullets->Initialize();mid->m_curHP=hp;mid->m_curPhaseFrame=0;const int interval=hp==200?12:16;
+    for(int frame=1;frame<=interval;frame++)mid->Step();
+    const int dotCount=difficulty==0?2:difficulty==3?6:4;const int imageCount=difficulty==2?2:difficulty==3?3:1;
+    for(int i=0;i<dotCount;i++)Check(bullets->m_bullets[i].flag==1&&std::isfinite(bullets->m_bullets[i].curSpeed)&&bullets->m_bullets[i].curSpeed>0,"midboss emits every dot in its difficulty-adjusted rotating fan");
+    for(int i=0;i<imageCount;i++){const auto& b=bullets->m_bullets[ENEMY_BULLET_N_RECORD_DOT+i];Check(b.flag==1&&std::isfinite(b.curSpeed)&&b.curSpeed>0,"midboss also emits its difficulty-adjusted large bullets with valid speeds");}
+    const float oldX=bullets->m_bullets[0].curX,oldY=bullets->m_bullets[0].curY;bullets->Step();
+    Check(std::isfinite(bullets->m_bullets[0].curX)&&std::isfinite(bullets->m_bullets[0].curY)&&(bullets->m_bullets[0].curX!=oldX||bullets->m_bullets[0].curY!=oldY),"midboss fan actually moves away from its origin");
+    if(difficulty==1&&hp==1000){for(int frame=0;frame<240;frame++){++stage->m_curFrame;bullets->Step();mid->Step();}stage->Draw();glFinish();Screenshot("stage1-midboss-bullets.bmp");}
+   }
+   g.m_replay.CloseStage(false);delete stage;
+  }g.m_playDifficulty=1;
+ }
  static void SpeedModes(CGame& game){using namespace original;StopDemo(true);auto& g=game.m_globalVar;
   g.m_turboMode=true;g.SaveConfig();g.m_turboMode=false;g.LoadConfig();Check(g.m_turboMode,"Turbo option persists in extended config");
   g.m_turboMode=false;g.SaveConfig();g.m_turboMode=true;g.LoadConfig();Check(!g.m_turboMode,"Slow option persists in extended config");
@@ -350,7 +380,7 @@ struct PracticeTests {
   g.m_bReplayMode=false;g.m_turboMode=true;g.OnBeginGame();BeginTimingFrame();BulletSlowdown(400,0,1);Check(FrameDelay()==1&&Stats().turbo,"Turbo bypasses intentional delay even above the original unused threshold");
   g.SaveConfig();BeginTimingFrame();
  }
- static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_ENDING_ONLY")){SpeedModes(game);Scenes(game);Ranking(game);Routes(game);game.OnGameEnd();printf("PASS %d ending and ranking checks\n",checks);return 0;}if(getenv("TH05_RANKING_ONLY")){Ranking(game);game.OnGameEnd();printf("PASS %d ranking checks\n",checks);return 0;}if(getenv("TH05_RESULTS_ONLY")){Scenes(game);game.OnGameEnd();printf("PASS %d result localization checks\n",checks);return 0;}if(getenv("TH05_B4_LASER_ONLY")){Stage4LaserInterruption(game);game.OnGameEnd();printf("PASS %d dual-boss laser checks\n",checks);return 0;}if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}Stage4LaserInterruption(game);SpeedModes(game);Scenes(game);Ranking(game);Routes(game);NativeIdle();Counters(game);DemoData(game);DemoOverlay(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
+ static int Run(){VerdictMath();CGame game;CGame::s_pCurGame=&game;Check(game.Initialize(false),"production game and OpenGL initialize");if(getenv("TH05_STAGE1_BULLETS_ONLY")){Stage1MidBossBullets(game);game.OnGameEnd();printf("PASS %d stage-one midboss bullet checks\n",checks);return 0;}if(getenv("TH05_ENDING_ONLY")){SpeedModes(game);Scenes(game);Ranking(game);Routes(game);game.OnGameEnd();printf("PASS %d ending and ranking checks\n",checks);return 0;}if(getenv("TH05_RANKING_ONLY")){Ranking(game);game.OnGameEnd();printf("PASS %d ranking checks\n",checks);return 0;}if(getenv("TH05_RESULTS_ONLY")){Scenes(game);game.OnGameEnd();printf("PASS %d result localization checks\n",checks);return 0;}if(getenv("TH05_B4_LASER_ONLY")){Stage4LaserInterruption(game);game.OnGameEnd();printf("PASS %d dual-boss laser checks\n",checks);return 0;}if(getenv("TH05_DEMO_ONLY")){DemoSimulation(game);game.OnGameEnd();return 0;}Stage1MidBossBullets(game);Stage4LaserInterruption(game);SpeedModes(game);Scenes(game);Ranking(game);Routes(game);NativeIdle();Counters(game);DemoData(game);DemoOverlay(game);NativeMovement(game);NativeMechanics(game);NativeEnemies(game);NativeBeam(game);NativeBossMechanics(game);NativeSpecialMechanics(game);DemoSimulation(game);game.OnGameEnd();printf("PASS %d original-feature production checks\n",checks);return 0;}
 };int PracticeTests::checks=0;
 }
 int main(){return th5w::PracticeTests::Run();}
